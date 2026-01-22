@@ -3,7 +3,7 @@ agnosticdb = agnosticdb or {}
 agnosticdb.ui = agnosticdb.ui or {}
 
 local function prefix()
-  return "<0,200,200>[agnosticdb]<reset> "
+  return "<0,200,200>[agnosticdb]<r> "
 end
 
 local function echo_line(text)
