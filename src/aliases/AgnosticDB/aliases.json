@@ -120,6 +120,26 @@
               "isLua": "yes"
        },
        {
+              "name": "adb refresh",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+refresh$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.refresh_online() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb quick",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+quick$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.quick_update() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb ignore",
               "isActive": "yes",
               "isFolder": "no",

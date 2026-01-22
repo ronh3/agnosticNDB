@@ -14,6 +14,13 @@ function agnosticdb.iff.is_enemy(name)
   if person.iff == "enemy" then return true end
   if person.iff == "ally" then return false end
 
+  if type(person.enemy_city) == "string" and person.enemy_city ~= "" then
+    return true
+  end
+  if type(person.enemy_house) == "string" and person.enemy_house ~= "" then
+    return true
+  end
+
   local city = person.city
   if type(city) ~= "string" or city == "" then return false end
 

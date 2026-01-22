@@ -1,6 +1,8 @@
 [
        {"name": "Config", "isActive": "yes", "isFolder": "no"},
        {"name": "Db", "isActive": "yes", "isFolder": "no"},
+       {"name": "Enemies", "isActive": "yes", "isFolder": "no"},
+       {"name": "Lists", "isActive": "yes", "isFolder": "no"},
        {"name": "Api", "isActive": "yes", "isFolder": "no"},
        {"name": "Iff", "isActive": "yes", "isFolder": "no"},
        {"name": "Highlights", "isActive": "yes", "isFolder": "no"},

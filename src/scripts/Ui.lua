@@ -72,6 +72,8 @@ function agnosticdb.ui.show_help()
   entry("adb iff <name> enemy|ally|auto", "set friend/foe status")
   entry("adb whois <name>", "show stored data (fetch if needed)")
   entry("adb fetch [name]", "fetch online list or single person")
+  entry("adb refresh", "force refresh all online names")
+  entry("adb quick", "fetch online list (new names only)")
   entry("adb update", "refresh all known names")
   entry("adb stats", "counts by class/city")
   entry("adb ignore <name>", "toggle highlight ignore")
@@ -119,6 +121,12 @@ function agnosticdb.ui.show_person(name)
   echo_line(string.format("Class: %s", person.class ~= "" and person.class or "(unknown)"))
   echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
   echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
+  if person.enemy_city and person.enemy_city ~= "" then
+    echo_line(string.format("Enemied to City: %s", person.enemy_city))
+  end
+  if person.enemy_house and person.enemy_house ~= "" then
+    echo_line(string.format("Enemied to House: %s", person.enemy_house))
+  end
   echo_line(string.format("IFF: %s", person.iff or "auto"))
   if person.notes and person.notes ~= "" then
     echo_line("Notes:")
@@ -200,6 +208,42 @@ function agnosticdb.ui.fetch(name)
     end
 
     echo_line(string.format("Online list: %d names, %d added, %d queued.", #result.names, result.added, result.queued))
+    local eta = agnosticdb.api.estimate_queue_seconds(0)
+    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
+  end)
+end
+
+function agnosticdb.ui.refresh_online()
+  echo_line("Refreshing online list (force)...")
+  agnosticdb.api.on_queue_done = function(stats)
+    echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+      stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+  end
+  agnosticdb.api.fetch_online(function(result, status)
+    if status ~= "ok" then
+      echo_line(string.format("Refresh online failed (%s).", status or "unknown"))
+      return
+    end
+
+    echo_line(string.format("Online list: %d names, %d added, %d queued.", #result.names, result.added, result.queued))
+    local eta = agnosticdb.api.estimate_queue_seconds(0)
+    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
+  end, { force = true })
+end
+
+function agnosticdb.ui.quick_update()
+  echo_line("Fetching online list (new names only)...")
+  agnosticdb.api.on_queue_done = function(stats)
+    echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+      stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+  end
+  agnosticdb.api.fetch_online_new(function(result, status)
+    if status ~= "ok" then
+      echo_line(string.format("Quick update failed (%s).", status or "unknown"))
+      return
+    end
+
+    echo_line(string.format("Online list: %d names, %d new, %d queued.", #result.names, result.added, result.queued))
     local eta = agnosticdb.api.estimate_queue_seconds(0)
     echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
   end)

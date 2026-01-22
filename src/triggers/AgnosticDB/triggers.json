@@ -1,0 +1,102 @@
+[
+       {
+              "name": "City Enemies Start",
+              "isActive": "yes",
+              "isFolder": "no",
+              "multiline": "no",
+              "multilineDelta": "0",
+              "matchall": "no",
+              "filter": "no",
+              "fireLength": "0",
+              "highlight": "no",
+              "highlightFG": "#ff0000",
+              "highlightBG": "#ffff00",
+              "patterns": [
+                     {
+                            "pattern": "^Enemies of the City of (.+):\\s*$",
+                            "type": "regex"
+                     }
+              ],
+              "script": "if agnosticdb and agnosticdb.enemies then agnosticdb.enemies.capture_city(matches[2]) end"
+       },
+       {
+              "name": "House Enemies Start",
+              "isActive": "yes",
+              "isFolder": "no",
+              "multiline": "no",
+              "multilineDelta": "0",
+              "matchall": "no",
+              "filter": "no",
+              "fireLength": "0",
+              "highlight": "no",
+              "highlightFG": "#ff0000",
+              "highlightBG": "#ffff00",
+              "patterns": [
+                     {
+                            "pattern": "^Enemies of the (.+):\\s*$",
+                            "type": "regex"
+                     }
+              ],
+              "script": "if agnosticdb and agnosticdb.enemies then local org = matches[2]; if org and not org:find(\"^City of \") then agnosticdb.enemies.capture_house(org) end end"
+       },
+       {
+              "name": "Citizens Active Start",
+              "isActive": "yes",
+              "isFolder": "no",
+              "multiline": "no",
+              "multilineDelta": "0",
+              "matchall": "no",
+              "filter": "no",
+              "fireLength": "0",
+              "highlight": "no",
+              "highlightFG": "#ff0000",
+              "highlightBG": "#ffff00",
+              "patterns": [
+                     {
+                            "pattern": "^The following are ACTIVE citizens of (.+):\\s*$",
+                            "type": "regex"
+                     }
+              ],
+              "script": "if agnosticdb and agnosticdb.lists then agnosticdb.lists.capture_citizens_list(matches[2]) end"
+       },
+       {
+              "name": "Citizens Table Start",
+              "isActive": "yes",
+              "isFolder": "no",
+              "multiline": "no",
+              "multilineDelta": "0",
+              "matchall": "no",
+              "filter": "no",
+              "fireLength": "0",
+              "highlight": "no",
+              "highlightFG": "#ff0000",
+              "highlightBG": "#ffff00",
+              "patterns": [
+                     {
+                            "pattern": "^Citizen\\s+Rank\\s+CT\\s+Class\\s*$",
+                            "type": "regex"
+                     }
+              ],
+              "script": "if agnosticdb and agnosticdb.lists then agnosticdb.lists.capture_table(\"citizens\") end"
+       },
+       {
+              "name": "House Who Start",
+              "isActive": "yes",
+              "isFolder": "no",
+              "multiline": "no",
+              "multilineDelta": "0",
+              "matchall": "no",
+              "filter": "no",
+              "fireLength": "0",
+              "highlight": "no",
+              "highlightFG": "#ff0000",
+              "highlightBG": "#ffff00",
+              "patterns": [
+                     {
+                            "pattern": "^Member\\s+Rank\\s+HTell\\s+HNTell\\s+Probation\\s+Class\\s*$",
+                            "type": "regex"
+                     }
+              ],
+              "script": "if agnosticdb and agnosticdb.lists then agnosticdb.lists.capture_table(\"hwho\") end"
+       }
+]

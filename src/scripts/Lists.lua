@@ -1,0 +1,276 @@
+agnosticdb = agnosticdb or {}
+
+agnosticdb.lists = agnosticdb.lists or {}
+
+local function prefix()
+  return "<cyan>[agnosticdb]<reset> "
+end
+
+local function echo_line(text)
+  cecho(prefix() .. text .. "\n")
+end
+
+local function normalize_org(value)
+  if type(value) ~= "string" then return "" end
+  local trimmed = value:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed == "" then return "" end
+  return trimmed:gsub("(%a)([%w']*)", function(a, b)
+    return a:upper() .. b:lower()
+  end)
+end
+
+local function normalize_person_name(name)
+  if agnosticdb.db and agnosticdb.db.normalize_name then
+    return agnosticdb.db.normalize_name(name)
+  end
+  if type(name) ~= "string" or name == "" then return nil end
+  return name:sub(1, 1):upper() .. name:sub(2):lower()
+end
+
+local function titlecase_words(value)
+  if type(value) ~= "string" then return "" end
+  if value == "" then return "" end
+  return value:gsub("(%a)([%w']*)", function(a, b)
+    return a:upper() .. b:lower()
+  end)
+end
+
+local function parse_names_into(names, text)
+  if type(text) ~= "string" then return end
+  local trimmed = text:gsub("%s+$", "")
+  if trimmed == "" then return end
+
+  local lower = trimmed:lower()
+  if lower == "none" or lower == "none." then return end
+  if lower:find("^total:") then return end
+
+  for chunk in trimmed:gmatch("([^,]+)") do
+    local name = chunk:gsub("^%s+", ""):gsub("%s+$", "")
+    name = name:gsub("^and%s+", "")
+    name = name:gsub("%.$", "")
+    if name ~= "" then
+      local normalized = normalize_person_name(name)
+      if normalized then
+        names[normalized] = true
+      end
+    end
+  end
+end
+
+local function split_columns(text)
+  local cols = {}
+  local remaining = text
+  while true do
+    local s, e = remaining:find("%s%s+")
+    if not s then
+      local tail = remaining:gsub("%s+$", "")
+      if tail ~= "" then
+        cols[#cols + 1] = tail
+      end
+      break
+    end
+    local part = remaining:sub(1, s - 1):gsub("%s+$", "")
+    if part ~= "" then
+      cols[#cols + 1] = part
+    end
+    remaining = remaining:sub(e + 1)
+  end
+  return cols
+end
+
+local function extract_name(raw)
+  if type(raw) ~= "string" then return nil end
+  local trimmed = raw:gsub("%s+$", "")
+  if trimmed == "" then return nil end
+
+  local before_comma = trimmed:match("^(.-),")
+  if before_comma then
+    local last = before_comma:match("([%a']+)%s*$")
+    if last then
+      return normalize_person_name(last)
+    end
+  end
+
+  local words = {}
+  for word in trimmed:gmatch("[%a']+") do
+    words[#words + 1] = word
+  end
+
+  if #words == 1 then
+    return normalize_person_name(words[1])
+  end
+  if #words == 2 then
+    return normalize_person_name(words[2])
+  end
+
+  local match
+  if agnosticdb.db and agnosticdb.db.get_person then
+    for _, word in ipairs(words) do
+      local normalized = normalize_person_name(word)
+      if normalized and agnosticdb.db.get_person(normalized) then
+        if match and match ~= normalized then
+          return nil
+        end
+        match = normalized
+      end
+    end
+  end
+
+  return match
+end
+
+local function apply_citizens_list(city, names)
+  if not agnosticdb.db or not agnosticdb.db.people then
+    echo_line("Database not ready; citizens list not applied.")
+    return 0
+  end
+
+  local normalized_city = normalize_org(city)
+  if normalized_city == "" then
+    echo_line("Citizens list missing city name.")
+    return 0
+  end
+
+  local updated = 0
+  for name in pairs(names) do
+    local record = { name = name, city = normalized_city }
+    local existing = agnosticdb.db.get_person(name)
+    if not existing or existing.source == "" then
+      record.source = "citizens_list"
+    end
+    agnosticdb.db.upsert_person(record)
+    updated = updated + 1
+  end
+
+  return updated
+end
+
+local function parse_table_line(capture, text)
+  if text == "" then return end
+  if text:find("^%s*$") then return end
+  if text:find("^%s*%-+%s*$") then return end
+  if text:find("^Citizen%s+") or text:find("^Member%s+") then return end
+
+  local cols = split_columns(text)
+  if #cols < 2 then return end
+
+  local name_raw = cols[1]
+  local class_raw = cols[#cols]
+  if class_raw == "" or class_raw == "Class" then return end
+
+  local name = extract_name(name_raw)
+  if not name then
+    capture.skipped = capture.skipped + 1
+    return
+  end
+
+  local class = titlecase_words(class_raw)
+  agnosticdb.db.upsert_person({ name = name, class = class })
+  capture.updated = capture.updated + 1
+end
+
+function agnosticdb.lists.abort_capture()
+  local capture = agnosticdb.lists.capture
+  if not capture then return end
+  if capture.line_trigger then killTrigger(capture.line_trigger) end
+  if capture.prompt_trigger then killTrigger(capture.prompt_trigger) end
+  agnosticdb.lists.capture = nil
+end
+
+function agnosticdb.lists.finish_capture()
+  local capture = agnosticdb.lists.capture
+  if not capture then return end
+  if capture.line_trigger then killTrigger(capture.line_trigger) end
+  if capture.prompt_trigger then killTrigger(capture.prompt_trigger) end
+  agnosticdb.lists.capture = nil
+
+  if capture.kind == "citizens_list" then
+    local updated = apply_citizens_list(capture.city, capture.names or {})
+    local total = 0
+    for _ in pairs(capture.names or {}) do
+      total = total + 1
+    end
+    echo_line(string.format("Citizens list updated for %s: %d listed, %d set.", capture.city, total, updated))
+  elseif capture.kind == "table" then
+    echo_line(string.format("List capture (%s) complete: %d updated, %d skipped.", capture.label, capture.updated, capture.skipped))
+  end
+end
+
+function agnosticdb.lists.capture_citizens_list(city)
+  local normalized = normalize_org(city)
+  if normalized == "" then
+    echo_line("Citizens list missing city name.")
+    return
+  end
+
+  agnosticdb.lists.abort_capture()
+  local capture = {
+    kind = "citizens_list",
+    city = normalized,
+    names = {}
+  }
+  agnosticdb.lists.capture = capture
+
+  if type(tempRegexTrigger) ~= "function" then
+    echo_line("Mudlet temp triggers unavailable; cannot capture citizens list.")
+    agnosticdb.lists.capture = nil
+    return
+  end
+
+  capture.line_trigger = tempRegexTrigger("^.*$", function()
+    local text = line or ""
+    if text == "" then return end
+    if type(isPrompt) == "function" and isPrompt() then
+      agnosticdb.lists.finish_capture()
+      return
+    end
+    if text:find("^Total:%s*%d+") then
+      agnosticdb.lists.finish_capture()
+      return
+    end
+    parse_names_into(capture.names, text)
+  end)
+
+  if type(tempPromptTrigger) == "function" then
+    capture.prompt_trigger = tempPromptTrigger(function()
+      agnosticdb.lists.finish_capture()
+    end)
+  end
+
+  echo_line(string.format("Capturing active citizens for %s...", normalized))
+end
+
+function agnosticdb.lists.capture_table(label)
+  agnosticdb.lists.abort_capture()
+  local capture = {
+    kind = "table",
+    label = label or "who",
+    updated = 0,
+    skipped = 0
+  }
+  agnosticdb.lists.capture = capture
+
+  if type(tempRegexTrigger) ~= "function" then
+    echo_line("Mudlet temp triggers unavailable; cannot capture list table.")
+    agnosticdb.lists.capture = nil
+    return
+  end
+
+  capture.line_trigger = tempRegexTrigger("^.*$", function()
+    local text = line or ""
+    if text == "" then return end
+    if type(isPrompt) == "function" and isPrompt() then
+      agnosticdb.lists.finish_capture()
+      return
+    end
+    parse_table_line(capture, text)
+  end)
+
+  if type(tempPromptTrigger) == "function" then
+    capture.prompt_trigger = tempPromptTrigger(function()
+      agnosticdb.lists.finish_capture()
+    end)
+  end
+
+  echo_line(string.format("Capturing list table (%s)...", capture.label))
+end

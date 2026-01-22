@@ -34,6 +34,8 @@ function agnosticdb.db.init()
       class = "",
       city = "",
       house = "",
+      enemy_city = "",
+      enemy_house = "",
       title = "",
       notes = "",
       iff = "auto", -- enemy/ally/auto
@@ -58,6 +60,8 @@ function agnosticdb.db.init()
   local sample = rows[1]
   add_column_if_missing(sample, "notes", [[ALTER TABLE people ADD COLUMN "notes" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
+  add_column_if_missing(sample, "enemy_city", [[ALTER TABLE people ADD COLUMN "enemy_city" TEXT NULL DEFAULT ""]])
+  add_column_if_missing(sample, "enemy_house", [[ALTER TABLE people ADD COLUMN "enemy_house" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "city_rank", [[ALTER TABLE people ADD COLUMN "city_rank" INTEGER NULL DEFAULT -1]])
   add_column_if_missing(sample, "xp_rank", [[ALTER TABLE people ADD COLUMN "xp_rank" INTEGER NULL DEFAULT -1]])
   add_column_if_missing(sample, "immortal", [[ALTER TABLE people ADD COLUMN "immortal" INTEGER NULL DEFAULT 0]])

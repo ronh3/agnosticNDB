@@ -1,1 +1,8 @@
-[]
+[
+       {
+              "name": "AgnosticDB",
+              "isActive": "yes",
+              "isFolder": "yes",
+              "script": ""
+       }
+]

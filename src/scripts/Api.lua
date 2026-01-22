@@ -364,6 +364,30 @@ function agnosticdb.api.fetch_online(on_done, opts)
   end)
 end
 
+function agnosticdb.api.fetch_online_new(on_done, opts)
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      if type(on_done) == "function" then
+        on_done(nil, status)
+      end
+      return
+    end
+
+    local missing = {}
+    for _, name in ipairs(names) do
+      if not agnosticdb.db.get_person(name) then
+        missing[#missing + 1] = name
+      end
+    end
+
+    local added = agnosticdb.api.seed_names(missing, "api_list")
+    local queued = agnosticdb.api.queue_fetches(missing, opts or { force = true })
+    if type(on_done) == "function" then
+      on_done({ names = names, missing = missing, added = added, queued = queued }, "ok")
+    end
+  end)
+end
+
 function agnosticdb.api.update_all(on_done, opts)
   if not agnosticdb.db.people then
     if type(on_done) == "function" then
