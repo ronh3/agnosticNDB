@@ -3,7 +3,7 @@
        "title": "agnosticDB (Achaea Name Database)",
        "description": "Standalone name database for Mudlet and Achaea.",
        "version": "0.1.0",
-       "author": "ronh3",
+       "author": "Nikolais",
        "icon": "",
        "dependencies": "",
        "outputFile": false
