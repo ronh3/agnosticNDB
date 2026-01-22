@@ -10,6 +10,14 @@ local function echo_line(text)
   cecho(prefix() .. text .. "\n")
 end
 
+local function ensure_db_ready()
+  if agnosticdb.db and agnosticdb.db.people then return true end
+  if agnosticdb.db and agnosticdb.db.init then
+    agnosticdb.db.init()
+  end
+  return agnosticdb.db and agnosticdb.db.people ~= nil
+end
+
 local function normalize_org(value)
   if type(value) ~= "string" then return "" end
   local trimmed = value:gsub("^%s+", ""):gsub("%s+$", "")
@@ -58,9 +66,8 @@ local function count_names(names)
 end
 
 local function apply_city_list(city, names)
-  if not agnosticdb.db or not agnosticdb.db.people then
-    echo_line("Database not ready; city enemies not applied.")
-    return 0, 0
+  if not ensure_db_ready() then
+    return nil, nil, "db_unavailable"
   end
 
   local normalized_city = normalize_org(city)
@@ -97,9 +104,8 @@ local function apply_city_list(city, names)
 end
 
 local function apply_house_list(house, names)
-  if not agnosticdb.db or not agnosticdb.db.people then
-    echo_line("Database not ready; house enemies not applied.")
-    return 0, 0
+  if not ensure_db_ready() then
+    return nil, nil, "db_unavailable"
   end
 
   local normalized_house = normalize_org(house)
@@ -152,11 +158,19 @@ function agnosticdb.enemies.finish_capture()
 
   local names = capture.names or {}
   if capture.kind == "city" then
-    local updated, cleared = apply_city_list(capture.org, names)
+    local updated, cleared, err = apply_city_list(capture.org, names)
+    if err == "db_unavailable" then
+      echo_line("City enemies update skipped; database not ready.")
+      return
+    end
     local total = count_names(names)
     echo_line(string.format("City enemies updated for %s: %d listed, %d set, %d cleared.", capture.org, total, updated, cleared))
   elseif capture.kind == "house" then
-    local updated, cleared = apply_house_list(capture.org, names)
+    local updated, cleared, err = apply_house_list(capture.org, names)
+    if err == "db_unavailable" then
+      echo_line("House enemies update skipped; database not ready.")
+      return
+    end
     local total = count_names(names)
     echo_line(string.format("House enemies updated for %s: %d listed, %d set, %d cleared.", capture.org, total, updated, cleared))
   end

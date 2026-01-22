@@ -10,6 +10,14 @@ local function echo_line(text)
   cecho(prefix() .. text .. "\n")
 end
 
+local function ensure_db_ready()
+  if agnosticdb.db and agnosticdb.db.people then return true end
+  if agnosticdb.db and agnosticdb.db.init then
+    agnosticdb.db.init()
+  end
+  return agnosticdb.db and agnosticdb.db.people ~= nil
+end
+
 local function normalize_org(value)
   if type(value) ~= "string" then return "" end
   local trimmed = value:gsub("^%s+", ""):gsub("%s+$", "")
@@ -120,9 +128,8 @@ local function extract_name(raw)
 end
 
 local function apply_citizens_list(city, names)
-  if not agnosticdb.db or not agnosticdb.db.people then
-    echo_line("Database not ready; citizens list not applied.")
-    return 0
+  if not ensure_db_ready() then
+    return nil, "db_unavailable"
   end
 
   local normalized_city = normalize_org(city)
@@ -158,6 +165,11 @@ local function parse_table_line(capture, text)
   local class_raw = cols[#cols]
   if class_raw == "" or class_raw == "Class" then return end
 
+  if not ensure_db_ready() then
+    capture.skipped = capture.skipped + 1
+    return
+  end
+
   local name = extract_name(name_raw)
   if not name then
     capture.skipped = capture.skipped + 1
@@ -185,7 +197,11 @@ function agnosticdb.lists.finish_capture()
   agnosticdb.lists.capture = nil
 
   if capture.kind == "citizens_list" then
-    local updated = apply_citizens_list(capture.city, capture.names or {})
+    local updated, err = apply_citizens_list(capture.city, capture.names or {})
+    if err == "db_unavailable" then
+      echo_line("Citizens list update skipped; database not ready.")
+      return
+    end
     local total = 0
     for _ in pairs(capture.names or {}) do
       total = total + 1
