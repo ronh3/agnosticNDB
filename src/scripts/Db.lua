@@ -101,6 +101,11 @@ function agnosticdb.db.upsert_person(fields)
   end
 
   db:merge_unique(agnosticdb.db.people, {record})
+
+  local updated = agnosticdb.db.get_person(normalized)
+  if agnosticdb.highlights and agnosticdb.highlights.update then
+    agnosticdb.highlights.update(updated)
+  end
 end
 
 agnosticdb.db.normalize_name = normalize_name
@@ -110,4 +115,7 @@ function agnosticdb.db.delete_person(name)
   local normalized = normalize_name(name)
   if not normalized then return end
   db:delete(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, normalized))
+  if agnosticdb.highlights and agnosticdb.highlights.remove then
+    agnosticdb.highlights.remove(normalized)
+  end
 end

@@ -25,6 +25,9 @@ function agnosticdb.politics.set_city_relation(city, relation)
   agnosticdb.conf.politics = agnosticdb.conf.politics or {}
   agnosticdb.conf.politics[normalized] = relation
   agnosticdb.config.save()
+  if agnosticdb.highlights and agnosticdb.highlights.reload then
+    agnosticdb.highlights.reload()
+  end
 end
 
 function agnosticdb.politics.get_city_relation(city)
