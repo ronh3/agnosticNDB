@@ -120,6 +120,10 @@ function agnosticdb.ui.fetch(name)
   end
 
   echo_line("Fetching online list...")
+  agnosticdb.api.on_queue_done = function(stats)
+    echo_line(string.format("Queue complete: ok=%d cached=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+      stats.ok, stats.cached, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+  end
   agnosticdb.api.fetch_online(function(result, status)
     if status ~= "ok" then
       echo_line(string.format("Fetch online failed (%s).", status or "unknown"))
@@ -132,6 +136,10 @@ end
 
 function agnosticdb.ui.update_all()
   echo_line("Queueing updates for all known names...")
+  agnosticdb.api.on_queue_done = function(stats)
+    echo_line(string.format("Queue complete: ok=%d cached=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+      stats.ok, stats.cached, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+  end
   agnosticdb.api.update_all(function(result, status)
     if status ~= "ok" then
       echo_line(string.format("Update failed (%s).", status or "unknown"))

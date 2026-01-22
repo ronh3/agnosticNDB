@@ -463,10 +463,14 @@ local function start_queue()
   agnosticdb.api.queued = agnosticdb.api.queued or {}
   if agnosticdb.api.queue_running then return end
   agnosticdb.api.queue_running = true
+  agnosticdb.api.queue_stats = { ok = 0, cached = 0, api_error = 0, decode_failed = 0, download_error = 0, other = 0 }
 
   local function step()
     if #agnosticdb.api.queue == 0 then
       agnosticdb.api.queue_running = false
+      if type(agnosticdb.api.on_queue_done) == "function" then
+        agnosticdb.api.on_queue_done(agnosticdb.api.queue_stats)
+      end
       return
     end
 
@@ -534,7 +538,29 @@ function agnosticdb.api.fetch(name, on_done, opts)
     return
   end
 
-  enqueue_callback(normalized, on_done)
+  local function wrapped(person_result, status)
+    local stats = agnosticdb.api.queue_stats
+    if stats then
+      if status == "ok" then
+        stats.ok = stats.ok + 1
+      elseif status == "cached" then
+        stats.cached = stats.cached + 1
+      elseif status == "api_error" then
+        stats.api_error = stats.api_error + 1
+      elseif status == "decode_failed" then
+        stats.decode_failed = stats.decode_failed + 1
+      elseif status == "download_error" then
+        stats.download_error = stats.download_error + 1
+      else
+        stats.other = stats.other + 1
+      end
+    end
+    if type(on_done) == "function" then
+      on_done(person_result, status)
+    end
+  end
+
+  enqueue_callback(normalized, wrapped)
 
   agnosticdb.api.queue = agnosticdb.api.queue or {}
   agnosticdb.api.queued = agnosticdb.api.queued or {}
