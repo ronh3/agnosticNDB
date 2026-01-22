@@ -393,6 +393,33 @@ function agnosticdb.api.update_all(on_done, opts)
   end
 end
 
+function agnosticdb.api.estimate_queue_seconds(extra)
+  api_defaults()
+  local queue_len = 0
+  if agnosticdb.api.queue then
+    queue_len = #agnosticdb.api.queue
+  end
+  local total = queue_len + (extra or 0)
+  if total <= 0 then return 0 end
+
+  local base = total * agnosticdb.conf.api.min_interval_seconds
+  local now = os.time()
+  local delay = 0
+
+  local last = agnosticdb.api.last_request_time or 0
+  local since = now - last
+  if since < agnosticdb.conf.api.min_interval_seconds then
+    delay = agnosticdb.conf.api.min_interval_seconds - since
+  end
+
+  local backoff_until = agnosticdb.api.backoff_until or 0
+  if backoff_until > now then
+    delay = delay + (backoff_until - now)
+  end
+
+  return base + delay
+end
+
 local function perform_fetch(name)
   local person = agnosticdb.db.get_person(name)
 

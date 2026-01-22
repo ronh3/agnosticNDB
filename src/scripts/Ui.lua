@@ -10,6 +10,23 @@ local function echo_line(text)
   decho(prefix() .. text .. "\n")
 end
 
+local function format_eta(seconds)
+  if seconds <= 0 then return "now" end
+  local secs = math.floor(seconds)
+  local mins = math.floor(secs / 60)
+  secs = secs % 60
+  local hours = math.floor(mins / 60)
+  mins = mins % 60
+
+  if hours > 0 then
+    return string.format("%dh %dm %ds", hours, mins, secs)
+  end
+  if mins > 0 then
+    return string.format("%dm %ds", mins, secs)
+  end
+  return string.format("%ds", secs)
+end
+
 function agnosticdb.ui.show_help()
   echo_line("Commands:")
   echo_line("  adb politics")
@@ -117,6 +134,8 @@ end
 function agnosticdb.ui.fetch(name)
   if name and name ~= "" then
     agnosticdb.ui.fetch_and_show(name)
+    local eta = agnosticdb.api.estimate_queue_seconds(0)
+    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
     return
   end
 
@@ -132,6 +151,8 @@ function agnosticdb.ui.fetch(name)
     end
 
     echo_line(string.format("Online list: %d names, %d added, %d queued.", #result.names, result.added, result.queued))
+    local eta = agnosticdb.api.estimate_queue_seconds(0)
+    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
   end)
 end
 
@@ -148,6 +169,8 @@ function agnosticdb.ui.update_all()
     end
 
     echo_line(string.format("Queued %d updates (from %d names).", result.queued, result.count))
+    local eta = agnosticdb.api.estimate_queue_seconds(0)
+    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
   end, { force = true })
 end
 
