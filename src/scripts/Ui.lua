@@ -21,6 +21,7 @@ function agnosticdb.ui.show_help()
   echo_line("  adb whois <name>")
   echo_line("  adb fetch <name>")
   echo_line("  adb ignore <name>")
+  echo_line("  adbtest")
 end
 
 function agnosticdb.ui.show_politics()

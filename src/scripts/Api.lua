@@ -6,6 +6,10 @@ local function api_url(name)
   return string.format("https://api.achaea.com/characters/%s.json", name)
 end
 
+local function list_url()
+  return "https://api.achaea.com/characters.json"
+end
+
 local function decode_json(raw)
   if type(raw) ~= "string" then return nil end
   if json and type(json.decode) == "function" then
@@ -64,6 +68,86 @@ local function resolve_callbacks(name, payload, err)
     end
   end
   agnosticdb.api.inflight[name] = nil
+end
+
+local function extract_names(data)
+  if type(data) ~= "table" then return {} end
+
+  if type(data.characters) == "table" then data = data.characters end
+  if type(data.names) == "table" then data = data.names end
+  if type(data.list) == "table" then data = data.list end
+
+  local names = {}
+  local i = 1
+  while data[i] do
+    local entry = data[i]
+    if type(entry) == "string" then
+      names[#names + 1] = entry
+    elseif type(entry) == "table" and entry.name then
+      names[#names + 1] = entry.name
+    end
+    i = i + 1
+  end
+
+  return names
+end
+
+function agnosticdb.api.fetch_list(on_done)
+  api_defaults()
+  if not agnosticdb.conf.api.enabled then
+    if type(on_done) == "function" then
+      on_done(nil, "api_disabled")
+    end
+    return
+  end
+
+  agnosticdb.api.backoff_until = agnosticdb.api.backoff_until or 0
+  if os.time() < agnosticdb.api.backoff_until then
+    if type(on_done) == "function" then
+      on_done(nil, "backoff")
+    end
+    return
+  end
+
+  http_get(list_url(), function(body)
+    if type(body) ~= "string" or #body == 0 then
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      if type(on_done) == "function" then
+        on_done(nil, "empty_response")
+      end
+      return
+    end
+
+    local data = decode_json(body)
+    if type(data) ~= "table" then
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      if type(on_done) == "function" then
+        on_done(nil, "decode_failed")
+      end
+      return
+    end
+
+    local names = extract_names(data)
+    if type(on_done) == "function" then
+      on_done(names, "ok")
+    end
+  end)
+end
+
+function agnosticdb.api.seed_names(names, source)
+  if type(names) ~= "table" then return 0 end
+  local count = 0
+  for _, name in ipairs(names) do
+    if not agnosticdb.db.get_person(name) then
+      agnosticdb.db.upsert_person({
+        name = name,
+        source = source or "api_list",
+        last_checked = 0
+      })
+      count = count + 1
+    end
+  end
+  return count
 end
 
 function agnosticdb.api.fetch(name, on_done)

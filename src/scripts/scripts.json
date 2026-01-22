@@ -7,5 +7,6 @@
        {"name": "Politics", "isActive": "yes", "isFolder": "no"},
        {"name": "Notes", "isActive": "yes", "isFolder": "no"},
        {"name": "Ui", "isActive": "yes", "isFolder": "no"},
+       {"name": "Test", "isActive": "yes", "isFolder": "no"},
        {"name": "Init", "isActive": "yes", "isFolder": "no"}
 ]

@@ -108,5 +108,15 @@
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.toggle_ignore(matches[2]) end",
               "matchall": "no",
               "isLua": "yes"
+       },
+       {
+              "name": "adbtest",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adbtest$",
+              "script": "if agnosticdb and agnosticdb.test then agnosticdb.test.run() end",
+              "matchall": "no",
+              "isLua": "yes"
        }
 ]
