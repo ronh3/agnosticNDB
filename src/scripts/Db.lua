@@ -34,7 +34,6 @@ function agnosticdb.db.init()
       class = "",
       city = "",
       house = "",
-      ["order"] = "",
       title = "",
       notes = "",
       iff = "auto", -- enemy/ally/auto

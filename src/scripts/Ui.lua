@@ -119,7 +119,6 @@ function agnosticdb.ui.show_person(name)
   echo_line(string.format("Class: %s", person.class ~= "" and person.class or "(unknown)"))
   echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
   echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
-  echo_line(string.format("Order: %s", person.order ~= "" and person.order or "(unknown)"))
   echo_line(string.format("IFF: %s", person.iff or "auto"))
   if person.notes and person.notes ~= "" then
     echo_line("Notes:")
@@ -290,7 +289,7 @@ local function class_abbrev_map()
     Apostate = "APO",
     Bard = "BARD",
     Blademaster = "BM",
-    Depthswalker = "DSW",
+    Depthswalker = "DEP",
     Druid = "DRU",
     Infernal = "INF",
     Jester = "JEST",
