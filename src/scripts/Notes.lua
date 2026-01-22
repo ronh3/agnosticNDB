@@ -17,7 +17,7 @@ end
 
 function agnosticdb.notes.clear_all()
   if not agnosticdb.db.people then return 0 end
-  local rows = db:fetch(agnosticdb.db.people)
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
   if not rows or #rows == 0 then return 0 end
 
   local count = 0

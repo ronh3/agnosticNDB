@@ -298,7 +298,7 @@ function agnosticdb.ui.stats()
     return
   end
 
-  local rows = db:fetch(agnosticdb.db.people)
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
   if not rows or #rows == 0 then
     echo_line("Stats: no people in DB.")
     return

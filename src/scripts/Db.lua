@@ -2,6 +2,19 @@ agnosticdb = agnosticdb or {}
 
 agnosticdb.db = agnosticdb.db or {}
 
+local function db_prefix()
+  return "<cyan>[agnosticdb]<reset> "
+end
+
+local function report_db_error(err)
+  if agnosticdb.db.error_reported then return end
+  agnosticdb.db.error_reported = true
+  agnosticdb.db.disabled = true
+  cecho(db_prefix() .. "Database error detected; disabling DB features.\n")
+  cecho(db_prefix() .. string.format("Details: %s\n", tostring(err)))
+  cecho(db_prefix() .. "Delete the agnosticdb database in your Mudlet profile and reload.\n")
+end
+
 local function normalize_name(name)
   if type(name) ~= "string" then return nil end
   if #name == 0 then return nil end
@@ -11,6 +24,15 @@ end
 local function db_conn()
   if not db or not db.__conn then return nil end
   return db.__conn[agnosticdb.db.name:lower()]
+end
+
+local function safe_call(fn, ...)
+  local ok, result = pcall(fn, ...)
+  if not ok then
+    report_db_error(result)
+    return nil
+  end
+  return result
 end
 
 local function column_exists(column)
@@ -37,6 +59,21 @@ local function add_column_if_missing(row, column, sql)
   if not conn then return end
   conn:execute(sql)
   conn:commit()
+end
+
+function agnosticdb.db.ensure()
+  if agnosticdb.db.disabled then return false end
+  if agnosticdb.db.people then return true end
+  if agnosticdb.db.init then
+    agnosticdb.db.init()
+  end
+  return agnosticdb.db.people ~= nil and not agnosticdb.db.disabled
+end
+
+function agnosticdb.db.safe_fetch(tbl, clause)
+  if agnosticdb.db.disabled then return nil end
+  if not db or not tbl then return nil end
+  return safe_call(db.fetch, db, tbl, clause)
 end
 
 function agnosticdb.db.init()
@@ -69,10 +106,11 @@ function agnosticdb.db.init()
     }
   }
 
-  agnosticdb.db.handle = db:create("agnosticdb", agnosticdb.db.schema)
+  agnosticdb.db.handle = safe_call(db.create, db, "agnosticdb", agnosticdb.db.schema)
+  if not agnosticdb.db.handle then return end
   agnosticdb.db.people = agnosticdb.db.handle.people
 
-  local rows = db:fetch(agnosticdb.db.people)
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
   local sample = rows and rows[1] or nil
   add_column_if_missing(sample, "notes", [[ALTER TABLE people ADD COLUMN "notes" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
@@ -87,15 +125,15 @@ function agnosticdb.db.init()
 end
 
 function agnosticdb.db.get_person(name)
-  if not agnosticdb.db.people then return nil end
+  if not agnosticdb.db.ensure() then return nil end
   local normalized = normalize_name(name)
   if not normalized then return nil end
-  local rows = db:fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, normalized))
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, normalized))
   return rows and rows[1] or nil
 end
 
 function agnosticdb.db.upsert_person(fields)
-  if not agnosticdb.db.people or type(fields) ~= "table" then return end
+  if not agnosticdb.db.ensure() or type(fields) ~= "table" then return end
 
   local normalized = normalize_name(fields.name)
   if not normalized then return end
@@ -119,7 +157,7 @@ function agnosticdb.db.upsert_person(fields)
     record.last_checked = os.time()
   end
 
-  db:merge_unique(agnosticdb.db.people, {record})
+  safe_call(db.merge_unique, db, agnosticdb.db.people, {record})
 
   local updated = agnosticdb.db.get_person(normalized)
   if agnosticdb.highlights and agnosticdb.highlights.update then
@@ -130,10 +168,10 @@ end
 agnosticdb.db.normalize_name = normalize_name
 
 function agnosticdb.db.delete_person(name)
-  if not agnosticdb.db.people then return end
+  if not agnosticdb.db.ensure() then return end
   local normalized = normalize_name(name)
   if not normalized then return end
-  db:delete(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, normalized))
+  safe_call(db.delete, db, agnosticdb.db.people, db:eq(agnosticdb.db.people.name, normalized))
   if agnosticdb.highlights and agnosticdb.highlights.remove then
     agnosticdb.highlights.remove(normalized)
   end

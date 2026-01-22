@@ -396,7 +396,7 @@ function agnosticdb.api.update_all(on_done, opts)
     return
   end
 
-  local rows = db:fetch(agnosticdb.db.people)
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
   if not rows then
     if type(on_done) == "function" then
       on_done(nil, "db_empty")

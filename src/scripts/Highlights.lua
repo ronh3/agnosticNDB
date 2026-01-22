@@ -96,7 +96,7 @@ function agnosticdb.highlights.reload()
   if not agnosticdb.db.people then return end
 
   local ignored = highlight_ignore()
-  local rows = db:fetch(agnosticdb.db.people)
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
   if not rows then return end
 
   agnosticdb.highlights.ids = agnosticdb.highlights.ids or {}

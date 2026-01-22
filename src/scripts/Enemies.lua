@@ -77,7 +77,7 @@ local function apply_city_list(city, names)
   end
 
   local current = {}
-  local rows = db:fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.enemy_city, normalized_city))
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.enemy_city, normalized_city))
   if rows then
     for _, row in ipairs(rows) do
       if row.name and row.name ~= "" then
@@ -115,7 +115,7 @@ local function apply_house_list(house, names)
   end
 
   local current = {}
-  local rows = db:fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.enemy_house, normalized_house))
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.enemy_house, normalized_house))
   if rows then
     for _, row in ipairs(rows) do
       if row.name and row.name ~= "" then
