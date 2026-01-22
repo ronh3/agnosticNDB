@@ -10,6 +10,13 @@ local function echo_line(text)
   decho(prefix() .. text .. "\n")
 end
 
+local function display_name(name)
+  if agnosticdb and agnosticdb.db and agnosticdb.db.normalize_name then
+    return agnosticdb.db.normalize_name(name) or name
+  end
+  return name
+end
+
 local function format_eta(seconds)
   if seconds <= 0 then return "now" end
   local secs = math.floor(seconds)
@@ -90,11 +97,12 @@ function agnosticdb.ui.show_politics()
 end
 
 function agnosticdb.ui.show_person(name)
+  local shown_name = display_name(name)
   local person = agnosticdb.db.get_person(name)
   if not person then
     agnosticdb.api.fetch(name, function(fetched, status)
       if not fetched then
-        echo_line(string.format("No data for %s (%s).", name, status or "unknown"))
+        echo_line(string.format("No data for %s (%s).", shown_name, status or "unknown"))
         return
       end
       echo_line(string.format("Fetch status: %s", status or "ok"))
@@ -104,10 +112,10 @@ function agnosticdb.ui.show_person(name)
   end
 
   echo_line(string.format("Name: %s", person.name))
-  echo_line(string.format("Class: %s", person.class or ""))
-  echo_line(string.format("City: %s", person.city or ""))
-  echo_line(string.format("House: %s", person.house or ""))
-  echo_line(string.format("Order: %s", person.order or ""))
+  echo_line(string.format("Class: %s", person.class ~= "" and person.class or "(unknown)"))
+  echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
+  echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
+  echo_line(string.format("Order: %s", person.order ~= "" and person.order or "(unknown)"))
   echo_line(string.format("IFF: %s", person.iff or "auto"))
   if person.notes and person.notes ~= "" then
     echo_line("Notes:")
@@ -117,31 +125,32 @@ end
 
 function agnosticdb.ui.set_note(name, notes)
   agnosticdb.notes.set(name, notes)
-  echo_line(string.format("Notes saved for %s.", name))
+  echo_line(string.format("Notes saved for %s.", display_name(name)))
 end
 
 function agnosticdb.ui.show_note(name)
   local note = agnosticdb.notes.get(name)
   if not note or note == "" then
-    echo_line(string.format("No notes for %s.", name))
+    echo_line(string.format("No notes for %s.", display_name(name)))
     return
   end
-  echo_line(string.format("Notes for %s:", name))
+  echo_line(string.format("Notes for %s:", display_name(name)))
   echo_line(note)
 end
 
 function agnosticdb.ui.set_iff(name, status)
   agnosticdb.iff.set(name, status)
-  echo_line(string.format("IFF for %s set to %s.", name, status))
+  echo_line(string.format("IFF for %s set to %s.", display_name(name), status))
 end
 
 function agnosticdb.ui.toggle_ignore(name)
+  local shown_name = display_name(name)
   if agnosticdb.highlights.is_ignored(name) then
     agnosticdb.highlights.unignore(name)
-    echo_line(string.format("%s removed from highlight ignore list.", name))
+    echo_line(string.format("%s removed from highlight ignore list.", shown_name))
   else
     agnosticdb.highlights.ignore(name)
-    echo_line(string.format("%s added to highlight ignore list.", name))
+    echo_line(string.format("%s added to highlight ignore list.", shown_name))
   end
   agnosticdb.highlights.reload()
 end
@@ -149,7 +158,7 @@ end
 function agnosticdb.ui.fetch_and_show(name)
   agnosticdb.api.fetch(name, function(person, status)
     if not person then
-      echo_line(string.format("Fetch failed for %s (%s).", name, status or "unknown"))
+      echo_line(string.format("Fetch failed for %s (%s).", display_name(name), status or "unknown"))
       return
     end
     echo_line(string.format("Fetch status: %s", status or "ok"))
