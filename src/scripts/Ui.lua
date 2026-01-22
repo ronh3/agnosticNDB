@@ -28,19 +28,46 @@ local function format_eta(seconds)
 end
 
 function agnosticdb.ui.show_help()
-  echo_line("Commands:")
-  echo_line("  adb politics")
-  echo_line("  adb highlights on|off")
-  echo_line("  adb highlights reload|clear")
-  echo_line("  adb note <name> <notes>")
-  echo_line("  adb note <name>")
-  echo_line("  adb iff <name> enemy|ally|auto")
-  echo_line("  adb whois <name>")
-  echo_line("  adb fetch [name]")
-  echo_line("  adb update")
-  echo_line("  adb stats")
-  echo_line("  adb ignore <name>")
-  echo_line("  adbtest")
+  local accent = "<0,200,200>"
+  local text = "<white>"
+  local border = "<grey>"
+  local reset = "<r>"
+  local cmd_pad = 24
+  local header = "agnosticDB Help"
+
+  local function emit(raw)
+    decho(raw .. "\n")
+  end
+
+  local function line()
+    emit(border .. string.rep("-", 70) .. reset)
+  end
+
+  local function header_line()
+    emit(border .. "+ " .. accent .. header .. border .. " +" .. reset)
+  end
+
+  local function entry(cmd, desc)
+    emit(string.format("%s%-24s%s | %s%s%s", accent, cmd, reset, text, desc, reset))
+  end
+
+  line()
+  header_line()
+  line()
+  entry("adb politics", "show politics menu")
+  entry("adb highlights on|off", "toggle highlights")
+  entry("adb highlights reload", "rebuild highlight triggers")
+  entry("adb highlights clear", "remove all highlight triggers")
+  entry("adb note <name> <notes>", "set notes")
+  entry("adb note <name>", "show notes")
+  entry("adb iff <name> enemy|ally|auto", "set friend/foe status")
+  entry("adb whois <name>", "show stored data (fetch if needed)")
+  entry("adb fetch [name]", "fetch online list or single person")
+  entry("adb update", "refresh all known names")
+  entry("adb stats", "counts by class/city")
+  entry("adb ignore <name>", "toggle highlight ignore")
+  entry("adbtest", "run self-test")
+  line()
 end
 
 function agnosticdb.ui.show_politics()
