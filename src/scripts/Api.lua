@@ -24,6 +24,30 @@ local function strip_headers(raw)
   return body or raw
 end
 
+local function cache_dir()
+  return getMudletHomeDir() .. "/agnosticdb"
+end
+
+local function ensure_cache_dir()
+  if not lfs then return end
+  local dir = cache_dir()
+  if not lfs.attributes(dir) then
+    lfs.mkdir(dir)
+  end
+end
+
+local function list_cache_path()
+  return cache_dir() .. "/characters.json"
+end
+
+local function read_file(path)
+  local handle = io.open(path, "rb")
+  if not handle then return nil end
+  local content = handle:read("*all")
+  handle:close()
+  return content
+end
+
 local function pick_body(a, b, c)
   local candidates = {a, b, c}
   local fallback
@@ -155,28 +179,77 @@ function agnosticdb.api.fetch_list(on_done)
     return
   end
 
-  http_get(list_url(), function(body)
+  local function finish_list(body)
     if type(body) ~= "string" or #body == 0 then
-      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-      if type(on_done) == "function" then
-        on_done(nil, "empty_response")
-      end
-      return
+      return nil, "empty_response"
     end
 
     local data = decode_json(body)
     if type(data) ~= "table" then
-      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      return nil, "decode_failed"
+    end
+
+    return extract_names(data), "ok"
+  end
+
+  local function try_download_fallback()
+    if type(downloadFile) ~= "function" then
       if type(on_done) == "function" then
         on_done(nil, "decode_failed")
       end
       return
     end
 
-    local names = extract_names(data)
-    if type(on_done) == "function" then
-      on_done(names, "ok")
+    if agnosticdb.api.list_download_inflight then
+      if type(on_done) == "function" then
+        on_done(nil, "download_inflight")
+      end
+      return
     end
+
+    ensure_cache_dir()
+    local path = list_cache_path()
+    agnosticdb.api.list_download_inflight = true
+
+    local done_handler
+    local error_handler
+
+    done_handler = registerAnonymousEventHandler("sysDownloadDone", function(_, file)
+      if file ~= path then return end
+      killAnonymousEventHandler(done_handler)
+      killAnonymousEventHandler(error_handler)
+      agnosticdb.api.list_download_inflight = nil
+
+      local content = read_file(path)
+      local names, status = finish_list(content)
+      if type(on_done) == "function" then
+        on_done(names, status)
+      end
+    end)
+
+    error_handler = registerAnonymousEventHandler("sysDownloadError", function(_, file, err)
+      if file ~= path then return end
+      killAnonymousEventHandler(done_handler)
+      killAnonymousEventHandler(error_handler)
+      agnosticdb.api.list_download_inflight = nil
+      if type(on_done) == "function" then
+        on_done(nil, err or "download_error")
+      end
+    end)
+
+    downloadFile(path, list_url())
+  end
+
+  http_get(list_url(), function(body)
+    local names, status = finish_list(body)
+    if status == "ok" then
+      if type(on_done) == "function" then
+        on_done(names, "ok")
+      end
+      return
+    end
+
+    try_download_fallback()
   end)
 end
 
