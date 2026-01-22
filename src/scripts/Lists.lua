@@ -92,23 +92,10 @@ local function extract_name(raw)
   if trimmed == "" then return nil end
 
   local before_comma = trimmed:match("^(.-),")
-  if before_comma then
-    local last = before_comma:match("([%a']+)%s*$")
-    if last then
-      return normalize_person_name(last)
-    end
-  end
-
+  local base = before_comma or trimmed
   local words = {}
-  for word in trimmed:gmatch("[%a']+") do
+  for word in base:gmatch("[%a']+") do
     words[#words + 1] = word
-  end
-
-  if #words == 1 then
-    return normalize_person_name(words[1])
-  end
-  if #words == 2 then
-    return normalize_person_name(words[2])
   end
 
   local match
@@ -124,7 +111,16 @@ local function extract_name(raw)
     end
   end
 
-  return match
+  if match then return match end
+
+  if #words == 1 then
+    return normalize_person_name(words[1])
+  end
+  if #words == 2 then
+    return normalize_person_name(words[2])
+  end
+
+  return nil
 end
 
 local function apply_citizens_list(city, names)

@@ -79,6 +79,7 @@ function agnosticdb.ui.show_help()
   entry("adb ignore <name>", "toggle highlight ignore")
   entry("adb dbcheck", "check database health")
   entry("adb dbreset", "reset database (drops people table)")
+  entry("adb forget <name>", "remove a person from the database")
   entry("adbtest", "run self-test")
   entry("qwp", "online list grouped by city")
   entry("qwpc", "online list grouped by city + class")
@@ -266,6 +267,15 @@ function agnosticdb.ui.db_reset()
   end
 
   echo_line("Database reset complete.")
+end
+
+function agnosticdb.ui.forget(name)
+  if not name or name == "" then
+    echo_line("Provide a name to remove.")
+    return
+  end
+  agnosticdb.db.delete_person(name)
+  echo_line(string.format("Removed %s from the database.", display_name(name)))
 end
 
 function agnosticdb.ui.quick_update()
