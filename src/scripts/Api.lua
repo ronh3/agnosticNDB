@@ -117,6 +117,7 @@ local function api_defaults()
   if agnosticdb.conf.api.enabled == nil then agnosticdb.conf.api.enabled = true end
   agnosticdb.conf.api.min_refresh_hours = agnosticdb.conf.api.min_refresh_hours or 24
   agnosticdb.conf.api.backoff_seconds = agnosticdb.conf.api.backoff_seconds or 30
+  agnosticdb.conf.api.min_interval_seconds = agnosticdb.conf.api.min_interval_seconds or 2
 end
 
 local function should_refresh(person)
@@ -306,6 +307,145 @@ function agnosticdb.api.seed_names(names, source)
   return count
 end
 
+local function perform_fetch(name)
+  local person = agnosticdb.db.get_person(name)
+
+  local function resolve_record(data)
+    local record = {
+      name = data.name or name,
+      class = data.class or "",
+      city = data.city or "",
+      house = data.house or "",
+      title = data.fullname or "",
+      xp_rank = data.xp_rank or -1,
+      source = "api",
+      last_checked = os.time()
+    }
+
+    agnosticdb.db.upsert_person(record)
+    resolve_callbacks(name, agnosticdb.db.get_person(name), "ok")
+  end
+
+  local function download_fallback()
+    if type(downloadFile) ~= "function" then
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      resolve_callbacks(name, person, "decode_failed")
+      return
+    end
+
+    agnosticdb.api.download_inflight = agnosticdb.api.download_inflight or {}
+    if agnosticdb.api.download_inflight[name] then return end
+    agnosticdb.api.download_inflight[name] = true
+
+    ensure_cache_dir()
+    ensure_chars_dir()
+    local path = chars_dir() .. "/" .. name .. ".json"
+
+    local done_handler
+    local error_handler
+
+    done_handler = registerAnonymousEventHandler("sysDownloadDone", function(_, file)
+      if file ~= path then return end
+      killAnonymousEventHandler(done_handler)
+      killAnonymousEventHandler(error_handler)
+      agnosticdb.api.download_inflight[name] = nil
+
+      local content = read_file(path)
+      if is_api_error_body(content) then
+        agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+        resolve_callbacks(name, person, "api_error")
+        return
+      end
+      local data = decode_json(content)
+      if type(data) ~= "table" then
+        agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+        resolve_callbacks(name, person, "decode_failed")
+        return
+      end
+
+      resolve_record(data)
+    end)
+
+    error_handler = registerAnonymousEventHandler("sysDownloadError", function(_, file, err)
+      if file ~= path then return end
+      killAnonymousEventHandler(done_handler)
+      killAnonymousEventHandler(error_handler)
+      agnosticdb.api.download_inflight[name] = nil
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      resolve_callbacks(name, person, err or "download_error")
+    end)
+
+    downloadFile(path, api_url(name))
+  end
+
+  http_get(api_url(name), function(body, code)
+    if type(body) ~= "string" or #body == 0 then
+      download_fallback()
+      return
+    end
+
+    if is_api_error_body(body) then
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      resolve_callbacks(name, person, "api_error")
+      return
+    end
+
+    local data = decode_json(body)
+    if type(data) ~= "table" then
+      download_fallback()
+      return
+    end
+
+    resolve_record(data)
+  end)
+end
+
+local function start_queue()
+  agnosticdb.api.queue = agnosticdb.api.queue or {}
+  agnosticdb.api.queued = agnosticdb.api.queued or {}
+  if agnosticdb.api.queue_running then return end
+  agnosticdb.api.queue_running = true
+
+  local function step()
+    if #agnosticdb.api.queue == 0 then
+      agnosticdb.api.queue_running = false
+      return
+    end
+
+    agnosticdb.api.backoff_until = agnosticdb.api.backoff_until or 0
+    local now = os.time()
+    local delay = 0
+
+    local last = agnosticdb.api.last_request_time or 0
+    local since = now - last
+    if since < agnosticdb.conf.api.min_interval_seconds then
+      delay = agnosticdb.conf.api.min_interval_seconds - since
+    end
+
+    if agnosticdb.api.backoff_until > now then
+      local backoff_delay = agnosticdb.api.backoff_until - now
+      if backoff_delay > delay then delay = backoff_delay end
+    end
+
+    if delay > 0 then
+      tempTimer(delay, step)
+      return
+    end
+
+    local next_name = table.remove(agnosticdb.api.queue, 1)
+    agnosticdb.api.queued[next_name] = nil
+    agnosticdb.api.last_request_time = os.time()
+
+    if next_name then
+      perform_fetch(next_name)
+    end
+
+    tempTimer(0, step)
+  end
+
+  step()
+end
+
 function agnosticdb.api.fetch(name, on_done)
   api_defaults()
   if not agnosticdb.conf.api.enabled then
@@ -331,14 +471,6 @@ function agnosticdb.api.fetch(name, on_done)
     return
   end
 
-  agnosticdb.api.backoff_until = agnosticdb.api.backoff_until or 0
-  if os.time() < agnosticdb.api.backoff_until then
-    if type(on_done) == "function" then
-      on_done(person, "backoff")
-    end
-    return
-  end
-
   if agnosticdb.api.inflight and agnosticdb.api.inflight[normalized] then
     enqueue_callback(normalized, on_done)
     return
@@ -346,94 +478,14 @@ function agnosticdb.api.fetch(name, on_done)
 
   enqueue_callback(normalized, on_done)
 
-  local function resolve_record(data)
-    local record = {
-      name = data.name or normalized,
-      class = data.class or "",
-      city = data.city or "",
-      house = data.house or "",
-      title = data.fullname or "",
-      xp_rank = data.xp_rank or -1,
-      source = "api",
-      last_checked = os.time()
-    }
-
-    agnosticdb.db.upsert_person(record)
-    resolve_callbacks(normalized, agnosticdb.db.get_person(normalized), "ok")
+  agnosticdb.api.queue = agnosticdb.api.queue or {}
+  agnosticdb.api.queued = agnosticdb.api.queued or {}
+  if not agnosticdb.api.queued[normalized] then
+    table.insert(agnosticdb.api.queue, normalized)
+    agnosticdb.api.queued[normalized] = true
   end
 
-  local function download_fallback()
-    if type(downloadFile) ~= "function" then
-      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-      resolve_callbacks(normalized, person, "decode_failed")
-      return
-    end
-
-    agnosticdb.api.download_inflight = agnosticdb.api.download_inflight or {}
-    if agnosticdb.api.download_inflight[normalized] then return end
-    agnosticdb.api.download_inflight[normalized] = true
-
-    ensure_cache_dir()
-    ensure_chars_dir()
-    local path = chars_dir() .. "/" .. normalized .. ".json"
-
-    local done_handler
-    local error_handler
-
-    done_handler = registerAnonymousEventHandler("sysDownloadDone", function(_, file)
-      if file ~= path then return end
-      killAnonymousEventHandler(done_handler)
-      killAnonymousEventHandler(error_handler)
-      agnosticdb.api.download_inflight[normalized] = nil
-
-      local content = read_file(path)
-      if is_api_error_body(content) then
-        agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-        resolve_callbacks(normalized, person, "api_error")
-        return
-      end
-      local data = decode_json(content)
-      if type(data) ~= "table" then
-        agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-        resolve_callbacks(normalized, person, "decode_failed")
-        return
-      end
-
-      resolve_record(data)
-    end)
-
-    error_handler = registerAnonymousEventHandler("sysDownloadError", function(_, file, err)
-      if file ~= path then return end
-      killAnonymousEventHandler(done_handler)
-      killAnonymousEventHandler(error_handler)
-      agnosticdb.api.download_inflight[normalized] = nil
-      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-      resolve_callbacks(normalized, person, err or "download_error")
-    end)
-
-    downloadFile(path, api_url(normalized))
-  end
-
-  http_get(api_url(normalized), function(body, code)
-    if type(body) ~= "string" or #body == 0 then
-      download_fallback()
-      return
-    end
-
-    if is_api_error_body(body) then
-      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-      resolve_callbacks(normalized, person, "api_error")
-      return
-    end
-
-    local data = decode_json(body)
-    if type(data) ~= "table" then
-      download_fallback()
-      return
-    end
-
-    resolve_record(data)
-  end)
+  start_queue()
 end
 
 agnosticdb.api.url_for = api_url
