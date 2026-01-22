@@ -10,17 +10,28 @@ local function list_url()
   return "https://api.achaea.com/characters.json"
 end
 
+local function trim_left(raw)
+  return (raw:gsub("^%s+", ""))
+end
+
 local function decode_json(raw)
   if type(raw) ~= "string" then return nil end
+  local trimmed = trim_left(raw)
+  local lead = trimmed:sub(1, 1)
+  if lead ~= "{" and lead ~= "[" then return nil end
+
   if json and type(json.decode) == "function" then
-    return json.decode(raw)
+    local ok, value = pcall(json.decode, raw)
+    if ok then return value end
   end
   if yajl and type(yajl.to_value) == "function" then
-    return yajl.to_value(raw)
+    local ok, value = pcall(yajl.to_value, raw)
+    if ok then return value end
   end
   local ok, dk = pcall(require, "dkjson")
   if ok and dk and type(dk.decode) == "function" then
-    return dk.decode(raw)
+    local ok_decode, value = pcall(dk.decode, raw)
+    if ok_decode then return value end
   end
   return nil
 end
