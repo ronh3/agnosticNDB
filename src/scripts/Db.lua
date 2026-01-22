@@ -70,10 +70,104 @@ function agnosticdb.db.ensure()
   return agnosticdb.db.people ~= nil and not agnosticdb.db.disabled
 end
 
+local function table_exists()
+  local conn = db_conn()
+  if not conn then return false end
+  local cursor = conn:execute("SELECT name FROM sqlite_master WHERE type='table' AND name='people'")
+  if not cursor then return false end
+  local row = cursor:fetch({}, "a")
+  if cursor.close then cursor:close() end
+  return row and row.name == "people"
+end
+
+local function required_columns()
+  return {
+    "name",
+    "class",
+    "city",
+    "house",
+    "enemy_city",
+    "enemy_house",
+    "title",
+    "notes",
+    "iff",
+    "city_rank",
+    "xp_rank",
+    "immortal",
+    "dragon",
+    "last_checked",
+    "source"
+  }
+end
+
 function agnosticdb.db.safe_fetch(tbl, clause)
   if agnosticdb.db.disabled then return nil end
   if not db or not tbl then return nil end
   return safe_call(db.fetch, db, tbl, clause)
+end
+
+function agnosticdb.db.check()
+  agnosticdb.db.disabled = false
+  agnosticdb.db.error_reported = false
+
+  if not db then
+    return false, {"Mudlet DB API unavailable."}
+  end
+
+  if not agnosticdb.db.ensure() then
+    return false, {"Failed to initialize agnosticdb database."}
+  end
+
+  if not table_exists() then
+    return false, {"Missing people table.", "Run adb dbreset or delete the DB file."}
+  end
+
+  local missing = {}
+  for _, column in ipairs(required_columns()) do
+    if not column_exists(column) then
+      missing[#missing + 1] = column
+    end
+  end
+
+  if #missing > 0 then
+    return false, {"Missing columns: " .. table.concat(missing, ", "), "Run adb dbreset to rebuild schema."}
+  end
+
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  if agnosticdb.db.disabled then
+    return false, {"Database query failed. Run adb dbreset or delete the DB file."}
+  end
+
+  return true, {"Schema OK.", string.format("Rows: %d", rows and #rows or 0)}
+end
+
+function agnosticdb.db.reset()
+  agnosticdb.db.disabled = false
+  agnosticdb.db.error_reported = false
+
+  if not db then
+    return false, "Mudlet DB API unavailable."
+  end
+
+  local conn = db_conn()
+  if not conn then
+    return false, "DB connection unavailable."
+  end
+
+  local ok, err = pcall(conn.execute, conn, "DROP TABLE IF EXISTS people")
+  if not ok then
+    return false, err
+  end
+  if conn.commit then conn:commit() end
+
+  agnosticdb.db.handle = nil
+  agnosticdb.db.people = nil
+  agnosticdb.db.init()
+  if not agnosticdb.db.people then
+    return false, "DB re-init failed."
+  end
+
+  return true
 end
 
 function agnosticdb.db.init()

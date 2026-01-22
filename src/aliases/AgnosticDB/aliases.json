@@ -160,6 +160,26 @@
               "isLua": "yes"
        },
        {
+              "name": "adb dbcheck",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+dbcheck$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.db_check() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb dbreset",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+dbreset$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.db_reset() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb stats",
               "isActive": "yes",
               "isFolder": "no",

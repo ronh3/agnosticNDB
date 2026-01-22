@@ -77,6 +77,8 @@ function agnosticdb.ui.show_help()
   entry("adb update", "refresh all known names")
   entry("adb stats", "counts by class/city")
   entry("adb ignore <name>", "toggle highlight ignore")
+  entry("adb dbcheck", "check database health")
+  entry("adb dbreset", "reset database (drops people table)")
   entry("adbtest", "run self-test")
   entry("qwp", "online list grouped by city")
   entry("qwpc", "online list grouped by city + class")
@@ -229,6 +231,41 @@ function agnosticdb.ui.refresh_online()
     local eta = agnosticdb.api.estimate_queue_seconds(0)
     echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
   end, { force = true })
+end
+
+function agnosticdb.ui.db_check()
+  local ok, info = agnosticdb.db.check()
+  if ok then
+    echo_line("Database check: OK.")
+  else
+    echo_line("Database check: issues found.")
+  end
+  if type(info) == "table" then
+    for _, line in ipairs(info) do
+      echo_line("  " .. line)
+    end
+  elseif type(info) == "string" then
+    echo_line("  " .. info)
+  end
+end
+
+function agnosticdb.ui.db_reset()
+  echo_line("Resetting database...")
+  local ok, err = agnosticdb.db.reset()
+  if not ok then
+    echo_line(string.format("Database reset failed: %s", err or "unknown"))
+    echo_line("Delete the agnosticdb database file and reload.")
+    return
+  end
+
+  if agnosticdb.highlights and agnosticdb.highlights.clear then
+    agnosticdb.highlights.clear()
+  end
+  if agnosticdb.highlights and agnosticdb.highlights.reload then
+    agnosticdb.highlights.reload()
+  end
+
+  echo_line("Database reset complete.")
 end
 
 function agnosticdb.ui.quick_update()
