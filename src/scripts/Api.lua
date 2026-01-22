@@ -24,6 +24,15 @@ local function strip_headers(raw)
   return body or raw
 end
 
+local function is_api_error_body(raw)
+  if type(raw) ~= "string" then return false end
+  local trimmed = trim_left(strip_headers(raw))
+  if trimmed:find("Internal error", 1, true) then return true end
+  if trimmed:find("<!DOCTYPE", 1, true) then return true end
+  if trimmed:find("<html", 1, true) then return true end
+  return false
+end
+
 local function cache_dir()
   return getMudletHomeDir() .. "/agnosticdb"
 end
@@ -196,6 +205,10 @@ function agnosticdb.api.fetch_list(on_done)
       return nil, "empty_response"
     end
 
+    if is_api_error_body(body) then
+      return nil, "api_error"
+    end
+
     local data = decode_json(body)
     if type(data) ~= "table" then
       return nil, "decode_failed"
@@ -234,6 +247,13 @@ function agnosticdb.api.fetch_list(on_done)
       agnosticdb.api.list_download_inflight = nil
 
       local content = read_file(path)
+      if is_api_error_body(content) then
+        agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+        if type(on_done) == "function" then
+          on_done(nil, "api_error")
+        end
+        return
+      end
       local names, status = finish_list(content)
       if status ~= "ok" then
         agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
@@ -367,6 +387,11 @@ function agnosticdb.api.fetch(name, on_done)
       agnosticdb.api.download_inflight[normalized] = nil
 
       local content = read_file(path)
+      if is_api_error_body(content) then
+        agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+        resolve_callbacks(normalized, person, "api_error")
+        return
+      end
       local data = decode_json(content)
       if type(data) ~= "table" then
         agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
@@ -392,6 +417,12 @@ function agnosticdb.api.fetch(name, on_done)
   http_get(api_url(normalized), function(body, code)
     if type(body) ~= "string" or #body == 0 then
       download_fallback()
+      return
+    end
+
+    if is_api_error_body(body) then
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      resolve_callbacks(normalized, person, "api_error")
       return
     end
 
