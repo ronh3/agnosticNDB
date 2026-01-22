@@ -21,6 +21,7 @@ function agnosticdb.ui.show_help()
   echo_line("  adb whois <name>")
   echo_line("  adb fetch [name]")
   echo_line("  adb update")
+  echo_line("  adb stats")
   echo_line("  adb ignore <name>")
   echo_line("  adbtest")
 end
@@ -148,4 +149,48 @@ function agnosticdb.ui.update_all()
 
     echo_line(string.format("Queued %d updates (from %d names).", result.queued, result.count))
   end, { force = true })
+end
+
+local function sorted_keys(map)
+  local keys = {}
+  for k, _ in pairs(map) do
+    keys[#keys + 1] = k
+  end
+  table.sort(keys)
+  return keys
+end
+
+function agnosticdb.ui.stats()
+  if not agnosticdb.db.people then
+    echo_line("Stats unavailable (DB not initialized).")
+    return
+  end
+
+  local rows = db:fetch(agnosticdb.db.people)
+  if not rows or #rows == 0 then
+    echo_line("Stats: no people in DB.")
+    return
+  end
+
+  local by_class = {}
+  local by_city = {}
+
+  for _, row in ipairs(rows) do
+    local class = row.class or ""
+    local city = row.city or ""
+    if class == "" then class = "(unknown)" end
+    if city == "" then city = "(unknown)" end
+    by_class[class] = (by_class[class] or 0) + 1
+    by_city[city] = (by_city[city] or 0) + 1
+  end
+
+  echo_line(string.format("Stats: %d people total", #rows))
+  echo_line("By class:")
+  for _, key in ipairs(sorted_keys(by_class)) do
+    echo_line(string.format("  %s: %d", key, by_class[key]))
+  end
+  echo_line("By city:")
+  for _, key in ipairs(sorted_keys(by_city)) do
+    echo_line(string.format("  %s: %d", key, by_city[key]))
+  end
 end

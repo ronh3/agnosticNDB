@@ -120,6 +120,16 @@
               "isLua": "yes"
        },
        {
+              "name": "adb stats",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+stats$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.stats() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adbtest",
               "isActive": "yes",
               "isFolder": "no",
