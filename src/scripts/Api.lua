@@ -309,6 +309,8 @@ function agnosticdb.api.fetch_list(on_done)
   http_get(list_url(), function(body)
     local names, status = finish_list(body)
     if status == "ok" then
+      agnosticdb.api.last_list_names = names
+      agnosticdb.api.last_list_time = os.time()
       if type(on_done) == "function" then
         on_done(names, "ok")
       end

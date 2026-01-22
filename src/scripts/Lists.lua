@@ -86,7 +86,7 @@ local function split_columns(text)
   return cols
 end
 
-local function extract_name(raw)
+local function extract_name(raw, known)
   if type(raw) ~= "string" then return nil end
   local trimmed = raw:gsub("%s+$", "")
   if trimmed == "" then return nil end
@@ -99,10 +99,11 @@ local function extract_name(raw)
   end
 
   local match
-  if agnosticdb.db and agnosticdb.db.get_person then
+  local known_set = type(known) == "table" and known or nil
+  if known_set then
     for _, word in ipairs(words) do
       local normalized = normalize_person_name(word)
-      if normalized and agnosticdb.db.get_person(normalized) then
+      if normalized and known_set[normalized] then
         if match and match ~= normalized then
           return nil
         end
@@ -113,6 +114,10 @@ local function extract_name(raw)
 
   if match then return match end
 
+  if known_set then
+    return nil
+  end
+
   if #words == 1 then
     return normalize_person_name(words[1])
   end
@@ -121,6 +126,40 @@ local function extract_name(raw)
   end
 
   return nil
+end
+
+local function build_known_set()
+  local known = {}
+  if agnosticdb.db and agnosticdb.db.safe_fetch and agnosticdb.db.people then
+    local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+    if rows then
+      for _, row in ipairs(rows) do
+        if row.name and row.name ~= "" then
+          known[row.name] = true
+        end
+      end
+    end
+  end
+
+  if agnosticdb.api and type(agnosticdb.api.last_list_names) == "table" then
+    for _, name in ipairs(agnosticdb.api.last_list_names) do
+      local normalized = normalize_person_name(name)
+      if normalized then
+        known[normalized] = true
+      end
+    end
+  end
+
+  local count = 0
+  for _ in pairs(known) do
+    count = count + 1
+  end
+
+  if count == 0 then
+    return nil
+  end
+
+  return known
 end
 
 local function apply_citizens_list(city, names)
@@ -166,7 +205,7 @@ local function parse_table_line(capture, text)
     return
   end
 
-  local name = extract_name(name_raw)
+  local name = extract_name(name_raw, capture.known)
   if not name then
     capture.skipped = capture.skipped + 1
     return
@@ -258,7 +297,8 @@ function agnosticdb.lists.capture_table(label)
     kind = "table",
     label = label or "who",
     updated = 0,
-    skipped = 0
+    skipped = 0,
+    known = build_known_set()
   }
   agnosticdb.lists.capture = capture
 
@@ -266,6 +306,14 @@ function agnosticdb.lists.capture_table(label)
     echo_line("Mudlet temp triggers unavailable; cannot capture list table.")
     agnosticdb.lists.capture = nil
     return
+  end
+
+  if agnosticdb.api and agnosticdb.api.fetch_list then
+    agnosticdb.api.fetch_list(function(names, status)
+      if status == "ok" and type(names) == "table" then
+        capture.known = build_known_set() or capture.known
+      end
+    end)
   end
 
   capture.line_trigger = tempRegexTrigger("^.*$", function()
