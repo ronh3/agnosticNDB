@@ -19,7 +19,8 @@ function agnosticdb.ui.show_help()
   echo_line("  adb note <name>")
   echo_line("  adb iff <name> enemy|ally|auto")
   echo_line("  adb whois <name>")
-  echo_line("  adb fetch <name>")
+  echo_line("  adb fetch [name]")
+  echo_line("  adb update")
   echo_line("  adb ignore <name>")
   echo_line("  adbtest")
 end
@@ -110,4 +111,33 @@ function agnosticdb.ui.fetch_and_show(name)
     agnosticdb.ui.show_person(person.name)
     agnosticdb.highlights.reload()
   end)
+end
+
+function agnosticdb.ui.fetch(name)
+  if name and name ~= "" then
+    agnosticdb.ui.fetch_and_show(name)
+    return
+  end
+
+  echo_line("Fetching online list...")
+  agnosticdb.api.fetch_online(function(result, status)
+    if status ~= "ok" then
+      echo_line(string.format("Fetch online failed (%s).", status or "unknown"))
+      return
+    end
+
+    echo_line(string.format("Online list: %d names, %d added, %d queued.", #result.names, result.added, result.queued))
+  end)
+end
+
+function agnosticdb.ui.update_all()
+  echo_line("Queueing updates for all known names...")
+  agnosticdb.api.update_all(function(result, status)
+    if status ~= "ok" then
+      echo_line(string.format("Update failed (%s).", status or "unknown"))
+      return
+    end
+
+    echo_line(string.format("Queued %d updates (from %d names).", result.queued, result.count))
+  end, { force = true })
 end

@@ -307,6 +307,64 @@ function agnosticdb.api.seed_names(names, source)
   return count
 end
 
+function agnosticdb.api.queue_fetches(names, opts)
+  if type(names) ~= "table" then return 0 end
+  local count = 0
+  for _, name in ipairs(names) do
+    if agnosticdb.db.normalize_name(name) then
+      agnosticdb.api.fetch(name, nil, opts)
+      count = count + 1
+    end
+  end
+  return count
+end
+
+function agnosticdb.api.fetch_online(on_done, opts)
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      if type(on_done) == "function" then
+        on_done(nil, status)
+      end
+      return
+    end
+
+    local added = agnosticdb.api.seed_names(names, "api_list")
+    local queued = agnosticdb.api.queue_fetches(names, opts or { force = true })
+    if type(on_done) == "function" then
+      on_done({ names = names, added = added, queued = queued }, "ok")
+    end
+  end)
+end
+
+function agnosticdb.api.update_all(on_done, opts)
+  if not agnosticdb.db.people then
+    if type(on_done) == "function" then
+      on_done(nil, "db_unavailable")
+    end
+    return
+  end
+
+  local rows = db:fetch(agnosticdb.db.people)
+  if not rows then
+    if type(on_done) == "function" then
+      on_done(nil, "db_empty")
+    end
+    return
+  end
+
+  local names = {}
+  for _, row in ipairs(rows) do
+    if row.name then
+      names[#names + 1] = row.name
+    end
+  end
+
+  local queued = agnosticdb.api.queue_fetches(names, opts or { force = true })
+  if type(on_done) == "function" then
+    on_done({ count = #names, queued = queued }, "ok")
+  end
+end
+
 local function perform_fetch(name)
   local person = agnosticdb.db.get_person(name)
 
@@ -446,7 +504,7 @@ local function start_queue()
   step()
 end
 
-function agnosticdb.api.fetch(name, on_done)
+function agnosticdb.api.fetch(name, on_done, opts)
   api_defaults()
   if not agnosticdb.conf.api.enabled then
     if type(on_done) == "function" then
@@ -464,7 +522,7 @@ function agnosticdb.api.fetch(name, on_done)
   end
 
   local person = agnosticdb.db.get_person(normalized)
-  if person and not should_refresh(person) then
+  if person and not (opts and opts.force) and not should_refresh(person) then
     if type(on_done) == "function" then
       on_done(person, "cached")
     end

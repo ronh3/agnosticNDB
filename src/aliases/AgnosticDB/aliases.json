@@ -94,8 +94,8 @@
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
-              "regex": "^adb\\s+fetch\\s+(\\w+)$",
-              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.fetch_and_show(matches[2]) end",
+              "regex": "^adb\\s+fetch(?:\\s+(\\w+))?$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.fetch(matches[2]) end",
               "matchall": "no",
               "isLua": "yes"
        },
@@ -106,6 +106,16 @@
               "command": "",
               "regex": "^adb\\s+ignore\\s+(\\w+)$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.toggle_ignore(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb update",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+update$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.update_all() end",
               "matchall": "no",
               "isLua": "yes"
        },
