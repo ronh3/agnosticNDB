@@ -11,6 +11,10 @@ function agnosticdb.init()
   if agnosticdb.db and agnosticdb.db.init then
     agnosticdb.db.init()
   end
+
+  if agnosticdb.highlights and agnosticdb.highlights.reload then
+    agnosticdb.highlights.reload()
+  end
 end
 
 agnosticdb.init()

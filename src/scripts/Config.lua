@@ -2,8 +2,20 @@ agnosticdb = agnosticdb or {}
 
 agnosticdb.config = agnosticdb.config or {}
 
+local function config_dir()
+  return getMudletHomeDir() .. "/agnosticdb"
+end
+
 local function config_path()
-  return getMudletHomeDir() .. "/agnosticdb/config"
+  return config_dir() .. "/config"
+end
+
+local function ensure_dir()
+  if not lfs then return end
+  local dir = config_dir()
+  if not lfs.attributes(dir) then
+    lfs.mkdir(dir)
+  end
 end
 
 function agnosticdb.config.load()
@@ -28,10 +40,23 @@ function agnosticdb.config.load()
       agnosticdb.conf[k] = v
     end
   end
+
+  agnosticdb.conf.api = agnosticdb.conf.api or { enabled = true, min_refresh_hours = 24 }
+  if agnosticdb.conf.api.enabled == nil then agnosticdb.conf.api.enabled = true end
+  agnosticdb.conf.api.min_refresh_hours = agnosticdb.conf.api.min_refresh_hours or 24
+  agnosticdb.conf.api.backoff_seconds = agnosticdb.conf.api.backoff_seconds or 30
+
+  if agnosticdb.conf.highlights_enabled == nil then
+    agnosticdb.conf.highlights_enabled = true
+  end
+
+  agnosticdb.conf.colors = agnosticdb.conf.colors or { enemy = "red", ally = "green" }
+  agnosticdb.conf.highlight_ignore = agnosticdb.conf.highlight_ignore or {}
 end
 
 function agnosticdb.config.save()
   if type(table.save) ~= "function" then return end
+  ensure_dir()
   agnosticdb.conf = agnosticdb.conf or {}
   table.save(config_path(), agnosticdb.conf)
 end

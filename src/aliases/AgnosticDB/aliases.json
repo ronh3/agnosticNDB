@@ -1,0 +1,112 @@
+[
+       {
+              "name": "adb help",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_help() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb politics",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+politics$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_politics() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb highlights toggle",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+highlights\\s+(on|off)$",
+              "script": "if agnosticdb and agnosticdb.highlights then agnosticdb.highlights.toggle(matches[2] == 'on') end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb highlights reload",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+highlights\\s+reload$",
+              "script": "if agnosticdb and agnosticdb.highlights then agnosticdb.highlights.reload() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb highlights clear",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+highlights\\s+clear$",
+              "script": "if agnosticdb and agnosticdb.highlights then agnosticdb.highlights.clear() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb note set",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+note\\s+(\\w+)\\s+(.+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.set_note(matches[2], matches[3]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb note show",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+note\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_note(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb iff",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+iff\\s+(\\w+)\\s+(enemy|ally|auto)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.set_iff(matches[2], matches[3]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb whois",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+whois\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_person(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb fetch",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+fetch\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.fetch_and_show(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb ignore",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+ignore\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.toggle_ignore(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       }
+]

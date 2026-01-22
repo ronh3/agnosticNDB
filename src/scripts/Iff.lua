@@ -8,7 +8,14 @@ function agnosticdb.iff.set(name, status)
 end
 
 function agnosticdb.iff.is_enemy(name)
-  -- TODO: compute derived enemy status from politics + flags.
   local person = agnosticdb.db.get_person(name)
-  return person and person.iff == "enemy" or false
+  if not person then return false end
+
+  if person.iff == "enemy" then return true end
+  if person.iff == "ally" then return false end
+
+  local city = person.city
+  if type(city) ~= "string" or city == "" then return false end
+
+  return agnosticdb.politics.get_city_relation(city) == "enemy"
 end

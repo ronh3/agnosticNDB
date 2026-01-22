@@ -2,6 +2,111 @@ agnosticdb = agnosticdb or {}
 
 agnosticdb.ui = agnosticdb.ui or {}
 
+local function prefix()
+  return "<0,200,200>[agnosticdb]<reset> "
+end
+
+local function echo_line(text)
+  cecho(prefix() .. text .. "\n")
+end
+
+function agnosticdb.ui.show_help()
+  echo_line("Commands:")
+  echo_line("  adb politics")
+  echo_line("  adb highlights on|off")
+  echo_line("  adb highlights reload|clear")
+  echo_line("  adb note <name> <notes>")
+  echo_line("  adb note <name>")
+  echo_line("  adb iff <name> enemy|ally|auto")
+  echo_line("  adb whois <name>")
+  echo_line("  adb fetch <name>")
+  echo_line("  adb ignore <name>")
+end
+
 function agnosticdb.ui.show_politics()
-  -- TODO: implement a Mudlet UI menu for politics + highlights.
+  echo_line("City relations (click to toggle):")
+  for _, city in ipairs(agnosticdb.politics.cities) do
+    local relation = agnosticdb.politics.get_city_relation(city)
+    local cmd = string.format("agnosticdb.politics.toggle_city_relation(%q); agnosticdb.ui.show_politics()", city)
+    setUnderline(true)
+    echoLink(string.format("  %s: %s", city, relation), cmd, "Click to cycle relation", true)
+    setUnderline(false)
+    echo("\n")
+  end
+
+  local enabled = agnosticdb.conf and agnosticdb.conf.highlights_enabled
+  local cmd = string.format("agnosticdb.highlights.toggle(%s); agnosticdb.ui.show_politics()", enabled and "false" or "true")
+  setUnderline(true)
+  echoLink(string.format("Highlights: %s", enabled and "on" or "off"), cmd, "Toggle highlights", true)
+  setUnderline(false)
+  echo("\n")
+end
+
+function agnosticdb.ui.show_person(name)
+  local person = agnosticdb.db.get_person(name)
+  if not person then
+    agnosticdb.api.fetch(name, function(fetched, status)
+      if not fetched then
+        echo_line(string.format("No data for %s (%s).", name, status or "unknown"))
+        return
+      end
+      echo_line(string.format("Fetch status: %s", status or "ok"))
+      agnosticdb.ui.show_person(fetched.name)
+    end)
+    return
+  end
+
+  echo_line(string.format("Name: %s", person.name))
+  echo_line(string.format("Class: %s", person.class or ""))
+  echo_line(string.format("City: %s", person.city or ""))
+  echo_line(string.format("House: %s", person.house or ""))
+  echo_line(string.format("Order: %s", person.order or ""))
+  echo_line(string.format("IFF: %s", person.iff or "auto"))
+  if person.notes and person.notes ~= "" then
+    echo_line("Notes:")
+    echo_line(person.notes)
+  end
+end
+
+function agnosticdb.ui.set_note(name, notes)
+  agnosticdb.notes.set(name, notes)
+  echo_line(string.format("Notes saved for %s.", name))
+end
+
+function agnosticdb.ui.show_note(name)
+  local note = agnosticdb.notes.get(name)
+  if not note or note == "" then
+    echo_line(string.format("No notes for %s.", name))
+    return
+  end
+  echo_line(string.format("Notes for %s:", name))
+  echo_line(note)
+end
+
+function agnosticdb.ui.set_iff(name, status)
+  agnosticdb.iff.set(name, status)
+  echo_line(string.format("IFF for %s set to %s.", name, status))
+end
+
+function agnosticdb.ui.toggle_ignore(name)
+  if agnosticdb.highlights.is_ignored(name) then
+    agnosticdb.highlights.unignore(name)
+    echo_line(string.format("%s removed from highlight ignore list.", name))
+  else
+    agnosticdb.highlights.ignore(name)
+    echo_line(string.format("%s added to highlight ignore list.", name))
+  end
+  agnosticdb.highlights.reload()
+end
+
+function agnosticdb.ui.fetch_and_show(name)
+  agnosticdb.api.fetch(name, function(person, status)
+    if not person then
+      echo_line(string.format("Fetch failed for %s (%s).", name, status or "unknown"))
+      return
+    end
+    echo_line(string.format("Fetch status: %s", status or "ok"))
+    agnosticdb.ui.show_person(person.name)
+    agnosticdb.highlights.reload()
+  end)
 end
