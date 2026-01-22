@@ -40,7 +40,8 @@ local function apply_style(name, style)
     occurrence = occurrence + 1
 
     if type(selectSection) == "function" then
-      selectSection(s, e)
+      -- Mudlet selectSection uses 0-based start + length.
+      selectSection(s - 1, e - s + 1)
     else
       selectString(name, occurrence)
     end
