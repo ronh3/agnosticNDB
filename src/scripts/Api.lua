@@ -42,7 +42,11 @@ end
 
 local function http_get(url, callback)
   if type(getHTTP) == "function" then
-    local body, code = getHTTP(url)
+    local a, b, c = getHTTP(url)
+    local body, code = a, b
+    if type(a) == "boolean" and type(b) == "string" then
+      body, code = b, c
+    end
     if type(callback) == "function" then
       callback(body, code)
     end
