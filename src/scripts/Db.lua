@@ -13,8 +13,26 @@ local function db_conn()
   return db.__conn[agnosticdb.db.name:lower()]
 end
 
+local function column_exists(column)
+  local conn = db_conn()
+  if not conn then return false end
+  local cursor = conn:execute("PRAGMA table_info(people)")
+  if not cursor then return false end
+  local row = cursor:fetch({}, "a")
+  while row do
+    if row.name == column then
+      if cursor.close then cursor:close() end
+      return true
+    end
+    row = cursor:fetch({}, "a")
+  end
+  if cursor.close then cursor:close() end
+  return false
+end
+
 local function add_column_if_missing(row, column, sql)
-  if row[column] ~= nil then return end
+  if row and row[column] ~= nil then return end
+  if column_exists(column) then return end
   local conn = db_conn()
   if not conn then return end
   conn:execute(sql)
@@ -55,9 +73,7 @@ function agnosticdb.db.init()
   agnosticdb.db.people = agnosticdb.db.handle.people
 
   local rows = db:fetch(agnosticdb.db.people)
-  if not rows or not rows[1] then return end
-
-  local sample = rows[1]
+  local sample = rows and rows[1] or nil
   add_column_if_missing(sample, "notes", [[ALTER TABLE people ADD COLUMN "notes" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
   add_column_if_missing(sample, "enemy_city", [[ALTER TABLE people ADD COLUMN "enemy_city" TEXT NULL DEFAULT ""]])
