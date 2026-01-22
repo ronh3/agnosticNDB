@@ -74,6 +74,8 @@ function agnosticdb.ui.show_help()
   entry("adb stats", "counts by class/city")
   entry("adb ignore <name>", "toggle highlight ignore")
   entry("adbtest", "run self-test")
+  entry("qwp", "online list grouped by city")
+  entry("qwpc", "online list grouped by city + class")
   line()
 end
 
@@ -268,4 +270,108 @@ function agnosticdb.ui.stats()
   for _, key in ipairs(sorted_keys(by_city)) do
     echo_line(string.format("  %s: %d", key, by_city[key]))
   end
+end
+
+local function class_abbrev_map()
+  return {
+    Alchemist = "ALC",
+    Apostate = "APO",
+    Bard = "BARD",
+    Blademaster = "BM",
+    Depthswalker = "DSW",
+    Druid = "DRU",
+    Infernal = "INF",
+    Jester = "JEST",
+    Magi = "MAG",
+    Monk = "MNK",
+    Occultist = "OCC",
+    Paladin = "PAL",
+    Pariah = "PAR",
+    Priest = "PRST",
+    Psion = "PSI",
+    Runewarden = "RUNW",
+    Sentinel = "SENT",
+    Serpent = "SERP",
+    Shaman = "SHAM",
+    Sylvan = "SYL",
+    Unnamable = "UNAM"
+  }
+end
+
+local function class_abbrev(class_name)
+  if not class_name or class_name == "" then return "UNK" end
+  local map = class_abbrev_map()
+  local match = map[class_name]
+  if match then return match end
+  local up = class_name:upper()
+  if #up <= 4 then return up end
+  return up:sub(1, 4)
+end
+
+local function city_color(city)
+  local cfg = agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities or {}
+  local key = city:lower()
+  if cfg[key] and cfg[key].color and cfg[key].color ~= "" then
+    return cfg[key].color
+  end
+  return "white"
+end
+
+local function normalize_city_name(city)
+  if city == "" or city == "(none)" then return "Rogue" end
+  if city == "(hidden)" then return "Hidden" end
+  return city
+end
+
+function agnosticdb.ui.qwp(with_class)
+  echo_line("Building online list...")
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      echo_line(string.format("Online list failed (%s).", status or "unknown"))
+      return
+    end
+
+    agnosticdb.api.seed_names(names, "api_list")
+
+    local city_online = {}
+    for _, name in ipairs(names) do
+      local person = agnosticdb.db.get_person(name) or {}
+      local city = normalize_city_name(person.city or "")
+      city_online[city] = city_online[city] or {}
+      city_online[city][#city_online[city] + 1] = {
+        name = display_name(name),
+        class = person.class or ""
+      }
+    end
+
+    local city_list = {}
+    for city, players in pairs(city_online) do
+      city_list[#city_list + 1] = { name = city, size = #players, players = players }
+    end
+
+    table.sort(city_list, function(a, b)
+      if a.size == b.size then
+        return a.name:lower() < b.name:lower()
+      end
+      return a.size > b.size
+    end)
+
+    for _, city in ipairs(city_list) do
+      table.sort(city.players, function(a, b)
+        return a.name:lower() < b.name:lower()
+      end)
+
+      local color = city_color(city.name)
+      decho(string.format("\n<%s>%s: <grey>(<white>%d<grey>)<r> ", color, city.name, city.size))
+
+      for _, player in ipairs(city.players) do
+        local label = player.name
+        if with_class then
+          label = string.format("%s (%s)", player.name, class_abbrev(player.class))
+        end
+        decho(string.format("<%s>%s<r> ", color, label))
+      end
+    end
+    decho("\n")
+  end)
 end

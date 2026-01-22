@@ -138,5 +138,25 @@
               "script": "if agnosticdb and agnosticdb.test then agnosticdb.test.run() end",
               "matchall": "no",
               "isLua": "yes"
+       },
+       {
+              "name": "qwp",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwp$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(false) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "qwpc",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwpc$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(true) end",
+              "matchall": "no",
+              "isLua": "yes"
        }
 ]
