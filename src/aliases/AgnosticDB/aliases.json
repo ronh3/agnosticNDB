@@ -50,6 +50,26 @@
               "isLua": "yes"
        },
        {
+              "name": "adb note clear all",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+note\\s+clear\\s+all$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.clear_all_notes() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb note clear",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+note\\s+clear\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.clear_note(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb note set",
               "isActive": "yes",
               "isFolder": "no",

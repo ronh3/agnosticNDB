@@ -67,6 +67,8 @@ function agnosticdb.ui.show_help()
   entry("adb highlights clear", "remove all highlight triggers")
   entry("adb note <name> <notes>", "set notes")
   entry("adb note <name>", "show notes")
+  entry("adb note clear <name>", "clear notes for a person")
+  entry("adb note clear all", "clear notes for everyone")
   entry("adb iff <name> enemy|ally|auto", "set friend/foe status")
   entry("adb whois <name>", "show stored data (fetch if needed)")
   entry("adb fetch [name]", "fetch online list or single person")
@@ -138,6 +140,16 @@ function agnosticdb.ui.show_note(name)
   end
   echo_line(string.format("Notes for %s:", display_name(name)))
   echo_line(note)
+end
+
+function agnosticdb.ui.clear_note(name)
+  agnosticdb.notes.clear(name)
+  echo_line(string.format("Notes cleared for %s.", display_name(name)))
+end
+
+function agnosticdb.ui.clear_all_notes()
+  local count = agnosticdb.notes.clear_all()
+  echo_line(string.format("Notes cleared for %d people.", count))
 end
 
 function agnosticdb.ui.set_iff(name, status)
