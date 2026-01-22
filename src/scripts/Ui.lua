@@ -179,7 +179,7 @@ function agnosticdb.ui.stats()
     local class = row.class or ""
     local city = row.city or ""
     if class == "" then class = "(unknown)" end
-    if city == "" then city = "(unknown)" end
+    if city == "" or city == "(none)" then city = "Rogue" end
     by_class[class] = (by_class[class] or 0) + 1
     by_city[city] = (by_city[city] or 0) + 1
   end

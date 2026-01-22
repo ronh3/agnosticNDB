@@ -33,6 +33,20 @@ local function is_api_error_body(raw)
   return false
 end
 
+local function titlecase(value)
+  if type(value) ~= "string" then return "" end
+  if value == "" then return "" end
+  return value:sub(1, 1):upper() .. value:sub(2):lower()
+end
+
+local function normalize_city(value)
+  local city = titlecase(value)
+  if city == "" or city == "(none)" then
+    return "Rogue"
+  end
+  return city
+end
+
 local function cache_dir()
   return getMudletHomeDir() .. "/agnosticdb"
 end
@@ -371,9 +385,9 @@ local function perform_fetch(name)
   local function resolve_record(data)
     local record = {
       name = data.name or name,
-      class = data.class or "",
-      city = data.city or "",
-      house = data.house or "",
+      class = titlecase(data.class or ""),
+      city = normalize_city(data.city or ""),
+      house = titlecase(data.house or ""),
       title = data.fullname or "",
       xp_rank = data.xp_rank or -1,
       source = "api",
