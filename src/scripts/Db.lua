@@ -23,7 +23,7 @@ end
 
 function agnosticdb.db.init()
   if not db then
-    cecho("(agnosticdb): Mudlet DB API not available; database disabled.\n")
+    decho("(agnosticdb): Mudlet DB API not available; database disabled.\n")
     return
   end
 

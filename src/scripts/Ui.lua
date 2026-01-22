@@ -7,7 +7,7 @@ local function prefix()
 end
 
 local function echo_line(text)
-  cecho(prefix() .. text .. "\n")
+  decho(prefix() .. text .. "\n")
 end
 
 function agnosticdb.ui.show_help()
