@@ -58,10 +58,6 @@ local function normalize_city(value, title, existing)
     return "Hidden"
   end
 
-  if value:find("Underworld") then
-    return "Underworld"
-  end
-
   return titlecase(value)
 end
 
@@ -405,16 +401,6 @@ local function perform_fetch(name)
     local city = normalize_city(data.city or "", title, person and person.city or "")
     local class = titlecase(data.class or "")
     local house = titlecase(data.house or "")
-
-    if city == "Underworld" then
-      house = "The Profane Reaches of Demise"
-      if title ~= "" then
-        local derived = title:gsub(" " .. (data.name or name) .. "$", "")
-        if derived ~= "" and derived ~= title then
-          class = derived
-        end
-      end
-    end
 
     local record = {
       name = data.name or name,

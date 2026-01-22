@@ -67,7 +67,6 @@ function agnosticdb.config.load()
       rogue = { color = "orange", bold = false, underline = false, italicize = false },
       divine = { color = "pink", bold = true, underline = false, italicize = true },
       hidden = { color = "green", bold = true, underline = false, italicize = true },
-      underworld = { color = "DimGrey", bold = true, underline = false, italicize = true }
     }
   }
 end
