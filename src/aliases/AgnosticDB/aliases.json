@@ -170,6 +170,16 @@
               "isLua": "yes"
        },
        {
+              "name": "adb honors",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+honors\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.honors(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb dbreset",
               "isActive": "yes",
               "isFolder": "no",

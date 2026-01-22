@@ -77,6 +77,7 @@ function agnosticdb.ui.show_help()
   entry("adb update", "refresh all known names")
   entry("adb stats", "counts by class/city")
   entry("adb ignore <name>", "toggle highlight ignore")
+  entry("adb honors <name>", "request honors + ingest")
   entry("adb dbcheck", "check database health")
   entry("adb dbreset", "reset database (drops people table)")
   entry("adb forget <name>", "remove a person from the database")
@@ -276,6 +277,14 @@ function agnosticdb.ui.forget(name)
   end
   agnosticdb.db.delete_person(name)
   echo_line(string.format("Removed %s from the database.", display_name(name)))
+end
+
+function agnosticdb.ui.honors(name)
+  if not name or name == "" then
+    echo_line("Provide a name to honor-check.")
+    return
+  end
+  send("HONORS " .. name)
 end
 
 function agnosticdb.ui.quick_update()
