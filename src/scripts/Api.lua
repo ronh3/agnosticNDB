@@ -450,7 +450,11 @@ local function perform_fetch(name)
     end
 
     agnosticdb.db.upsert_person(record)
-    resolve_callbacks(name, agnosticdb.db.get_person(name), "ok")
+    local updated = agnosticdb.db.get_person(name)
+    if agnosticdb.highlights and agnosticdb.highlights.update then
+      agnosticdb.highlights.update(updated)
+    end
+    resolve_callbacks(name, updated, "ok")
   end
 
   local function download_fallback()

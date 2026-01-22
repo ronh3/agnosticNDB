@@ -133,6 +133,27 @@ function agnosticdb.highlights.remove(name)
   end
 end
 
+function agnosticdb.highlights.update(person)
+  if not is_enabled() then return end
+  if not person or not person.name then return end
+
+  local normalized = agnosticdb.db.normalize_name(person.name)
+  if not normalized then return end
+
+  local ignored = highlight_ignore()
+  agnosticdb.highlights.remove(normalized)
+  if ignored[normalized] then return end
+
+  local style = style_for(person)
+  if not style then return end
+
+  agnosticdb.highlights.ids = agnosticdb.highlights.ids or {}
+  local id = tempTrigger(normalized, function()
+    apply_style(normalized, style)
+  end)
+  agnosticdb.highlights.ids[normalized] = id
+end
+
 function agnosticdb.highlights.toggle(enabled)
   agnosticdb.conf = agnosticdb.conf or {}
   agnosticdb.conf.highlights_enabled = enabled and true or false
