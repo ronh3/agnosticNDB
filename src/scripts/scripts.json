@@ -1,0 +1,11 @@
+[
+       {"name": "Config", "isActive": "yes", "isFolder": "no"},
+       {"name": "Db", "isActive": "yes", "isFolder": "no"},
+       {"name": "Api", "isActive": "yes", "isFolder": "no"},
+       {"name": "Iff", "isActive": "yes", "isFolder": "no"},
+       {"name": "Highlights", "isActive": "yes", "isFolder": "no"},
+       {"name": "Politics", "isActive": "yes", "isFolder": "no"},
+       {"name": "Notes", "isActive": "yes", "isFolder": "no"},
+       {"name": "Ui", "isActive": "yes", "isFolder": "no"},
+       {"name": "Init", "isActive": "yes", "isFolder": "no"}
+]
