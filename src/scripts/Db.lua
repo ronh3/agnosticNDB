@@ -104,3 +104,10 @@ function agnosticdb.db.upsert_person(fields)
 end
 
 agnosticdb.db.normalize_name = normalize_name
+
+function agnosticdb.db.delete_person(name)
+  if not agnosticdb.db.people then return end
+  local normalized = normalize_name(name)
+  if not normalized then return end
+  db:delete(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, normalized))
+end

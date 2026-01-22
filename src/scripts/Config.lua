@@ -53,6 +53,23 @@ function agnosticdb.config.load()
 
   agnosticdb.conf.colors = agnosticdb.conf.colors or { enemy = "red", ally = "green" }
   agnosticdb.conf.highlight_ignore = agnosticdb.conf.highlight_ignore or {}
+  agnosticdb.conf.prune_dormant = agnosticdb.conf.prune_dormant or false
+
+  agnosticdb.conf.highlight = agnosticdb.conf.highlight or {
+    enemies = { color = "", bold = false, underline = true, italicize = true },
+    cities = {
+      ashtan = { color = "purple", bold = false, underline = false, italicize = false },
+      cyrene = { color = "cornflower_blue", bold = false, underline = false, italicize = false },
+      eleusis = { color = "forest_green", bold = false, underline = false, italicize = false },
+      hashan = { color = "yellow", bold = false, underline = false, italicize = false },
+      mhaldor = { color = "red", bold = false, underline = false, italicize = false },
+      targossas = { color = "white", bold = false, underline = false, italicize = false },
+      rogue = { color = "orange", bold = false, underline = false, italicize = false },
+      divine = { color = "pink", bold = true, underline = false, italicize = true },
+      hidden = { color = "green", bold = true, underline = false, italicize = true },
+      underworld = { color = "DimGrey", bold = true, underline = false, italicize = true }
+    }
+  }
 end
 
 function agnosticdb.config.save()

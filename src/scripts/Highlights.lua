@@ -16,6 +16,12 @@ local function highlight_color()
   return agnosticdb.conf.colors
 end
 
+local function highlight_config()
+  agnosticdb.conf = agnosticdb.conf or {}
+  agnosticdb.conf.highlight = agnosticdb.conf.highlight or { enemies = {}, cities = {} }
+  return agnosticdb.conf.highlight
+end
+
 local function highlight_ignore()
   agnosticdb.conf = agnosticdb.conf or {}
   agnosticdb.conf.highlight_ignore = agnosticdb.conf.highlight_ignore or {}
@@ -51,11 +57,36 @@ end
 
 local function style_for(person)
   if not person or not person.name then return nil end
-  local colors = highlight_color()
-  if agnosticdb.iff.is_enemy(person.name) then
-    return { color = colors.enemy or "red", bold = true }
+  local config = highlight_config()
+  local style = {}
+
+  local city = person.city or ""
+  if city == "" or city == "(none)" then city = "Rogue" end
+  local key = city:lower()
+
+  local city_cfg = config.cities and config.cities[key]
+  if city_cfg then
+    style.color = city_cfg.color
+    style.bold = city_cfg.bold
+    style.underline = city_cfg.underline
+    style.italicize = city_cfg.italicize
   end
-  return nil
+
+  if agnosticdb.iff.is_enemy(person.name) then
+    local enemy_cfg = config.enemies or {}
+    if enemy_cfg.color and enemy_cfg.color ~= "" then
+      style.color = enemy_cfg.color
+    end
+    if enemy_cfg.bold then style.bold = true end
+    if enemy_cfg.underline then style.underline = true end
+    if enemy_cfg.italicize then style.italicize = true end
+  end
+
+  if not style.color and not style.bold and not style.underline and not style.italicize then
+    return nil
+  end
+
+  return style
 end
 
 function agnosticdb.highlights.reload()
@@ -88,6 +119,17 @@ function agnosticdb.highlights.clear()
     killTrigger(id)
   end
   agnosticdb.highlights.ids = {}
+end
+
+function agnosticdb.highlights.remove(name)
+  if not agnosticdb.highlights.ids then return end
+  local normalized = agnosticdb.db.normalize_name(name)
+  if not normalized then return end
+  local id = agnosticdb.highlights.ids[normalized]
+  if id then
+    killTrigger(id)
+    agnosticdb.highlights.ids[normalized] = nil
+  end
 end
 
 function agnosticdb.highlights.toggle(enabled)

@@ -39,12 +39,30 @@ local function titlecase(value)
   return value:sub(1, 1):upper() .. value:sub(2):lower()
 end
 
-local function normalize_city(value)
-  local city = titlecase(value)
-  if city == "" or city == "(none)" then
+local function normalize_city(value, title, existing)
+  if type(value) ~= "string" then value = "" end
+  if type(title) ~= "string" then title = "" end
+  if type(existing) ~= "string" then existing = "" end
+
+  if value == "" or value == "(none)" then
+    if title == "Romeo, the Guide" or title == "Juliet, the Guide" then
+      return "Divine"
+    end
     return "Rogue"
   end
-  return city
+
+  if value == "(hidden)" then
+    if existing ~= "" then
+      return existing
+    end
+    return "Hidden"
+  end
+
+  if value:find("Underworld") then
+    return "Underworld"
+  end
+
+  return titlecase(value)
 end
 
 local function cache_dir()
@@ -383,16 +401,40 @@ local function perform_fetch(name)
   local person = agnosticdb.db.get_person(name)
 
   local function resolve_record(data)
+    local title = data.fullname or ""
+    local city = normalize_city(data.city or "", title, person and person.city or "")
+    local class = titlecase(data.class or "")
+    local house = titlecase(data.house or "")
+
+    if city == "Underworld" then
+      house = "The Profane Reaches of Demise"
+      if title ~= "" then
+        local derived = title:gsub(" " .. (data.name or name) .. "$", "")
+        if derived ~= "" and derived ~= title then
+          class = derived
+        end
+      end
+    end
+
     local record = {
       name = data.name or name,
-      class = titlecase(data.class or ""),
-      city = normalize_city(data.city or ""),
-      house = titlecase(data.house or ""),
-      title = data.fullname or "",
+      class = class,
+      city = city,
+      house = house,
+      title = title,
       xp_rank = data.xp_rank or -1,
       source = "api",
       last_checked = os.time()
     }
+
+    if agnosticdb.conf and agnosticdb.conf.prune_dormant and record.xp_rank == 0 and city ~= "Divine" then
+      agnosticdb.db.delete_person(record.name)
+      if agnosticdb.highlights and agnosticdb.highlights.remove then
+        agnosticdb.highlights.remove(record.name)
+      end
+      resolve_callbacks(name, nil, "pruned")
+      return
+    end
 
     agnosticdb.db.upsert_person(record)
     resolve_callbacks(name, agnosticdb.db.get_person(name), "ok")
@@ -477,7 +519,7 @@ local function start_queue()
   agnosticdb.api.queued = agnosticdb.api.queued or {}
   if agnosticdb.api.queue_running then return end
   agnosticdb.api.queue_running = true
-  agnosticdb.api.queue_stats = { ok = 0, cached = 0, api_error = 0, decode_failed = 0, download_error = 0, other = 0 }
+  agnosticdb.api.queue_stats = { ok = 0, cached = 0, pruned = 0, api_error = 0, decode_failed = 0, download_error = 0, other = 0 }
 
   local function step()
     if #agnosticdb.api.queue == 0 then
@@ -559,6 +601,8 @@ function agnosticdb.api.fetch(name, on_done, opts)
         stats.ok = stats.ok + 1
       elseif status == "cached" then
         stats.cached = stats.cached + 1
+      elseif status == "pruned" then
+        stats.pruned = stats.pruned + 1
       elseif status == "api_error" then
         stats.api_error = stats.api_error + 1
       elseif status == "decode_failed" then
