@@ -11,26 +11,56 @@ local function list_url()
 end
 
 local function trim_left(raw)
-  return (raw:gsub("^%s+", ""))
+  local trimmed = (raw:gsub("^%s+", ""))
+  if trimmed:sub(1, 3) == "\239\187\191" then
+    trimmed = trimmed:sub(4)
+  end
+  return trimmed
+end
+
+local function strip_headers(raw)
+  if type(raw) ~= "string" then return raw end
+  local _, _, body = raw:find("\r\n\r\n(.*)")
+  return body or raw
+end
+
+local function pick_body(a, b, c)
+  local candidates = {a, b, c}
+  local fallback
+
+  for _, v in ipairs(candidates) do
+    if type(v) == "string" then
+      local stripped = strip_headers(v)
+      local lead = trim_left(stripped):sub(1, 1)
+      if lead == "{" or lead == "[" then
+        return stripped
+      end
+      if not fallback then
+        fallback = stripped
+      end
+    end
+  end
+
+  return fallback
 end
 
 local function decode_json(raw)
   if type(raw) ~= "string" then return nil end
-  local trimmed = trim_left(raw)
+  local trimmed = trim_left(strip_headers(raw))
   local lead = trimmed:sub(1, 1)
   if lead ~= "{" and lead ~= "[" then return nil end
 
   if json and type(json.decode) == "function" then
-    local ok, value = pcall(json.decode, raw)
+    local ok, value = pcall(json.decode, trimmed)
     if ok then return value end
   end
   if yajl and type(yajl.to_value) == "function" then
-    local ok, value = pcall(yajl.to_value, raw)
+    local ok, value = pcall(yajl.to_value, trimmed)
     if ok then return value end
   end
   local ok, dk = pcall(require, "dkjson")
   if ok and dk and type(dk.decode) == "function" then
-    local ok_decode, value = pcall(dk.decode, raw)
+    local ok_decode, value = pcall(dk.decode, trimmed)
     if ok_decode then return value end
   end
   return nil
@@ -58,6 +88,7 @@ local function http_get(url, callback)
     if type(a) == "boolean" and type(b) == "string" then
       body, code = b, c
     end
+    body = pick_body(a, b, c) or body
     if type(callback) == "function" then
       callback(body, code)
     end
