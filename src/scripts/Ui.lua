@@ -3,11 +3,11 @@ agnosticdb = agnosticdb or {}
 agnosticdb.ui = agnosticdb.ui or {}
 
 local function prefix()
-  return "<0,200,200>[agnosticdb]<r> "
+  return "<cyan>[agnosticdb]<reset> "
 end
 
 local function echo_line(text)
-  decho(prefix() .. text .. "\n")
+  cecho(prefix() .. text .. "\n")
 end
 
 local function display_name(name)
@@ -35,15 +35,15 @@ local function format_eta(seconds)
 end
 
 function agnosticdb.ui.show_help()
-  local accent = "<0,200,200>"
+  local accent = "<cyan>"
   local text = "<white>"
   local border = "<grey>"
-  local reset = "<r>"
+  local reset = "<reset>"
   local cmd_pad = 24
   local header = "agnosticDB Help"
 
   local function emit(raw)
-    decho(raw .. "\n")
+    cecho(raw .. "\n")
   end
 
   local function line()
@@ -362,16 +362,16 @@ function agnosticdb.ui.qwp(with_class)
       end)
 
       local color = city_color(city.name)
-      decho(string.format("\n<%s>%s: <grey>(<white>%d<grey>)<r> ", color, city.name, city.size))
+      cecho(string.format("\n<%s>%s: <grey>(<white>%d<grey>)<reset> ", color, city.name, city.size))
 
       for _, player in ipairs(city.players) do
         local label = player.name
         if with_class then
           label = string.format("%s (%s)", player.name, class_abbrev(player.class))
         end
-        decho(string.format("<%s>%s<r> ", color, label))
+        cecho(string.format("<%s>%s<reset> ", color, label))
       end
     end
-    decho("\n")
+    cecho("\n")
   end)
 end

@@ -3,11 +3,11 @@ agnosticdb = agnosticdb or {}
 agnosticdb.test = agnosticdb.test or {}
 
 local function prefix()
-  return "<0,200,200>[agnosticdb test]<r> "
+  return "<cyan>[agnosticdb test]<reset> "
 end
 
 local function echo_line(text)
-  decho(prefix() .. text .. "\n")
+  cecho(prefix() .. text .. "\n")
 end
 
 local function pass(msg)
