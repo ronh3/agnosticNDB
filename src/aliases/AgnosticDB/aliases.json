@@ -25,7 +25,7 @@
               "isFolder": "no",
               "command": "",
               "regex": "^adb\\s+highlights\\s+(on|off)$",
-              "script": "if agnosticdb and agnosticdb.highlights then agnosticdb.highlights.toggle(matches[2] == 'on') end",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.highlights_toggle(matches[2]) end",
               "matchall": "no",
               "isLua": "yes"
        },
@@ -35,7 +35,7 @@
               "isFolder": "no",
               "command": "",
               "regex": "^adb\\s+highlights\\s+reload$",
-              "script": "if agnosticdb and agnosticdb.highlights then agnosticdb.highlights.reload() end",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.highlights_reload() end",
               "matchall": "no",
               "isLua": "yes"
        },
@@ -45,7 +45,7 @@
               "isFolder": "no",
               "command": "",
               "regex": "^adb\\s+highlights\\s+clear$",
-              "script": "if agnosticdb and agnosticdb.highlights then agnosticdb.highlights.clear() end",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.highlights_clear() end",
               "matchall": "no",
               "isLua": "yes"
        },

@@ -201,6 +201,22 @@ function agnosticdb.ui.update_all()
   end, { force = true })
 end
 
+function agnosticdb.ui.highlights_toggle(mode)
+  local enabled = (mode == "on" or mode == true)
+  agnosticdb.highlights.toggle(enabled)
+  echo_line(string.format("Highlights: %s", enabled and "on" or "off"))
+end
+
+function agnosticdb.ui.highlights_reload()
+  agnosticdb.highlights.reload()
+  echo_line("Highlights reloaded.")
+end
+
+function agnosticdb.ui.highlights_clear()
+  agnosticdb.highlights.clear()
+  echo_line("Highlights cleared.")
+end
+
 local function sorted_keys(map)
   local keys = {}
   for k, _ in pairs(map) do
