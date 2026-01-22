@@ -40,6 +40,18 @@ local function list_cache_path()
   return cache_dir() .. "/characters.json"
 end
 
+local function chars_dir()
+  return cache_dir() .. "/characters"
+end
+
+local function ensure_chars_dir()
+  if not lfs then return end
+  local dir = chars_dir()
+  if not lfs.attributes(dir) then
+    lfs.mkdir(dir)
+  end
+end
+
 local function read_file(path)
   local handle = io.open(path, "rb")
   if not handle then return nil end
@@ -309,20 +321,7 @@ function agnosticdb.api.fetch(name, on_done)
 
   enqueue_callback(normalized, on_done)
 
-  http_get(api_url(normalized), function(body, code)
-    if type(body) ~= "string" or #body == 0 then
-      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-      resolve_callbacks(normalized, person, "empty_response")
-      return
-    end
-
-    local data = decode_json(body)
-    if type(data) ~= "table" then
-      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
-      resolve_callbacks(normalized, person, "decode_failed")
-      return
-    end
-
+  local function resolve_record(data)
     local record = {
       name = data.name or normalized,
       class = data.class or "",
@@ -336,6 +335,67 @@ function agnosticdb.api.fetch(name, on_done)
 
     agnosticdb.db.upsert_person(record)
     resolve_callbacks(normalized, agnosticdb.db.get_person(normalized), "ok")
+  end
+
+  local function download_fallback()
+    if type(downloadFile) ~= "function" then
+      resolve_callbacks(normalized, person, "decode_failed")
+      return
+    end
+
+    agnosticdb.api.download_inflight = agnosticdb.api.download_inflight or {}
+    if agnosticdb.api.download_inflight[normalized] then return end
+    agnosticdb.api.download_inflight[normalized] = true
+
+    ensure_cache_dir()
+    ensure_chars_dir()
+    local path = chars_dir() .. "/" .. normalized .. ".json"
+
+    local done_handler
+    local error_handler
+
+    done_handler = registerAnonymousEventHandler("sysDownloadDone", function(_, file)
+      if file ~= path then return end
+      killAnonymousEventHandler(done_handler)
+      killAnonymousEventHandler(error_handler)
+      agnosticdb.api.download_inflight[normalized] = nil
+
+      local content = read_file(path)
+      local data = decode_json(content)
+      if type(data) ~= "table" then
+        resolve_callbacks(normalized, person, "decode_failed")
+        return
+      end
+
+      resolve_record(data)
+    end)
+
+    error_handler = registerAnonymousEventHandler("sysDownloadError", function(_, file, err)
+      if file ~= path then return end
+      killAnonymousEventHandler(done_handler)
+      killAnonymousEventHandler(error_handler)
+      agnosticdb.api.download_inflight[normalized] = nil
+      resolve_callbacks(normalized, person, err or "download_error")
+    end)
+
+    downloadFile(path, api_url(normalized))
+  end
+
+  http_get(api_url(normalized), function(body, code)
+    if type(body) ~= "string" or #body == 0 then
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      download_fallback()
+      return
+    end
+
+    local data = decode_json(body)
+    if type(data) ~= "table" then
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      download_fallback()
+      return
+    end
+
+    resolve_record(data)
   end)
 end
 
