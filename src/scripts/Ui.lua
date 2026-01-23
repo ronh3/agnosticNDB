@@ -443,10 +443,11 @@ function agnosticdb.ui.config_set(path, value)
   end
 
   ensure_conf_defaults()
-  local lower = tostring(path):lower()
+  local lower = tostring(path):lower():gsub("^%s+", ""):gsub("%s+$", "")
+  local value_text = tostring(value):gsub("^%s+", ""):gsub("%s+$", "")
   if lower == "api.enabled" or lower == "highlights_enabled" or lower == "prune_dormant"
     or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize" then
-    local val = tostring(value):lower()
+    local val = value_text:lower()
     local bool = (val == "true" or val == "on" or val == "1" or val == "yes")
     if val == "false" or val == "off" or val == "0" or val == "no" then
       bool = false
@@ -456,7 +457,7 @@ function agnosticdb.ui.config_set(path, value)
   end
 
   if lower == "highlight.enemies.color" then
-    agnosticdb.conf.highlight.enemies.color = tostring(value)
+    agnosticdb.conf.highlight.enemies.color = value_text
     config_save()
     if agnosticdb.highlights and agnosticdb.highlights.reload then
       agnosticdb.highlights.reload()
@@ -469,9 +470,9 @@ function agnosticdb.ui.config_set(path, value)
   if city and field then
     local style = config_city_style(city)
     if field == "color" then
-      style.color = tostring(value)
+      style.color = value_text
     else
-      local val = tostring(value):lower()
+      local val = value_text:lower()
       style[field] = (val == "true" or val == "on" or val == "1" or val == "yes")
     end
     config_save()
