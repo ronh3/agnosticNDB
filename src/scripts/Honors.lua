@@ -22,6 +22,15 @@ local function normalize_person_name(name)
   return name:sub(1, 1):upper() .. name:sub(2):lower()
 end
 
+local function honors_delay_seconds()
+  local delay = 2
+  if agnosticdb.conf and agnosticdb.conf.honors then
+    delay = tonumber(agnosticdb.conf.honors.delay_seconds) or delay
+  end
+  if delay < 0 then delay = 0 end
+  return delay
+end
+
 local function titlecase_words(value)
   if type(value) ~= "string" then return "" end
   if value == "" then return "" end
@@ -180,22 +189,12 @@ local function parse_ranks(line)
   return city_rank, xp_rank
 end
 
-local function parse_army(line)
-  if type(line) ~= "string" then return nil, nil end
-  if not line:lower():find("army of") then return nil, nil end
-  local title, rank = line:match("He is%s+(.+)%((%d+)%)%s+in the army of")
-  if not title or not rank then return nil, nil end
-
-  title = title:gsub("^an%s+", "")
-  title = title:gsub("^a%s+", "")
-  title = title:gsub("^of%s+the%s+", "")
-  title = title:gsub("^of%s+", "")
-  title = title:gsub("%s+$", "")
-  if title ~= "" then
-    title = titlecase_words(title)
-  end
-
-  return title, tonumber(rank)
+local function parse_army_rank(line)
+  if type(line) ~= "string" then return nil end
+  if not line:lower():find("army of") then return nil end
+  local rank = line:match("%((%d+)%)%s+in the army of")
+  if not rank then return nil end
+  return tonumber(rank)
 end
 
 local function parse_lines(name, lines)
@@ -229,8 +228,7 @@ local function parse_lines(name, lines)
       if city_rank then record.city_rank = city_rank end
       if xp_rank then record.xp_rank = xp_rank end
 
-      local army_title, army_rank = parse_army(text)
-      if army_title and army_title ~= "" then record.army_title = army_title end
+      local army_rank = parse_army_rank(text)
       if army_rank then record.army_rank = army_rank end
     end
   end
@@ -260,7 +258,7 @@ local function finish_queue_item()
     echo_line(string.format("Honors queue complete: %d processed in %ds.", stats.processed or 0, elapsed))
     return
   end
-  tempTimer(0, agnosticdb.honors.run_queue)
+  tempTimer(honors_delay_seconds(), agnosticdb.honors.run_queue)
 end
 
 function agnosticdb.honors.finish_capture()

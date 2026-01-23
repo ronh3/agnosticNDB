@@ -116,9 +116,11 @@ function agnosticdb.ui.show_help()
   entry("adbtest", "run self-test")
   entry("qwp", "online list grouped by city")
   entry("qwpr", "online list grouped by city + race")
+  entry("qwpa", "online list grouped by city + army rank")
   entry("qwpc", "online list grouped by city + class")
   entry("qwprc", "online list grouped by city + race/class")
   entry("qwpcr", "online list grouped by city + class/race")
+  entry("qwp rank <n>", "online list grouped by city, filtered by army rank")
   line()
 end
 
@@ -163,13 +165,7 @@ function agnosticdb.ui.show_person(name)
   end
   echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
   echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
-  if person.army_title and person.army_title ~= "" then
-    if person.army_rank and person.army_rank >= 0 then
-      echo_line(string.format("Army: %s (%d)", person.army_title, person.army_rank))
-    else
-      echo_line(string.format("Army: %s", person.army_title))
-    end
-  elseif person.army_rank and person.army_rank >= 0 then
+  if person.army_rank and person.army_rank >= 0 then
     echo_line(string.format("Army Rank: %d", person.army_rank))
   end
   if person.enemy_city and person.enemy_city ~= "" then
@@ -581,6 +577,11 @@ local function race_label(race_name)
   return race_name
 end
 
+local function army_rank_label(rank)
+  if rank == nil or rank < 0 then return "AR?" end
+  return string.format("AR%d", rank)
+end
+
 local function qwp_suffix(person, mode)
   if mode == "none" then return nil end
   local race = person.race or ""
@@ -588,6 +589,9 @@ local function qwp_suffix(person, mode)
   local class_text = class_abbrev(person.class)
   local elemental_or_dragon = race == "Elemental" or race == "Dragon"
 
+  if mode == "army" then
+    return army_rank_label(person.army_rank)
+  end
   if mode == "class" then
     if elemental_or_dragon then
       return race_text
@@ -606,6 +610,15 @@ local function qwp_suffix(person, mode)
   return nil
 end
 
+local function qwp_match_filter(person, filter)
+  if not filter then return true end
+  if filter.field == "army_rank" then
+    local value = tonumber(filter.value or -1)
+    return tonumber(person.army_rank or -1) == value
+  end
+  return true
+end
+
 local function city_color(city)
   local cfg = agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities or {}
   local key = city:lower()
@@ -621,7 +634,7 @@ local function normalize_city_name(city)
   return city
 end
 
-function agnosticdb.ui.qwp(mode)
+function agnosticdb.ui.qwp(mode, filter)
   local view_mode = mode
   if view_mode == true then
     view_mode = "class"
@@ -641,12 +654,16 @@ function agnosticdb.ui.qwp(mode)
     for _, name in ipairs(names) do
       local person = agnosticdb.db.get_person(name) or {}
       local city = normalize_city_name(person.city or "")
-      city_online[city] = city_online[city] or {}
-      city_online[city][#city_online[city] + 1] = {
+      local entry = {
         name = display_name(name),
         class = person.class or "",
-        race = person.race or ""
+        race = person.race or "",
+        army_rank = person.army_rank
       }
+      if qwp_match_filter(entry, filter) then
+        city_online[city] = city_online[city] or {}
+        city_online[city][#city_online[city] + 1] = entry
+      end
     end
 
     local city_list = {}

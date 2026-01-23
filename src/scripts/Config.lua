@@ -47,6 +47,8 @@ function agnosticdb.config.load()
   agnosticdb.conf.api.backoff_seconds = agnosticdb.conf.api.backoff_seconds or 30
   agnosticdb.conf.api.min_interval_seconds = agnosticdb.conf.api.min_interval_seconds or 0
   agnosticdb.conf.api.timeout_seconds = agnosticdb.conf.api.timeout_seconds or 15
+  agnosticdb.conf.honors = agnosticdb.conf.honors or { delay_seconds = 2 }
+  agnosticdb.conf.honors.delay_seconds = agnosticdb.conf.honors.delay_seconds or 2
 
   if agnosticdb.conf.highlights_enabled == nil then
     agnosticdb.conf.highlights_enabled = true

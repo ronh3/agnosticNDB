@@ -250,6 +250,16 @@
               "isLua": "yes"
        },
        {
+              "name": "qwpa",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwpa$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"army\") end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "qwpc",
               "isActive": "yes",
               "isFolder": "no",
@@ -276,6 +286,16 @@
               "command": "",
               "regex": "^qwpcr$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"class_race\") end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "qwp rank",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwp\\s+rank\\s+(\\d+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"army\", { field = \"army_rank\", value = matches[2] }) end",
               "matchall": "no",
               "isLua": "yes"
        },
