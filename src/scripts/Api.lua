@@ -146,6 +146,7 @@ local function api_defaults()
   agnosticdb.conf.api.min_refresh_hours = agnosticdb.conf.api.min_refresh_hours or 24
   agnosticdb.conf.api.backoff_seconds = agnosticdb.conf.api.backoff_seconds or 30
   agnosticdb.conf.api.min_interval_seconds = agnosticdb.conf.api.min_interval_seconds or 0
+  agnosticdb.conf.api.timeout_seconds = agnosticdb.conf.api.timeout_seconds or 15
 end
 
 local function should_refresh(person)
@@ -449,11 +450,26 @@ end
 local function perform_fetch(name, on_finished)
   local person = agnosticdb.db.get_person(name)
 
+  local finished = false
+  local timeout_timer = nil
+
   local function finish(payload, status)
+    if finished then return end
+    finished = true
+    if timeout_timer then killTimer(timeout_timer) end
     resolve_callbacks(name, payload, status)
     if type(on_finished) == "function" then
       on_finished()
     end
+  end
+
+  local timeout = agnosticdb.conf and agnosticdb.conf.api and agnosticdb.conf.api.timeout_seconds or 15
+  if timeout > 0 then
+    timeout_timer = tempTimer(timeout, function()
+      if finished then return end
+      agnosticdb.api.backoff_until = os.time() + agnosticdb.conf.api.backoff_seconds
+      finish(person, "timeout")
+    end)
   end
 
   local function resolve_record(data)
