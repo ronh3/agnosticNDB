@@ -157,12 +157,27 @@ local function config_line_link(text, cmd, hint, theme)
   theme = theme or config_theme()
   cecho(theme.accent)
   setUnderline(true)
-  echoLink(text, cmd, hint or text, true)
+  echoLink(text, cmd, "", true)
   setUnderline(false)
   cecho(theme.reset)
 end
 
 function agnosticdb.ui.config_noop()
+end
+
+local function config_echo_style(label, style, theme)
+  theme = theme or config_theme()
+  if not style then
+    cecho(theme.text .. label)
+    return
+  end
+  if style.color and style.color ~= "" then fg(style.color) end
+  if style.bold then setBold(true) end
+  if style.underline then setUnderline(true) end
+  if style.italicize then setItalics(true) end
+  echo(label)
+  resetFormat()
+  cecho(theme.text)
 end
 
 local function config_color_popup(path, theme)
@@ -523,7 +538,9 @@ function agnosticdb.ui.show_config()
   line(separator())
   line(section("Highlights"))
   local enemy_style = conf.highlight.enemies
-  cecho(string.format("%s  Enemy style: %s%s %s", theme.text, theme.text, config_display_color(enemy_style.color), config_style_flags(enemy_style)))
+  cecho(theme.text .. "  ")
+  config_echo_style("Enemy", enemy_style, theme)
+  cecho(string.format("%s style: %s%s %s", theme.text, theme.text, config_display_color(enemy_style.color), config_style_flags(enemy_style)))
   cecho(" ")
   config_color_popup("highlight.enemies.color", theme)
   cecho(" ")
@@ -548,7 +565,9 @@ function agnosticdb.ui.show_config()
   for _, city in ipairs(city_order) do
     local style = config_city_style(city)
     local label = city:sub(1, 1):upper() .. city:sub(2)
-    cecho(string.format("%s  %s: %s%s %s", theme.text, label, theme.text, config_display_color(style.color), config_style_flags(style)))
+    cecho(theme.text .. "  ")
+    config_echo_style(label, style, theme)
+    cecho(string.format("%s: %s%s %s", theme.text, theme.text, config_display_color(style.color), config_style_flags(style)))
     cecho(" ")
     config_color_popup(string.format("highlight.cities.%s.color", city), theme)
     cecho(" ")
