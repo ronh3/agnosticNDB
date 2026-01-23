@@ -51,6 +51,18 @@ local function format_duration(seconds)
   return string.format("%ds", secs)
 end
 
+local function attach_queue_progress()
+  agnosticdb.api.on_queue_progress = function(percent, stats)
+    local total = stats.total or 0
+    local processed = stats.processed or 0
+    if total > 0 then
+      echo_line(string.format("Queue progress: %d%% (%d/%d)", percent, processed, total))
+    else
+      echo_line(string.format("Queue progress: %d%%", percent))
+    end
+  end
+end
+
 function agnosticdb.ui.show_help()
   local accent = "<cyan>"
   local text = "<white>"
@@ -218,6 +230,7 @@ function agnosticdb.ui.fetch(name)
   end
 
   echo_line("Fetching online list...")
+  attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
@@ -239,6 +252,7 @@ end
 
 function agnosticdb.ui.refresh_online()
   echo_line("Refreshing online list (force)...")
+  attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
@@ -315,6 +329,7 @@ end
 
 function agnosticdb.ui.quick_update()
   echo_line("Fetching online list (new names only)...")
+  attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
@@ -336,6 +351,7 @@ end
 
 function agnosticdb.ui.update_all()
   echo_line("Queueing updates for all known names...")
+  attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))

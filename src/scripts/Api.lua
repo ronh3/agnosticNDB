@@ -577,7 +577,10 @@ local function start_queue()
     decode_failed = 0,
     download_error = 0,
     other = 0,
-    started_at = os.time()
+    started_at = os.time(),
+    processed = 0,
+    total = #agnosticdb.api.queue,
+    milestones = { [25] = false, [50] = false, [75] = false }
   }
 
   local function step()
@@ -676,6 +679,18 @@ function agnosticdb.api.fetch(name, on_done, opts)
       else
         stats.other = stats.other + 1
       end
+      stats.processed = stats.processed + 1
+      if stats.total and stats.total > 0 then
+        local percent = math.floor((stats.processed / stats.total) * 100)
+        for _, threshold in ipairs({25, 50, 75}) do
+          if percent >= threshold and not stats.milestones[threshold] then
+            stats.milestones[threshold] = true
+            if type(agnosticdb.api.on_queue_progress) == "function" then
+              agnosticdb.api.on_queue_progress(threshold, stats)
+            end
+          end
+        end
+      end
     end
     if type(on_done) == "function" then
       on_done(person_result, status)
@@ -689,6 +704,9 @@ function agnosticdb.api.fetch(name, on_done, opts)
   if not agnosticdb.api.queued[normalized] then
     table.insert(agnosticdb.api.queue, normalized)
     agnosticdb.api.queued[normalized] = true
+    if agnosticdb.api.queue_running and agnosticdb.api.queue_stats then
+      agnosticdb.api.queue_stats.total = agnosticdb.api.queue_stats.total + 1
+    end
   end
 
   start_queue()
