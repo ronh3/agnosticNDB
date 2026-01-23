@@ -182,6 +182,9 @@ function agnosticdb.ui.show_person(name)
   if person.xp_rank and person.xp_rank >= 0 then
     echo_line(string.format("XP Rank: %d", person.xp_rank))
   end
+  if person.level and person.level >= 0 then
+    echo_line(string.format("Level: %d", person.level))
+  end
 end
 
 function agnosticdb.ui.set_note(name, notes)

@@ -95,6 +95,7 @@ local function required_columns()
     "iff",
     "city_rank",
     "xp_rank",
+    "level",
     "immortal",
     "dragon",
     "last_checked",
@@ -194,6 +195,7 @@ function agnosticdb.db.init()
       iff = "auto", -- enemy/ally/auto
       city_rank = -1,
       xp_rank = -1,
+      level = -1,
       immortal = 0,
       dragon = 0,
       last_checked = 0,
@@ -218,6 +220,7 @@ function agnosticdb.db.init()
   add_column_if_missing(sample, "enemy_house", [[ALTER TABLE people ADD COLUMN "enemy_house" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "city_rank", [[ALTER TABLE people ADD COLUMN "city_rank" INTEGER NULL DEFAULT -1]])
   add_column_if_missing(sample, "xp_rank", [[ALTER TABLE people ADD COLUMN "xp_rank" INTEGER NULL DEFAULT -1]])
+  add_column_if_missing(sample, "level", [[ALTER TABLE people ADD COLUMN "level" INTEGER NULL DEFAULT -1]])
   add_column_if_missing(sample, "immortal", [[ALTER TABLE people ADD COLUMN "immortal" INTEGER NULL DEFAULT 0]])
   add_column_if_missing(sample, "dragon", [[ALTER TABLE people ADD COLUMN "dragon" INTEGER NULL DEFAULT 0]])
   add_column_if_missing(sample, "last_checked", [[ALTER TABLE people ADD COLUMN "last_checked" INTEGER NULL DEFAULT 0]])

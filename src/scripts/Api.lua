@@ -485,6 +485,7 @@ local function perform_fetch(name, on_finished)
       house = house,
       title = title,
       xp_rank = data.xp_rank or -1,
+      level = data.level or -1,
       source = "api",
       last_checked = os.time()
     }
