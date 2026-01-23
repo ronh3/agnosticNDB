@@ -158,9 +158,9 @@ local function config_line_link(text, cmd, hint, theme)
   cecho(theme.accent)
   setUnderline(true)
   if type(cechoLink) == "function" then
-    cechoLink(string.format("%s%s%s", theme.accent, text, theme.reset), cmd, nil, true)
+    cechoLink(string.format("%s%s%s", theme.accent, text, theme.reset), cmd, "", true)
   else
-    echoLink(text, cmd, nil, true)
+    echoLink(text, cmd, "", true)
   end
   setUnderline(false)
   cecho(theme.reset)
@@ -192,11 +192,11 @@ local function color_link(label, color, path)
   local cmd = string.format("agnosticdb.ui.config_set(%q, %q)", path, color or "")
   if type(cechoLink) == "function" then
     local prefix = color and color ~= "" and string.format("<%s>", color) or "<white>"
-    cechoLink(string.format("%s%s<reset>", prefix, label), cmd, nil, true)
+    cechoLink(string.format("%s%s<reset>", prefix, label), cmd, "", true)
     return
   end
   if color and color ~= "" then fg(color) end
-  echoLink(label, cmd, nil, true)
+  echoLink(label, cmd, "", true)
   resetFormat()
 end
 
