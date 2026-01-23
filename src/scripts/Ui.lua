@@ -321,7 +321,7 @@ local function config_set_boolean(path, value)
       style[field] = value
       config_save()
     else
-      echo_line("Config set: unknown key.")
+      echo_line(string.format("Config set: unknown key (%s).", tostring(path)))
       return
     end
   end
@@ -352,7 +352,7 @@ local function config_toggle_boolean(path)
     if city and field then
       current = config_city_style(city)[field]
     else
-      echo_line("Config toggle: unknown key.")
+      echo_line(string.format("Config toggle: unknown key (%s).", tostring(path)))
       return
     end
   end
@@ -364,7 +364,7 @@ local function config_set_number(path, value)
   ensure_conf_defaults()
   local num = tonumber(value)
   if not num then
-    echo_line("Config set: number required.")
+    echo_line(string.format("Config set: number required (key=%s value=%s).", tostring(path), tostring(value)))
     return
   end
   if num < 0 then num = 0 end
@@ -380,7 +380,7 @@ local function config_set_number(path, value)
   elseif path == "honors.delay_seconds" then
     agnosticdb.conf.honors.delay_seconds = num
   else
-    echo_line("Config set: unknown key.")
+    echo_line(string.format("Config set: unknown key (%s).", tostring(path)))
     return
   end
 
