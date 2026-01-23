@@ -153,6 +153,13 @@ local function config_style_flags(style)
   return table.concat(flags, "")
 end
 
+local function normalize_config_key(value)
+  local raw = tostring(value or "")
+  local lowered = raw:lower():gsub("^%s+", ""):gsub("%s+$", "")
+  local normalized = lowered:gsub("[^%w%._]", "")
+  return raw, normalized
+end
+
 local function config_line_link(text, cmd, hint, theme)
   theme = theme or config_theme()
   cecho(theme.accent)
@@ -291,6 +298,8 @@ end
 
 local function config_set_boolean(path, value)
   ensure_conf_defaults()
+  local raw, key = normalize_config_key(path)
+  path = key
   if path == "api.enabled" then
     agnosticdb.conf.api.enabled = value
     config_save()
@@ -321,7 +330,7 @@ local function config_set_boolean(path, value)
       style[field] = value
       config_save()
     else
-      echo_line(string.format("Config set: unknown key (%s).", tostring(path)))
+      echo_line(string.format("Config set: unknown key (%q -> %q).", raw, path))
       return
     end
   end
@@ -334,6 +343,8 @@ end
 
 local function config_toggle_boolean(path)
   ensure_conf_defaults()
+  local raw, key = normalize_config_key(path)
+  path = key
   local current = false
   if path == "api.enabled" then
     current = agnosticdb.conf.api.enabled
@@ -352,7 +363,7 @@ local function config_toggle_boolean(path)
     if city and field then
       current = config_city_style(city)[field]
     else
-      echo_line(string.format("Config toggle: unknown key (%s).", tostring(path)))
+      echo_line(string.format("Config toggle: unknown key (%q -> %q).", raw, path))
       return
     end
   end
@@ -362,9 +373,11 @@ end
 
 local function config_set_number(path, value)
   ensure_conf_defaults()
+  local raw, key = normalize_config_key(path)
+  path = key
   local num = tonumber(value)
   if not num then
-    echo_line(string.format("Config set: number required (key=%s value=%s).", tostring(path), tostring(value)))
+    echo_line(string.format("Config set: number required (key=%q -> %q value=%q).", raw, path, tostring(value)))
     return
   end
   if num < 0 then num = 0 end
@@ -380,7 +393,7 @@ local function config_set_number(path, value)
   elseif path == "honors.delay_seconds" then
     agnosticdb.conf.honors.delay_seconds = num
   else
-    echo_line(string.format("Config set: unknown key (%s).", tostring(path)))
+    echo_line(string.format("Config set: unknown key (%q -> %q).", raw, path))
     return
   end
 
@@ -443,7 +456,8 @@ function agnosticdb.ui.config_set(path, value)
   end
 
   ensure_conf_defaults()
-  local lower = tostring(path):lower():gsub("^%s+", ""):gsub("%s+$", "")
+  local raw_key, normalized_key = normalize_config_key(path)
+  local lower = normalized_key
   local value_text = tostring(value):gsub("^%s+", ""):gsub("%s+$", "")
   if lower == "api.enabled" or lower == "highlights_enabled" or lower == "prune_dormant"
     or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize" then
