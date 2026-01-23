@@ -112,11 +112,30 @@ end
 
 local function find_race(line)
   if type(line) ~= "string" then return nil end
-  local gender, race = line:match("%((%a+)%s+([%a%s']+)%)")
-  if not gender or not race then return nil end
-  local lower = gender:lower()
-  if lower ~= "male" and lower ~= "female" then return nil end
-  return titlecase_words(race:gsub("%s+$", ""))
+  local inner = line:match("%(([^)]+)%)")
+  if not inner then return nil end
+  local trimmed = inner:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed == "" then return nil end
+
+  local lower = trimmed:lower()
+  if lower:find("^male%s+") then
+    trimmed = trimmed:sub(6)
+  elseif lower:find("^female%s+") then
+    trimmed = trimmed:sub(8)
+  end
+
+  local race = trimmed:gsub("^%s+", ""):gsub("%s+$", "")
+  if race == "" then return nil end
+
+  local race_lower = race:lower()
+  if race_lower:find("%f[%a]elemental%f[%A]") then
+    return "Elemental"
+  end
+  if race_lower:find("%f[%a]dragon%f[%A]") then
+    return "Dragon"
+  end
+
+  return titlecase_words(race)
 end
 
 local function find_title(name, line)
