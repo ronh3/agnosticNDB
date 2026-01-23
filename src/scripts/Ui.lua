@@ -122,22 +122,10 @@ local function config_theme()
 end
 
 local function config_color_palette()
-  return {
-    "",
-    "white",
-    "silver",
-    "grey",
-    "cyan",
-    "light_blue",
-    "cornflower_blue",
-    "forest_green",
-    "yellow",
-    "orange",
-    "red",
-    "pink",
-    "purple",
-    "green"
-  }
+  if agnosticdb.colors and type(agnosticdb.colors.list) == "function" then
+    return agnosticdb.colors.list()
+  end
+  return { "white", "silver", "grey", "cyan", "light_blue", "cornflower_blue", "forest_green", "yellow", "orange", "red", "pink", "purple", "green" }
 end
 
 local function config_display_color(value)
@@ -172,6 +160,27 @@ local function config_line_link(text, cmd, hint, theme)
   echoLink(text, cmd, hint or text, true)
   setUnderline(false)
   cecho(theme.reset)
+end
+
+local function config_color_popup(path, theme)
+  local commands = {
+    string.format("agnosticdb.ui.config_set(%q, %q)", path, "")
+  }
+  local hints = { "none" }
+  for _, color in ipairs(config_color_palette()) do
+    commands[#commands + 1] = string.format("agnosticdb.ui.config_set(%q, %q)", path, color)
+    hints[#hints + 1] = color
+  end
+
+  if type(cechoPopup) == "function" then
+    cechoPopup(string.format("%s[color]%s", theme.accent, theme.reset), commands, hints)
+    return
+  end
+  if type(echoPopup) == "function" then
+    echoPopup("[color]", commands, hints)
+    return
+  end
+  config_line_link("[color]", string.format("agnosticdb.ui.config_cycle_color(%q)", path), "Cycle color", theme)
 end
 
 local function config_city_style(city_key)
@@ -498,7 +507,7 @@ function agnosticdb.ui.show_config()
   local enemy_style = conf.highlight.enemies
   cecho(string.format("%s  Enemy style: %s%s %s", theme.text, theme.text, config_display_color(enemy_style.color), config_style_flags(enemy_style)))
   cecho(" ")
-  config_line_link("[color]", "agnosticdb.ui.config_cycle_color('highlight.enemies.color')", "Cycle color", theme)
+  config_color_popup("highlight.enemies.color", theme)
   cecho(" ")
   config_line_link("[B]", "agnosticdb.ui.config_toggle('highlight.enemies.bold')", "Toggle bold", theme)
   cecho(" ")
@@ -523,7 +532,7 @@ function agnosticdb.ui.show_config()
     local label = city:sub(1, 1):upper() .. city:sub(2)
     cecho(string.format("%s  %s: %s%s %s", theme.text, label, theme.text, config_display_color(style.color), config_style_flags(style)))
     cecho(" ")
-    config_line_link("[color]", string.format("agnosticdb.ui.config_cycle_color('highlight.cities.%s.color')", city), "Cycle color", theme)
+    config_color_popup(string.format("highlight.cities.%s.color", city), theme)
     cecho(" ")
     config_line_link("[B]", string.format("agnosticdb.ui.config_toggle('highlight.cities.%s.bold')", city), "Toggle bold", theme)
     cecho(" ")
@@ -541,6 +550,7 @@ function agnosticdb.ui.show_config()
   cecho(" ")
   config_line_link("[manage]", "agnosticdb.ui.show_help()", "Use adb ignore <name>", theme)
   cecho("\n")
+  cecho(theme.muted .. "  Tip: right-click [color] to pick from the full palette." .. theme.reset .. "\n")
 
   line(separator())
   line(section("Politics"))
