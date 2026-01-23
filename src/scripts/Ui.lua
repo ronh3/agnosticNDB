@@ -284,6 +284,9 @@ function agnosticdb.ui.honors(name)
     echo_line("Provide a name to honor-check.")
     return
   end
+  if agnosticdb.honors and agnosticdb.honors.capture then
+    agnosticdb.honors.capture(name)
+  end
   send("HONORS " .. name)
 end
 

@@ -1,6 +1,7 @@
 agnosticdb = agnosticdb or {}
 
 agnosticdb.honors = agnosticdb.honors or {}
+agnosticdb.honors.active = agnosticdb.honors.active or nil
 
 local function prefix()
   return "<cyan>[agnosticdb]<reset> "
@@ -74,12 +75,10 @@ end
 local function find_city(line)
   if type(line) ~= "string" then return nil end
   local lower = line:lower()
-  if lower:find("citizen") then
-    for _, city in ipairs(agnosticdb.politics and agnosticdb.politics.cities or {}) do
-      local pattern = "%f[%a]" .. city:lower() .. "%f[%A]"
-      if lower:find(pattern) then
-        return city
-      end
+  for _, city in ipairs(agnosticdb.politics and agnosticdb.politics.cities or {}) do
+    local pattern = "%f[%a]" .. city:lower() .. "%f[%A]"
+    if lower:find(pattern) then
+      return city
     end
   end
   return nil
@@ -95,6 +94,19 @@ local function find_house(line)
   if match then
     return titlecase_words(match:gsub("%s+$", ""))
   end
+  local lower = line:lower()
+  if lower:find(" in the ") and not lower:find("army of") and not lower:find("city of") then
+    match = line:match(" in the ([%a%s']+)%p?$")
+    if match then
+      local candidate = titlecase_words(match:gsub("%s+$", ""))
+      if candidate ~= "" then
+        local city = find_city(candidate)
+        if not city then
+          return candidate
+        end
+      end
+    end
+  end
   return nil
 end
 
@@ -102,7 +114,7 @@ local function find_title(name, line)
   if type(name) ~= "string" or type(line) ~= "string" then return nil end
   local lower = line:lower()
   local name_lower = name:lower()
-  if lower:find("^" .. name_lower) and line:find(",") then
+  if lower:find("%f[%a]" .. name_lower .. "%f[%A]") and line:find(",") then
     return line:gsub("^%s+", ""):gsub("%s+$", "")
   end
   return nil
@@ -125,6 +137,11 @@ local function parse_ranks(line)
   end
 
   rank = lower:match("ranked%s+(%d+)%s+overall")
+  if rank then
+    xp_rank = tonumber(rank)
+  end
+
+  rank = lower:match("ranked%s+(%d+)%a*%s+in%s+achaea")
   if rank then
     xp_rank = tonumber(rank)
   end
@@ -161,6 +178,13 @@ local function parse_lines(name, lines)
       local city_rank, xp_rank = parse_ranks(text)
       if city_rank then record.city_rank = city_rank end
       if xp_rank then record.xp_rank = xp_rank end
+
+      if not record.city_rank and lower:find("army of") then
+        local rank = text:match("%((%d+)%)")
+        if rank then
+          record.city_rank = tonumber(rank)
+        end
+      end
     end
   end
 
@@ -169,19 +193,19 @@ local function parse_lines(name, lines)
 end
 
 function agnosticdb.honors.abort_capture()
-  local capture = agnosticdb.honors.capture
+  local capture = agnosticdb.honors.active
   if not capture then return end
   if capture.line_trigger then killTrigger(capture.line_trigger) end
   if capture.prompt_trigger then killTrigger(capture.prompt_trigger) end
-  agnosticdb.honors.capture = nil
+  agnosticdb.honors.active = nil
 end
 
 function agnosticdb.honors.finish_capture()
-  local capture = agnosticdb.honors.capture
+  local capture = agnosticdb.honors.active
   if not capture then return end
   if capture.line_trigger then killTrigger(capture.line_trigger) end
   if capture.prompt_trigger then killTrigger(capture.prompt_trigger) end
-  agnosticdb.honors.capture = nil
+  agnosticdb.honors.active = nil
 
   if capture.name and capture.lines then
     parse_lines(capture.name, capture.lines)
@@ -197,7 +221,7 @@ function agnosticdb.honors.capture(name)
     name = normalized,
     lines = {}
   }
-  agnosticdb.honors.capture = capture
+  agnosticdb.honors.active = capture
 
   if type(tempRegexTrigger) ~= "function" then
     echo_line("Mudlet temp triggers unavailable; cannot capture honors.")
