@@ -162,14 +162,32 @@ local function config_line_link(text, cmd, hint, theme)
   cecho(theme.reset)
 end
 
+function agnosticdb.ui.config_noop()
+end
+
 local function config_color_popup(path, theme)
   local commands = {
     string.format("agnosticdb.ui.config_set(%q, %q)", path, "")
   }
   local hints = { "none" }
-  for _, color in ipairs(config_color_palette()) do
-    commands[#commands + 1] = string.format("agnosticdb.ui.config_set(%q, %q)", path, color)
-    hints[#hints + 1] = color
+  local groups = nil
+  if agnosticdb.colors and type(agnosticdb.colors.grouped) == "function" then
+    groups = agnosticdb.colors.grouped()
+  end
+  if groups then
+    for _, group in ipairs(groups) do
+      commands[#commands + 1] = "agnosticdb.ui.config_noop()"
+      hints[#hints + 1] = string.format("-- %s --", group.label)
+      for _, color in ipairs(group.colors or {}) do
+        commands[#commands + 1] = string.format("agnosticdb.ui.config_set(%q, %q)", path, color)
+        hints[#hints + 1] = "  " .. color
+      end
+    end
+  else
+    for _, color in ipairs(config_color_palette()) do
+      commands[#commands + 1] = string.format("agnosticdb.ui.config_set(%q, %q)", path, color)
+      hints[#hints + 1] = color
+    end
   end
 
   if type(cechoPopup) == "function" then
