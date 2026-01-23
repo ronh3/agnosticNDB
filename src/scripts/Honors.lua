@@ -180,6 +180,24 @@ local function parse_ranks(line)
   return city_rank, xp_rank
 end
 
+local function parse_army(line)
+  if type(line) ~= "string" then return nil, nil end
+  if not line:lower():find("army of") then return nil, nil end
+  local title, rank = line:match("He is%s+(.+)%((%d+)%)%s+in the army of")
+  if not title or not rank then return nil, nil end
+
+  title = title:gsub("^an%s+", "")
+  title = title:gsub("^a%s+", "")
+  title = title:gsub("^of%s+the%s+", "")
+  title = title:gsub("^of%s+", "")
+  title = title:gsub("%s+$", "")
+  if title ~= "" then
+    title = titlecase_words(title)
+  end
+
+  return title, tonumber(rank)
+end
+
 local function parse_lines(name, lines)
   if not agnosticdb.db.ensure() then
     echo_line("Database not ready; honors update skipped.")
@@ -211,12 +229,9 @@ local function parse_lines(name, lines)
       if city_rank then record.city_rank = city_rank end
       if xp_rank then record.xp_rank = xp_rank end
 
-      if not record.city_rank and lower:find("army of") then
-        local rank = text:match("%((%d+)%)")
-        if rank then
-          record.city_rank = tonumber(rank)
-        end
-      end
+      local army_title, army_rank = parse_army(text)
+      if army_title and army_title ~= "" then record.army_title = army_title end
+      if army_rank then record.army_rank = army_rank end
     end
   end
 

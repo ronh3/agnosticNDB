@@ -163,6 +163,15 @@ function agnosticdb.ui.show_person(name)
   end
   echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
   echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
+  if person.army_title and person.army_title ~= "" then
+    if person.army_rank and person.army_rank >= 0 then
+      echo_line(string.format("Army: %s (%d)", person.army_title, person.army_rank))
+    else
+      echo_line(string.format("Army: %s", person.army_title))
+    end
+  elseif person.army_rank and person.army_rank >= 0 then
+    echo_line(string.format("Army Rank: %d", person.army_rank))
+  end
   if person.enemy_city and person.enemy_city ~= "" then
     echo_line(string.format("Enemied to City: %s", person.enemy_city))
   end
