@@ -614,7 +614,7 @@ local function qwp_match_filter(person, filter)
   if not filter then return true end
   if filter.field == "army_rank" then
     local value = tonumber(filter.value or -1)
-    return tonumber(person.army_rank or -1) == value
+    return tonumber(person.army_rank or -1) >= value
   end
   return true
 end
