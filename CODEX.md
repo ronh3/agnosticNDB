@@ -16,3 +16,7 @@ Guidance for Codex when working in this repository.
 - Keep structure shallow and logical.
 - Prefer the Mudlet DB for people data; use small Lua tables only for config.
 - Default to using the Achaea API for lookups, with caching/backoff.
+- Use `cecho` tags for colored output; avoid mixing `decho`-style tags.
+- Make aliases responsive with confirmation output when they do not already emit results.
+- Explain the reasoning behind code changes in responses.
+- Commit and push changes unless the user asks otherwise.
