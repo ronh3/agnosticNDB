@@ -34,6 +34,23 @@ local function format_eta(seconds)
   return string.format("%ds", secs)
 end
 
+local function format_duration(seconds)
+  if seconds <= 0 then return "0s" end
+  local secs = math.floor(seconds)
+  local mins = math.floor(secs / 60)
+  secs = secs % 60
+  local hours = math.floor(mins / 60)
+  mins = mins % 60
+
+  if hours > 0 then
+    return string.format("%dh %dm %ds", hours, mins, secs)
+  end
+  if mins > 0 then
+    return string.format("%dm %ds", mins, secs)
+  end
+  return string.format("%ds", secs)
+end
+
 function agnosticdb.ui.show_help()
   local accent = "<cyan>"
   local text = "<white>"
@@ -204,6 +221,9 @@ function agnosticdb.ui.fetch(name)
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+    if stats.elapsed_seconds then
+      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    end
   end
   agnosticdb.api.fetch_online(function(result, status)
     if status ~= "ok" then
@@ -222,6 +242,9 @@ function agnosticdb.ui.refresh_online()
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+    if stats.elapsed_seconds then
+      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    end
   end
   agnosticdb.api.fetch_online(function(result, status)
     if status ~= "ok" then
@@ -295,6 +318,9 @@ function agnosticdb.ui.quick_update()
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+    if stats.elapsed_seconds then
+      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    end
   end
   agnosticdb.api.fetch_online_new(function(result, status)
     if status ~= "ok" then
@@ -313,6 +339,9 @@ function agnosticdb.ui.update_all()
   agnosticdb.api.on_queue_done = function(stats)
     echo_line(string.format("Queue complete: ok=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
       stats.ok, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+    if stats.elapsed_seconds then
+      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    end
   end
   agnosticdb.api.update_all(function(result, status)
     if status ~= "ok" then

@@ -569,11 +569,24 @@ local function start_queue()
   agnosticdb.api.queued = agnosticdb.api.queued or {}
   if agnosticdb.api.queue_running then return end
   agnosticdb.api.queue_running = true
-  agnosticdb.api.queue_stats = { ok = 0, cached = 0, pruned = 0, api_error = 0, decode_failed = 0, download_error = 0, other = 0 }
+  agnosticdb.api.queue_stats = {
+    ok = 0,
+    cached = 0,
+    pruned = 0,
+    api_error = 0,
+    decode_failed = 0,
+    download_error = 0,
+    other = 0,
+    started_at = os.time()
+  }
 
   local function step()
     if #agnosticdb.api.queue == 0 then
       agnosticdb.api.queue_running = false
+      if agnosticdb.api.queue_stats then
+        agnosticdb.api.queue_stats.finished_at = os.time()
+        agnosticdb.api.queue_stats.elapsed_seconds = agnosticdb.api.queue_stats.finished_at - agnosticdb.api.queue_stats.started_at
+      end
       if type(agnosticdb.api.on_queue_done) == "function" then
         agnosticdb.api.on_queue_done(agnosticdb.api.queue_stats)
       end
