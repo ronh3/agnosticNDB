@@ -157,7 +157,11 @@ local function config_line_link(text, cmd, hint, theme)
   theme = theme or config_theme()
   cecho(theme.accent)
   setUnderline(true)
-  echoLink(text, cmd, "", true)
+  if type(cechoLink) == "function" then
+    cechoLink(string.format("%s%s%s", theme.accent, text, theme.reset), cmd, nil, true)
+  else
+    echoLink(text, cmd, nil, true)
+  end
   setUnderline(false)
   cecho(theme.reset)
 end
@@ -181,39 +185,92 @@ local function config_echo_style(label, style, theme)
 end
 
 local function config_color_popup(path, theme)
-  local commands = {
-    string.format("agnosticdb.ui.config_set(%q, %q)", path, "")
-  }
-  local hints = { "none" }
+  config_line_link("[color]", string.format("agnosticdb.ui.show_color_picker(%q)", path), "Open color picker", theme)
+end
+
+local function color_link(label, color, path)
+  local cmd = string.format("agnosticdb.ui.config_set(%q, %q)", path, color or "")
+  if type(cechoLink) == "function" then
+    local prefix = color and color ~= "" and string.format("<%s>", color) or "<white>"
+    cechoLink(string.format("%s%s<reset>", prefix, label), cmd, nil, true)
+    return
+  end
+  if color and color ~= "" then fg(color) end
+  echoLink(label, cmd, nil, true)
+  resetFormat()
+end
+
+function agnosticdb.ui.show_color_picker(path)
+  ensure_conf_defaults()
+  if not path or path == "" then
+    echo_line("Color picker missing config path.")
+    return
+  end
+
+  local theme = config_theme()
+  local width = 88
+  local header_label = "agnosticDB Colors"
+  local footer_label = "agnosticDB"
+
+  local function header_line()
+    return string.format("%s┌─%s%s%s─┐%s", theme.border, theme.accent, header_label, theme.border, theme.reset)
+  end
+
+  local function separator()
+    return string.format("%s%s%s", theme.border, string.rep("─", width), theme.reset)
+  end
+
+  local function section(title, padding)
+    padding = padding or ""
+    return string.format("%s%s└─%s%s%s─┘%s", padding, theme.border, theme.accent, title, theme.border, theme.reset)
+  end
+
+  local function footer_line()
+    local tab = string.format("└─%s%s%s─┘", theme.accent, footer_label, theme.border)
+    local padding = math.max(0, width - (#footer_label + 4))
+    return string.format("%s%s%s%s", string.rep(" ", padding), theme.border, tab, theme.reset)
+  end
+
+  local function line(text)
+    cecho(text .. "\n")
+  end
+
+  line(header_line())
+  line(separator())
+  line(section("Picker"))
+  cecho(theme.text .. "  Target: " .. path .. " ")
+  config_line_link("[back]", "agnosticdb.ui.show_config()", "Back to config", theme)
+  cecho("\n")
+  line(separator())
+
   local groups = nil
   if agnosticdb.colors and type(agnosticdb.colors.grouped) == "function" then
     groups = agnosticdb.colors.grouped()
   end
-  if groups then
-    for _, group in ipairs(groups) do
-      commands[#commands + 1] = "agnosticdb.ui.config_noop()"
-      hints[#hints + 1] = string.format("-- %s --", group.label)
-      for _, color in ipairs(group.colors or {}) do
-        commands[#commands + 1] = string.format("agnosticdb.ui.config_set(%q, %q)", path, color)
-        hints[#hints + 1] = "  " .. color
-      end
-    end
-  else
-    for _, color in ipairs(config_color_palette()) do
-      commands[#commands + 1] = string.format("agnosticdb.ui.config_set(%q, %q)", path, color)
-      hints[#hints + 1] = color
-    end
+  if not groups then
+    groups = { { label = "Colors", colors = config_color_palette() } }
   end
 
-  if type(cechoPopup) == "function" then
-    cechoPopup(string.format("%s[color]%s", theme.accent, theme.reset), commands, hints)
-    return
+  for _, group in ipairs(groups) do
+    line(section(group.label))
+    local line_len = 2
+    cecho(theme.text .. "  ")
+    for _, color in ipairs(group.colors or {}) do
+      local label = color
+      local entry_len = #label + 2
+      if line_len + entry_len > width then
+        cecho("\n" .. theme.text .. "  ")
+        line_len = 2
+      end
+      color_link(label, color, path)
+      cecho("  ")
+      line_len = line_len + entry_len
+    end
+    cecho("\n")
+    line(separator())
   end
-  if type(echoPopup) == "function" then
-    echoPopup("[color]", commands, hints)
-    return
-  end
-  config_line_link("[color]", string.format("agnosticdb.ui.config_cycle_color(%q)", path), "Cycle color", theme)
+
+  line(footer_line())
 end
 
 local function config_city_style(city_key)
@@ -587,7 +644,7 @@ function agnosticdb.ui.show_config()
   cecho(" ")
   config_line_link("[manage]", "agnosticdb.ui.show_help()", "Use adb ignore <name>", theme)
   cecho("\n")
-  cecho(theme.muted .. "  Tip: right-click [color] to pick from the full palette." .. theme.reset .. "\n")
+  cecho(theme.muted .. "  Tip: click [color] to open the palette." .. theme.reset .. "\n")
 
   line(separator())
   line(section("Politics"))
