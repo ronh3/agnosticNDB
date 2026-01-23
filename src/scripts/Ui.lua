@@ -112,7 +112,10 @@ function agnosticdb.ui.show_help()
   entry("adb forget <name>", "remove a person from the database")
   entry("adbtest", "run self-test")
   entry("qwp", "online list grouped by city")
+  entry("qwpr", "online list grouped by city + race")
   entry("qwpc", "online list grouped by city + class")
+  entry("qwprc", "online list grouped by city + race/class")
+  entry("qwpcr", "online list grouped by city + class/race")
   line()
 end
 
@@ -473,6 +476,36 @@ local function class_abbrev(class_name)
   return up:sub(1, 4)
 end
 
+local function race_label(race_name)
+  if not race_name or race_name == "" then return "UNK" end
+  return race_name
+end
+
+local function qwp_suffix(person, mode)
+  if mode == "none" then return nil end
+  local race = person.race or ""
+  local race_text = race_label(race)
+  local class_text = class_abbrev(person.class)
+  local elemental_or_dragon = race == "Elemental" or race == "Dragon"
+
+  if mode == "class" then
+    if elemental_or_dragon then
+      return race_text
+    end
+    return class_text
+  end
+  if mode == "race" then
+    return race_text
+  end
+  if mode == "race_class" then
+    return string.format("%s/%s", race_text, class_text)
+  end
+  if mode == "class_race" then
+    return string.format("%s/%s", class_text, race_text)
+  end
+  return nil
+end
+
 local function city_color(city)
   local cfg = agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities or {}
   local key = city:lower()
@@ -488,7 +521,13 @@ local function normalize_city_name(city)
   return city
 end
 
-function agnosticdb.ui.qwp(with_class)
+function agnosticdb.ui.qwp(mode)
+  local view_mode = mode
+  if view_mode == true then
+    view_mode = "class"
+  elseif view_mode == false or view_mode == nil then
+    view_mode = "none"
+  end
   echo_line("Building online list...")
   agnosticdb.api.fetch_list(function(names, status)
     if status ~= "ok" or type(names) ~= "table" then
@@ -505,7 +544,8 @@ function agnosticdb.ui.qwp(with_class)
       city_online[city] = city_online[city] or {}
       city_online[city][#city_online[city] + 1] = {
         name = display_name(name),
-        class = person.class or ""
+        class = person.class or "",
+        race = person.race or ""
       }
     end
 
@@ -531,8 +571,9 @@ function agnosticdb.ui.qwp(with_class)
 
       for _, player in ipairs(city.players) do
         local label = player.name
-        if with_class then
-          label = string.format("%s (%s)", player.name, class_abbrev(player.class))
+        local suffix = qwp_suffix(player, view_mode)
+        if suffix and suffix ~= "" then
+          label = string.format("%s (%s)", player.name, suffix)
         end
         cecho(string.format("<%s>%s<reset> ", color, label))
       end

@@ -225,7 +225,17 @@
               "isFolder": "no",
               "command": "",
               "regex": "^qwp$",
-              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(false) end",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"none\") end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "qwpr",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwpr$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"race\") end",
               "matchall": "no",
               "isLua": "yes"
        },
@@ -235,7 +245,27 @@
               "isFolder": "no",
               "command": "",
               "regex": "^qwpc$",
-              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(true) end",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"class\") end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "qwprc",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwprc$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"race_class\") end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "qwpcr",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwpcr$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwp(\"class_race\") end",
               "matchall": "no",
               "isLua": "yes"
        }
