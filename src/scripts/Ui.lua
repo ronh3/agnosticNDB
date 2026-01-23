@@ -152,6 +152,9 @@ function agnosticdb.ui.show_person(name)
 
   echo_line(string.format("Name: %s", person.name))
   echo_line(string.format("Class: %s", person.class ~= "" and person.class or "(unknown)"))
+  if person.race and person.race ~= "" then
+    echo_line(string.format("Race: %s", person.race))
+  end
   echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
   echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
   if person.enemy_city and person.enemy_city ~= "" then
@@ -164,6 +167,9 @@ function agnosticdb.ui.show_person(name)
   if person.notes and person.notes ~= "" then
     echo_line("Notes:")
     echo_line(person.notes)
+  end
+  if person.xp_rank and person.xp_rank >= 0 then
+    echo_line(string.format("XP Rank: %d", person.xp_rank))
   end
 end
 

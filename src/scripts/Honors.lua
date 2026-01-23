@@ -110,6 +110,15 @@ local function find_house(line)
   return nil
 end
 
+local function find_race(line)
+  if type(line) ~= "string" then return nil end
+  local gender, race = line:match("%((%a+)%s+([%a%s']+)%)")
+  if not gender or not race then return nil end
+  local lower = gender:lower()
+  if lower ~= "male" and lower ~= "female" then return nil end
+  return titlecase_words(race:gsub("%s+$", ""))
+end
+
 local function find_title(name, line)
   if type(name) ~= "string" or type(line) ~= "string" then return nil end
   local lower = line:lower()
@@ -166,6 +175,7 @@ local function parse_lines(name, lines)
       record.class = record.class or find_class(text)
       record.city = record.city or find_city(text)
       record.house = record.house or find_house(text)
+      record.race = record.race or find_race(text)
 
       local lower = text:lower()
       if lower:find("%f[%a]immortal%f[%A]") then
