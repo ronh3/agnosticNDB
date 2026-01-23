@@ -619,6 +619,10 @@ local function qwp_match_filter(person, filter)
   return true
 end
 
+local function has_army_rank(person)
+  return tonumber(person.army_rank or -1) >= 0
+end
+
 local function city_color(city)
   local cfg = agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities or {}
   local key = city:lower()
@@ -660,7 +664,11 @@ function agnosticdb.ui.qwp(mode, filter)
         race = person.race or "",
         army_rank = person.army_rank
       }
-      if qwp_match_filter(entry, filter) then
+      local include = true
+      if view_mode == "army" and not has_army_rank(entry) then
+        include = false
+      end
+      if include and qwp_match_filter(entry, filter) then
         city_online[city] = city_online[city] or {}
         city_online[city][#city_online[city] + 1] = entry
       end
