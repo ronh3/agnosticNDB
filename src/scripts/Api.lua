@@ -145,7 +145,7 @@ local function api_defaults()
   if agnosticdb.conf.api.enabled == nil then agnosticdb.conf.api.enabled = true end
   agnosticdb.conf.api.min_refresh_hours = agnosticdb.conf.api.min_refresh_hours or 24
   agnosticdb.conf.api.backoff_seconds = agnosticdb.conf.api.backoff_seconds or 30
-  agnosticdb.conf.api.min_interval_seconds = agnosticdb.conf.api.min_interval_seconds or 2
+  agnosticdb.conf.api.min_interval_seconds = agnosticdb.conf.api.min_interval_seconds or 0
 end
 
 local function should_refresh(person)
