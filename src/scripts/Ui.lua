@@ -107,6 +107,9 @@ function agnosticdb.ui.show_help()
   entry("adb stats", "counts by class/city")
   entry("adb ignore <name>", "toggle highlight ignore")
   entry("adb honors <name>", "request honors + ingest")
+  entry("adb honors online", "request honors for all online names")
+  entry("adb list class|city|race <value>", "list people by class/city/race")
+  entry("adb list enemy", "list people marked as enemies")
   entry("adb dbcheck", "check database health")
   entry("adb dbreset", "reset database (drops people table)")
   entry("adb forget <name>", "remove a person from the database")
@@ -330,10 +333,98 @@ function agnosticdb.ui.honors(name)
     echo_line("Provide a name to honor-check.")
     return
   end
+  if agnosticdb.honors and agnosticdb.honors.queue_running then
+    agnosticdb.honors.cancel_queue()
+  end
   if agnosticdb.honors and agnosticdb.honors.capture then
     agnosticdb.honors.capture(name)
   end
   send("HONORS " .. name)
+end
+
+function agnosticdb.ui.honors_online()
+  echo_line("Queueing honors for online names...")
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      echo_line(string.format("Honors online failed (%s).", status or "unknown"))
+      return
+    end
+    if agnosticdb.honors and agnosticdb.honors.queue_names then
+      agnosticdb.honors.queue_names(names)
+    end
+  end)
+end
+
+local function list_help()
+  echo_line("Usage: adb list class|city|race <value> | adb list enemy")
+end
+
+local function list_matches(value, candidate)
+  if type(value) ~= "string" or type(candidate) ~= "string" then return false end
+  if value == "" or candidate == "" then return false end
+  return value:lower() == candidate:lower()
+end
+
+function agnosticdb.ui.list(filter, value)
+  if not filter or filter == "" then
+    list_help()
+    return
+  end
+
+  if not agnosticdb.db.ensure() then
+    echo_line("List unavailable (DB not initialized).")
+    return
+  end
+
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  if not rows or #rows == 0 then
+    echo_line("List: no people in DB.")
+    return
+  end
+
+  local results = {}
+  if filter == "enemy" then
+    for _, row in ipairs(rows) do
+      if row.name and agnosticdb.iff.is_enemy(row.name) then
+        results[#results + 1] = row
+      end
+    end
+  elseif filter == "class" or filter == "city" or filter == "race" then
+    if not value or value == "" then
+      list_help()
+      return
+    end
+    for _, row in ipairs(rows) do
+      local field = row[filter] or ""
+      if list_matches(value, field) then
+        results[#results + 1] = row
+      end
+    end
+  else
+    list_help()
+    return
+  end
+
+  table.sort(results, function(a, b)
+    return (a.name or ""):lower() < (b.name or ""):lower()
+  end)
+
+  local label = filter
+  if value and value ~= "" then
+    label = string.format("%s %s", filter, value)
+  end
+  echo_line(string.format("List (%s): %d", label, #results))
+  for _, row in ipairs(results) do
+    local parts = {}
+    if row.city and row.city ~= "" then parts[#parts + 1] = row.city end
+    if row.class and row.class ~= "" then parts[#parts + 1] = row.class end
+    if row.race and row.race ~= "" then parts[#parts + 1] = row.race end
+    local suffix = ""
+    if #parts > 0 then
+      suffix = " (" .. table.concat(parts, ", ") .. ")"
+    end
+    echo_line(string.format("%s%s", display_name(row.name), suffix))
+  end
 end
 
 function agnosticdb.ui.quick_update()

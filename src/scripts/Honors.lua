@@ -2,6 +2,9 @@ agnosticdb = agnosticdb or {}
 
 agnosticdb.honors = agnosticdb.honors or {}
 agnosticdb.honors.active = agnosticdb.honors.active or nil
+agnosticdb.honors.queue = agnosticdb.honors.queue or {}
+agnosticdb.honors.queue_running = agnosticdb.honors.queue_running or false
+agnosticdb.honors.queue_stats = agnosticdb.honors.queue_stats or nil
 
 local function prefix()
   return "<cyan>[agnosticdb]<reset> "
@@ -229,6 +232,22 @@ function agnosticdb.honors.abort_capture()
   agnosticdb.honors.active = nil
 end
 
+local function finish_queue_item()
+  if not agnosticdb.honors.queue_running then return end
+  local stats = agnosticdb.honors.queue_stats or {}
+  stats.processed = (stats.processed or 0) + 1
+  agnosticdb.honors.queue_stats = stats
+  if #agnosticdb.honors.queue == 0 then
+    agnosticdb.honors.queue_running = false
+    stats.finished_at = os.time()
+    stats.elapsed_seconds = stats.finished_at - (stats.started_at or stats.finished_at)
+    local elapsed = stats.elapsed_seconds or 0
+    echo_line(string.format("Honors queue complete: %d processed in %ds.", stats.processed or 0, elapsed))
+    return
+  end
+  tempTimer(0, agnosticdb.honors.run_queue)
+end
+
 function agnosticdb.honors.finish_capture()
   local capture = agnosticdb.honors.active
   if not capture then return end
@@ -239,16 +258,20 @@ function agnosticdb.honors.finish_capture()
   if capture.name and capture.lines then
     parse_lines(capture.name, capture.lines)
   end
+  if capture.on_finish then
+    capture.on_finish()
+  end
 end
 
-function agnosticdb.honors.capture(name)
+function agnosticdb.honors.capture(name, on_finish)
   local normalized = normalize_person_name(name)
   if not normalized then return end
 
   agnosticdb.honors.abort_capture()
   local capture = {
     name = normalized,
-    lines = {}
+    lines = {},
+    on_finish = on_finish
   }
   agnosticdb.honors.active = capture
 
@@ -275,4 +298,50 @@ function agnosticdb.honors.capture(name)
   end
 
   echo_line(string.format("Capturing honors for %s...", normalized))
+end
+
+function agnosticdb.honors.cancel_queue()
+  agnosticdb.honors.queue = {}
+  agnosticdb.honors.queue_running = false
+  agnosticdb.honors.queue_stats = nil
+end
+
+function agnosticdb.honors.queue_names(names)
+  if type(names) ~= "table" then return end
+  if agnosticdb.honors.queue_running then
+    echo_line("Honors queue already running.")
+    return
+  end
+
+  local seen = {}
+  agnosticdb.honors.queue = {}
+  for _, name in ipairs(names) do
+    local normalized = normalize_person_name(name)
+    if normalized and not seen[normalized] then
+      seen[normalized] = true
+      table.insert(agnosticdb.honors.queue, normalized)
+    end
+  end
+
+  if #agnosticdb.honors.queue == 0 then
+    echo_line("Honors queue has no names to process.")
+    return
+  end
+
+  agnosticdb.honors.queue_running = true
+  agnosticdb.honors.queue_stats = { total = #agnosticdb.honors.queue, processed = 0, started_at = os.time() }
+  echo_line(string.format("Honors queue: %d names.", #agnosticdb.honors.queue))
+  agnosticdb.honors.run_queue()
+end
+
+function agnosticdb.honors.run_queue()
+  if not agnosticdb.honors.queue_running then return end
+  if #agnosticdb.honors.queue == 0 then
+    finish_queue_item()
+    return
+  end
+
+  local name = table.remove(agnosticdb.honors.queue, 1)
+  agnosticdb.honors.capture(name, finish_queue_item)
+  send("HONORS " .. name)
 end
