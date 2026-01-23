@@ -63,6 +63,498 @@ local function attach_queue_progress()
   end
 end
 
+local function ensure_conf_defaults()
+  agnosticdb.conf = agnosticdb.conf or {}
+  agnosticdb.conf.api = agnosticdb.conf.api or { enabled = true, min_refresh_hours = 24 }
+  if agnosticdb.conf.api.enabled == nil then agnosticdb.conf.api.enabled = true end
+  agnosticdb.conf.api.min_refresh_hours = agnosticdb.conf.api.min_refresh_hours or 24
+  agnosticdb.conf.api.backoff_seconds = agnosticdb.conf.api.backoff_seconds or 30
+  agnosticdb.conf.api.min_interval_seconds = agnosticdb.conf.api.min_interval_seconds or 0
+  agnosticdb.conf.api.timeout_seconds = agnosticdb.conf.api.timeout_seconds or 15
+
+  agnosticdb.conf.honors = agnosticdb.conf.honors or { delay_seconds = 2 }
+  agnosticdb.conf.honors.delay_seconds = agnosticdb.conf.honors.delay_seconds or 2
+
+  if agnosticdb.conf.highlights_enabled == nil then
+    agnosticdb.conf.highlights_enabled = true
+  end
+  agnosticdb.conf.prune_dormant = agnosticdb.conf.prune_dormant or false
+  agnosticdb.conf.highlight_ignore = agnosticdb.conf.highlight_ignore or {}
+
+  agnosticdb.conf.highlight = agnosticdb.conf.highlight or { enemies = {}, cities = {} }
+  agnosticdb.conf.highlight.enemies = agnosticdb.conf.highlight.enemies or {
+    color = "",
+    bold = false,
+    underline = true,
+    italicize = true
+  }
+  agnosticdb.conf.highlight.cities = agnosticdb.conf.highlight.cities or {}
+  local defaults = {
+    ashtan = { color = "purple", bold = false, underline = false, italicize = false },
+    cyrene = { color = "cornflower_blue", bold = false, underline = false, italicize = false },
+    eleusis = { color = "forest_green", bold = false, underline = false, italicize = false },
+    hashan = { color = "yellow", bold = false, underline = false, italicize = false },
+    mhaldor = { color = "red", bold = false, underline = false, italicize = false },
+    targossas = { color = "white", bold = false, underline = false, italicize = false },
+    rogue = { color = "orange", bold = false, underline = false, italicize = false },
+    divine = { color = "pink", bold = true, underline = false, italicize = true },
+    hidden = { color = "green", bold = true, underline = false, italicize = true }
+  }
+  for key, style in pairs(defaults) do
+    agnosticdb.conf.highlight.cities[key] = agnosticdb.conf.highlight.cities[key] or style
+    local current = agnosticdb.conf.highlight.cities[key]
+    for field, value in pairs(style) do
+      if current[field] == nil then
+        current[field] = value
+      end
+    end
+  end
+end
+
+local function config_theme()
+  return {
+    accent = "<cyan>",
+    border = "<grey>",
+    text = "<white>",
+    muted = "<silver>",
+    reset = "<reset>"
+  }
+end
+
+local function config_color_palette()
+  return {
+    "",
+    "white",
+    "silver",
+    "grey",
+    "cyan",
+    "light_blue",
+    "cornflower_blue",
+    "forest_green",
+    "yellow",
+    "orange",
+    "red",
+    "pink",
+    "purple",
+    "green"
+  }
+end
+
+local function config_display_color(value)
+  if not value or value == "" then return "none" end
+  return value
+end
+
+local function config_save()
+  if agnosticdb.config and agnosticdb.config.save then
+    agnosticdb.config.save()
+  end
+end
+
+local function config_refresh()
+  if agnosticdb.ui and agnosticdb.ui.show_config then
+    agnosticdb.ui.show_config()
+  end
+end
+
+local function config_style_flags(style)
+  local flags = {}
+  flags[#flags + 1] = style.bold and "B" or "-"
+  flags[#flags + 1] = style.underline and "U" or "-"
+  flags[#flags + 1] = style.italicize and "I" or "-"
+  return table.concat(flags, "")
+end
+
+local function config_line_link(text, cmd, hint, theme)
+  theme = theme or config_theme()
+  cecho(theme.accent)
+  setUnderline(true)
+  echoLink(text, cmd, hint or text, true)
+  setUnderline(false)
+  cecho(theme.reset)
+end
+
+local function config_city_style(city_key)
+  ensure_conf_defaults()
+  local cities = agnosticdb.conf.highlight.cities or {}
+  local key = tostring(city_key or ""):lower()
+  local style = cities[key]
+  if not style then
+    style = { color = "", bold = false, underline = false, italicize = false }
+    cities[key] = style
+  end
+  if style.color == nil then style.color = "" end
+  if style.bold == nil then style.bold = false end
+  if style.underline == nil then style.underline = false end
+  if style.italicize == nil then style.italicize = false end
+  return style
+end
+
+local function config_set_boolean(path, value)
+  ensure_conf_defaults()
+  if path == "api.enabled" then
+    agnosticdb.conf.api.enabled = value
+    config_save()
+  elseif path == "highlights_enabled" then
+    if agnosticdb.highlights and agnosticdb.highlights.toggle then
+      agnosticdb.highlights.toggle(value)
+      config_refresh()
+      return
+    end
+    agnosticdb.conf.highlights_enabled = value
+    config_save()
+  elseif path == "prune_dormant" then
+    agnosticdb.conf.prune_dormant = value
+    config_save()
+  elseif path == "highlight.enemies.bold" then
+    agnosticdb.conf.highlight.enemies.bold = value
+    config_save()
+  elseif path == "highlight.enemies.underline" then
+    agnosticdb.conf.highlight.enemies.underline = value
+    config_save()
+  elseif path == "highlight.enemies.italicize" then
+    agnosticdb.conf.highlight.enemies.italicize = value
+    config_save()
+  else
+    local city, field = path:match("^highlight%.cities%.([%w_]+)%.(bold|underline|italicize)$")
+    if city and field then
+      local style = config_city_style(city)
+      style[field] = value
+      config_save()
+    else
+      echo_line("Config set: unknown key.")
+      return
+    end
+  end
+
+  if agnosticdb.highlights and agnosticdb.highlights.reload then
+    agnosticdb.highlights.reload()
+  end
+  config_refresh()
+end
+
+local function config_toggle_boolean(path)
+  ensure_conf_defaults()
+  local current = false
+  if path == "api.enabled" then
+    current = agnosticdb.conf.api.enabled
+  elseif path == "highlights_enabled" then
+    current = agnosticdb.conf.highlights_enabled
+  elseif path == "prune_dormant" then
+    current = agnosticdb.conf.prune_dormant
+  elseif path == "highlight.enemies.bold" then
+    current = agnosticdb.conf.highlight.enemies.bold
+  elseif path == "highlight.enemies.underline" then
+    current = agnosticdb.conf.highlight.enemies.underline
+  elseif path == "highlight.enemies.italicize" then
+    current = agnosticdb.conf.highlight.enemies.italicize
+  else
+    local city, field = path:match("^highlight%.cities%.([%w_]+)%.(bold|underline|italicize)$")
+    if city and field then
+      current = config_city_style(city)[field]
+    else
+      echo_line("Config toggle: unknown key.")
+      return
+    end
+  end
+
+  config_set_boolean(path, not current)
+end
+
+local function config_set_number(path, value)
+  ensure_conf_defaults()
+  local num = tonumber(value)
+  if not num then
+    echo_line("Config set: number required.")
+    return
+  end
+  if num < 0 then num = 0 end
+
+  if path == "api.min_refresh_hours" then
+    agnosticdb.conf.api.min_refresh_hours = num
+  elseif path == "api.min_interval_seconds" then
+    agnosticdb.conf.api.min_interval_seconds = num
+  elseif path == "api.backoff_seconds" then
+    agnosticdb.conf.api.backoff_seconds = num
+  elseif path == "api.timeout_seconds" then
+    agnosticdb.conf.api.timeout_seconds = num
+  elseif path == "honors.delay_seconds" then
+    agnosticdb.conf.honors.delay_seconds = num
+  else
+    echo_line("Config set: unknown key.")
+    return
+  end
+
+  config_save()
+  config_refresh()
+end
+
+local function config_cycle_color(path)
+  ensure_conf_defaults()
+  local palette = config_color_palette()
+  local current = ""
+  if path == "highlight.enemies.color" then
+    current = agnosticdb.conf.highlight.enemies.color or ""
+  else
+    local city = path:match("^highlight%.cities%.([%w_]+)%.color$")
+    if city then
+      current = config_city_style(city).color or ""
+    else
+      echo_line("Config color: unknown key.")
+      return
+    end
+  end
+
+  local next_value = palette[1] or ""
+  for i, value in ipairs(palette) do
+    if value == current then
+      next_value = palette[(i % #palette) + 1]
+      break
+    end
+  end
+
+  if path == "highlight.enemies.color" then
+    agnosticdb.conf.highlight.enemies.color = next_value
+  else
+    local city = path:match("^highlight%.cities%.([%w_]+)%.color$")
+    if city then
+      config_city_style(city).color = next_value
+    end
+  end
+
+  config_save()
+  if agnosticdb.highlights and agnosticdb.highlights.reload then
+    agnosticdb.highlights.reload()
+  end
+  config_refresh()
+end
+
+function agnosticdb.ui.config_toggle(path)
+  if not path or path == "" then
+    echo_line("Usage: adb config toggle <key>")
+    return
+  end
+  config_toggle_boolean(path)
+end
+
+function agnosticdb.ui.config_set(path, value)
+  if not path or path == "" or value == nil then
+    echo_line("Usage: adb config set <key> <value>")
+    return
+  end
+
+  ensure_conf_defaults()
+  local lower = tostring(path):lower()
+  if lower == "api.enabled" or lower == "highlights_enabled" or lower == "prune_dormant"
+    or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize" then
+    local val = tostring(value):lower()
+    local bool = (val == "true" or val == "on" or val == "1" or val == "yes")
+    if val == "false" or val == "off" or val == "0" or val == "no" then
+      bool = false
+    end
+    config_set_boolean(lower, bool)
+    return
+  end
+
+  if lower == "highlight.enemies.color" then
+    agnosticdb.conf.highlight.enemies.color = tostring(value)
+    config_save()
+    if agnosticdb.highlights and agnosticdb.highlights.reload then
+      agnosticdb.highlights.reload()
+    end
+    config_refresh()
+    return
+  end
+
+  local city, field = lower:match("^highlight%.cities%.([%w_]+)%.(color|bold|underline|italicize)$")
+  if city and field then
+    local style = config_city_style(city)
+    if field == "color" then
+      style.color = tostring(value)
+    else
+      local val = tostring(value):lower()
+      style[field] = (val == "true" or val == "on" or val == "1" or val == "yes")
+    end
+    config_save()
+    if agnosticdb.highlights and agnosticdb.highlights.reload then
+      agnosticdb.highlights.reload()
+    end
+    config_refresh()
+    return
+  end
+
+  config_set_number(lower, value)
+end
+
+function agnosticdb.ui.config_step(path, delta)
+  if not path or path == "" then return end
+  ensure_conf_defaults()
+  local current = 0
+  if path == "api.min_refresh_hours" then
+    current = agnosticdb.conf.api.min_refresh_hours or 0
+  elseif path == "api.min_interval_seconds" then
+    current = agnosticdb.conf.api.min_interval_seconds or 0
+  elseif path == "api.backoff_seconds" then
+    current = agnosticdb.conf.api.backoff_seconds or 0
+  elseif path == "api.timeout_seconds" then
+    current = agnosticdb.conf.api.timeout_seconds or 0
+  elseif path == "honors.delay_seconds" then
+    current = agnosticdb.conf.honors.delay_seconds or 0
+  else
+    echo_line("Config step: unknown key.")
+    return
+  end
+  local next_value = current + (tonumber(delta) or 0)
+  if next_value < 0 then next_value = 0 end
+  config_set_number(path, next_value)
+end
+
+function agnosticdb.ui.config_cycle_color(path)
+  if not path or path == "" then return end
+  config_cycle_color(path)
+end
+
+function agnosticdb.ui.show_ignore_list()
+  ensure_conf_defaults()
+  local ignored = agnosticdb.conf.highlight_ignore or {}
+  local names = {}
+  for name in pairs(ignored) do
+    names[#names + 1] = name
+  end
+  table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  echo_line(string.format("Highlight ignore list: %d name(s).", #names))
+  for _, name in ipairs(names) do
+    echo_line("  " .. name)
+  end
+end
+
+function agnosticdb.ui.show_config()
+  ensure_conf_defaults()
+  local conf = agnosticdb.conf
+  local theme = config_theme()
+  local width = 88
+  local header_label = "agnosticDB Config"
+  local footer_label = "agnosticDB"
+
+  local function header_line()
+    return string.format("%s┌─%s%s%s─┐%s", theme.border, theme.accent, header_label, theme.border, theme.reset)
+  end
+
+  local function separator()
+    return string.format("%s%s%s", theme.border, string.rep("─", width), theme.reset)
+  end
+
+  local function section(title, padding)
+    padding = padding or ""
+    return string.format("%s%s└─%s%s%s─┘%s", padding, theme.border, theme.accent, title, theme.border, theme.reset)
+  end
+
+  local function footer_line()
+    local tab = string.format("└─%s%s%s─┘", theme.accent, footer_label, theme.border)
+    local padding = math.max(0, width - (#footer_label + 4))
+    return string.format("%s%s%s%s", string.rep(" ", padding), theme.border, tab, theme.reset)
+  end
+
+  local function line(text)
+    cecho(text .. "\n")
+  end
+
+  local function bool_label(value)
+    return value and "on" or "off"
+  end
+
+  local function number_line(label, key, value, step)
+    cecho(string.format("%s  %s: %s%d", theme.text, label, theme.text, value))
+    cecho(" ")
+    config_line_link("[-]", string.format("agnosticdb.ui.config_step(%q, -%d)", key, step), "Decrease", theme)
+    cecho(" ")
+    config_line_link("[+]", string.format("agnosticdb.ui.config_step(%q, %d)", key, step), "Increase", theme)
+    cecho("\n")
+  end
+
+  local function toggle_line(label, key, value)
+    cecho(string.format("%s  %s: %s%s", theme.text, label, theme.text, bool_label(value)))
+    cecho(" ")
+    config_line_link("[toggle]", string.format("agnosticdb.ui.config_toggle(%q)", key), "Toggle", theme)
+    cecho("\n")
+  end
+
+  line(header_line())
+  line(separator())
+  line(section("Quick Toggles"))
+  toggle_line("API enabled", "api.enabled", conf.api.enabled)
+  toggle_line("Highlights enabled", "highlights_enabled", conf.highlights_enabled)
+  line(separator())
+  line(section("API Timing"))
+  number_line("Min refresh hours", "api.min_refresh_hours", conf.api.min_refresh_hours or 0, 1)
+  number_line("Min interval seconds", "api.min_interval_seconds", conf.api.min_interval_seconds or 0, 1)
+  number_line("Backoff seconds", "api.backoff_seconds", conf.api.backoff_seconds or 0, 5)
+  number_line("Timeout seconds", "api.timeout_seconds", conf.api.timeout_seconds or 0, 5)
+  line(separator())
+  line(section("Honors"))
+  number_line("Delay seconds", "honors.delay_seconds", conf.honors.delay_seconds or 0, 1)
+  line(separator())
+  line(section("Highlights"))
+  local enemy_style = conf.highlight.enemies
+  cecho(string.format("%s  Enemy style: %s%s %s", theme.text, theme.text, config_display_color(enemy_style.color), config_style_flags(enemy_style)))
+  cecho(" ")
+  config_line_link("[color]", "agnosticdb.ui.config_cycle_color('highlight.enemies.color')", "Cycle color", theme)
+  cecho(" ")
+  config_line_link("[B]", "agnosticdb.ui.config_toggle('highlight.enemies.bold')", "Toggle bold", theme)
+  cecho(" ")
+  config_line_link("[U]", "agnosticdb.ui.config_toggle('highlight.enemies.underline')", "Toggle underline", theme)
+  cecho(" ")
+  config_line_link("[I]", "agnosticdb.ui.config_toggle('highlight.enemies.italicize')", "Toggle italic", theme)
+  cecho("\n")
+
+  local city_order = {
+    "ashtan",
+    "cyrene",
+    "eleusis",
+    "hashan",
+    "mhaldor",
+    "targossas",
+    "rogue",
+    "divine",
+    "hidden"
+  }
+  for _, city in ipairs(city_order) do
+    local style = config_city_style(city)
+    local label = city:sub(1, 1):upper() .. city:sub(2)
+    cecho(string.format("%s  %s: %s%s %s", theme.text, label, theme.text, config_display_color(style.color), config_style_flags(style)))
+    cecho(" ")
+    config_line_link("[color]", string.format("agnosticdb.ui.config_cycle_color('highlight.cities.%s.color')", city), "Cycle color", theme)
+    cecho(" ")
+    config_line_link("[B]", string.format("agnosticdb.ui.config_toggle('highlight.cities.%s.bold')", city), "Toggle bold", theme)
+    cecho(" ")
+    config_line_link("[U]", string.format("agnosticdb.ui.config_toggle('highlight.cities.%s.underline')", city), "Toggle underline", theme)
+    cecho(" ")
+    config_line_link("[I]", string.format("agnosticdb.ui.config_toggle('highlight.cities.%s.italicize')", city), "Toggle italic", theme)
+    cecho("\n")
+  end
+
+  local ignored_count = 0
+  for _ in pairs(conf.highlight_ignore or {}) do ignored_count = ignored_count + 1 end
+  cecho(string.format("%s  Ignore list: %s%d name(s)", theme.text, theme.text, ignored_count))
+  cecho(" ")
+  config_line_link("[show]", "agnosticdb.ui.show_ignore_list()", "Show ignore list", theme)
+  cecho(" ")
+  config_line_link("[manage]", "agnosticdb.ui.show_help()", "Use adb ignore <name>", theme)
+  cecho("\n")
+
+  line(separator())
+  line(section("Politics"))
+  cecho(theme.text .. "  Open politics menu ")
+  config_line_link("[open]", "agnosticdb.ui.show_politics()", "Open politics menu", theme)
+  cecho("\n")
+  line(separator())
+  line(section("Advanced"))
+  toggle_line("Prune dormant", "prune_dormant", conf.prune_dormant)
+  cecho(theme.muted .. "  Tip: adb config set <key> <value> for exact values." .. theme.reset .. "\n")
+  line(separator())
+  line(footer_line())
+end
+
 function agnosticdb.ui.show_help()
   local accent = "<cyan>"
   local text = "<white>"
@@ -106,6 +598,9 @@ function agnosticdb.ui.show_help()
   entry("adb update", "refresh all known names")
   entry("adb stats", "counts by class/city")
   entry("adb ignore <name>", "toggle highlight ignore")
+  entry("adb config", "open configuration UI")
+  entry("adb config set <key> <value>", "set config values")
+  entry("adb config toggle <key>", "toggle config values")
   entry("adb honors <name>", "request honors + ingest")
   entry("adb honors online", "request honors for all online names")
   entry("adb list class|city|race <value>", "list people by class/city/race")

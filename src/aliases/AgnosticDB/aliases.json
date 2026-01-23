@@ -150,6 +150,36 @@
               "isLua": "yes"
        },
        {
+              "name": "adb config",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+config$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_config() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb config set",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+config\\s+set\\s+([%w%._]+)\\s+(.+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.config_set(matches[2], matches[3]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb config toggle",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+config\\s+toggle\\s+([%w%._]+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.config_toggle(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb update",
               "isActive": "yes",
               "isFolder": "no",
