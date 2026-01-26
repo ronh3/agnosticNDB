@@ -380,6 +380,26 @@
               "isLua": "yes"
        },
        {
+              "name": "adb enemy city",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+enemy\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.enemyOnline(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb comp city",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+comp\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.compCity(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb list field",
               "isActive": "yes",
               "isFolder": "no",

@@ -749,6 +749,8 @@ function agnosticdb.ui.show_help()
   entry("adb list class|city|race <value>", "list people by class/city/race")
   entry("adb list enemy", "list people marked as enemies")
   entry("adb enemies", "capture personal enemy list from game output")
+  entry("adb enemy <city>", "enemy all online members of a city")
+  entry("adb comp <city>", "online composition by class for a city")
   entry("adb dbcheck", "check database health")
   entry("adb dbreset", "reset database (drops people table)")
   entry("adb forget <name>", "remove a person from the database")
@@ -1024,6 +1026,140 @@ function agnosticdb.ui.forget(name)
   end
   agnosticdb.db.delete_person(name)
   echo_line(string.format("Removed %s from the database.", display_name(name)))
+end
+
+local function normalize_city_input(city)
+  if agnosticdb.politics and agnosticdb.politics.normalize_city then
+    return agnosticdb.politics.normalize_city(city)
+  end
+  if type(city) ~= "string" or city == "" then return nil end
+  return city:sub(1, 1):upper() .. city:sub(2):lower()
+end
+
+local function city_matches(person_city, target_city)
+  if type(person_city) ~= "string" or type(target_city) ~= "string" then return false end
+  return person_city:lower() == target_city:lower()
+end
+
+local function update_online_names(names, on_done)
+  if type(names) ~= "table" then
+    if type(on_done) == "function" then on_done(0) end
+    return
+  end
+  local remaining = #names
+  if remaining == 0 then
+    if type(on_done) == "function" then on_done(0) end
+    return
+  end
+  local completed = 0
+  for _, name in ipairs(names) do
+    agnosticdb.api.fetch(name, function()
+      completed = completed + 1
+      if completed >= remaining and type(on_done) == "function" then
+        on_done(completed)
+      end
+    end, { force = true })
+  end
+end
+
+function agnosticdb.ui.enemyOnline(city)
+  local normalized = normalize_city_input(city)
+  if not normalized then
+    echo_line("Provide a city (e.g., Ashtan).")
+    return
+  end
+
+  echo_line(string.format("Refreshing online data for %s...", normalized))
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      echo_line(string.format("Online list failed (%s).", status or "unknown"))
+      return
+    end
+
+    agnosticdb.api.seed_names(names, "api_list")
+    update_online_names(names, function()
+      local targets = {}
+      for _, name in ipairs(names) do
+        local person = agnosticdb.db.get_person(name)
+        if person and city_matches(person.city or "", normalized) then
+          targets[#targets + 1] = person.name or name
+        end
+      end
+
+      if #targets == 0 then
+        echo_line(string.format("No online names found for %s.", normalized))
+        return
+      end
+
+      local commands = {}
+      for _, name in ipairs(targets) do
+        commands[#commands + 1] = "enemy " .. name
+      end
+
+      if type(sendAll) == "function" then
+        sendAll(unpack(commands))
+      else
+        for _, cmd in ipairs(commands) do
+          send(cmd)
+        end
+      end
+
+      echo_line(string.format("Sent %d enemy command(s) for %s.", #targets, normalized))
+    end)
+  end)
+end
+
+function agnosticdb.ui.compCity(city)
+  local normalized = normalize_city_input(city)
+  if not normalized then
+    echo_line("Provide a city (e.g., Ashtan).")
+    return
+  end
+
+  echo_line(string.format("Refreshing online data for %s...", normalized))
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      echo_line(string.format("Online list failed (%s).", status or "unknown"))
+      return
+    end
+
+    agnosticdb.api.seed_names(names, "api_list")
+    update_online_names(names, function()
+      local by_class = {}
+      local total = 0
+      for _, name in ipairs(names) do
+        local person = agnosticdb.db.get_person(name)
+        if person and city_matches(person.city or "", normalized) then
+          local class = person.class ~= "" and person.class or "(unknown)"
+          by_class[class] = by_class[class] or {}
+          table.insert(by_class[class], person.name or name)
+          total = total + 1
+        end
+      end
+
+      echo_line(string.format("Composition for %s: %d online", normalized, total))
+      if total == 0 then return end
+
+      local classes = {}
+      for class, list in pairs(by_class) do
+        table.sort(list, function(a, b)
+          return a:lower() < b:lower()
+        end)
+        classes[#classes + 1] = { name = class, list = list, count = #list }
+      end
+
+      table.sort(classes, function(a, b)
+        if a.count == b.count then
+          return a.name:lower() < b.name:lower()
+        end
+        return a.count > b.count
+      end)
+
+      for _, entry in ipairs(classes) do
+        echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(entry.list, ", ")))
+      end
+    end)
+  end)
 end
 
 function agnosticdb.ui.honors(name)
