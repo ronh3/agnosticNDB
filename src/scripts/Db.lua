@@ -84,6 +84,7 @@ local function required_columns()
   return {
     "name",
     "class",
+    "specialization",
     "city",
     "house",
     "race",
@@ -185,6 +186,7 @@ function agnosticdb.db.init()
     people = {
       name = "",
       class = "",
+      specialization = "",
       city = "",
       house = "",
       race = "",
@@ -216,6 +218,7 @@ function agnosticdb.db.init()
   local sample = rows and rows[1] or nil
   add_column_if_missing(sample, "notes", [[ALTER TABLE people ADD COLUMN "notes" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
+  add_column_if_missing(sample, "specialization", [[ALTER TABLE people ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "race", [[ALTER TABLE people ADD COLUMN "race" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "army_rank", [[ALTER TABLE people ADD COLUMN "army_rank" INTEGER NULL DEFAULT -1]])
   add_column_if_missing(sample, "elemental_lord_type", [[ALTER TABLE people ADD COLUMN "elemental_lord_type" TEXT NULL DEFAULT ""]])
@@ -304,6 +307,10 @@ function agnosticdb.getClass(name)
   return get_field(name, "class")
 end
 
+function agnosticdb.getSpecialization(name)
+  return get_field(name, "specialization")
+end
+
 function agnosticdb.getCity(name)
   return get_field(name, "city")
 end
@@ -314,6 +321,22 @@ end
 
 function agnosticdb.getRace(name)
   return get_field(name, "race")
+end
+
+function agnosticdb.getCityColor(name)
+  local city = agnosticdb.getCity(name)
+  if not city or city == "" then return nil end
+  local cfg = agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities or nil
+  if not cfg then return nil end
+  local key = city:lower()
+  if key == \"(none)\" or key == \"none\" then
+    key = \"rogue\"
+  end
+  local entry = cfg[key]
+  if entry and entry.color and entry.color ~= \"\" then
+    return entry.color
+  end
+  return nil
 end
 
 function agnosticdb.getElementalLordType(name)

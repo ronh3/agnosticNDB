@@ -805,6 +805,9 @@ function agnosticdb.ui.show_person(name)
 
   echo_line(string.format("Name: %s", person.name))
   echo_line(string.format("Class: %s", person.class ~= "" and person.class or "(unknown)"))
+  if person.specialization and person.specialization ~= "" then
+    echo_line(string.format("Specialization: %s", person.specialization))
+  end
   if person.race and person.race ~= "" then
     echo_line(string.format("Race: %s", person.race))
   end

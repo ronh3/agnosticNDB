@@ -198,5 +198,11 @@
                      }
               ],
               "script": "if agnosticdb and agnosticdb.honors then agnosticdb.honors.capture(matches[2]) end"
+       },
+       {
+              "name": "Class Tracking",
+              "isActive": "yes",
+              "isFolder": "yes",
+              "script": ""
        }
 ]

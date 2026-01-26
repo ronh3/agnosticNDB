@@ -3,6 +3,7 @@
        {"name": "Transfer", "isActive": "yes", "isFolder": "no"},
        {"name": "Colors", "isActive": "yes", "isFolder": "no"},
        {"name": "Db", "isActive": "yes", "isFolder": "no"},
+       {"name": "ClassTracking", "isActive": "yes", "isFolder": "no"},
        {"name": "Enemies", "isActive": "yes", "isFolder": "no"},
        {"name": "Honors", "isActive": "yes", "isFolder": "no"},
        {"name": "Lists", "isActive": "yes", "isFolder": "no"},

@@ -54,6 +54,7 @@ local function serialize_person(row)
   local record = { name = row.name }
 
   set_if(record, "class", row.class, "")
+  set_if(record, "specialization", row.specialization, "")
   set_if(record, "city", row.city, "")
   set_if(record, "house", row.house, "")
   set_if(record, "race", row.race, "")
