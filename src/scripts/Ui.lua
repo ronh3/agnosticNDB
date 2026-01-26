@@ -46,6 +46,34 @@ local function echo_kv(label, value)
   echo_line(string.format("%s %s", left, value))
 end
 
+local function report_line(text)
+  local lead = needs_leading_newline() and "\n" or ""
+  cecho(lead .. text .. "\n")
+end
+
+local function report_title(text)
+  local bar = string.rep("-", 48)
+  report_line(bar)
+  report_line(text)
+  report_line(bar)
+end
+
+local function report_section(label, count)
+  if count and count > 0 then
+    report_line(string.format("%s (%d)", label, count))
+  else
+    report_line(label)
+  end
+end
+
+local function report_kv(label, value)
+  local width = 16
+  local pad = width - #label
+  if pad < 0 then pad = 0 end
+  local left = label .. string.rep(" ", pad)
+  report_line(string.format("%s %s", left, value))
+end
+
 local function display_name(name)
   if agnosticdb and agnosticdb.db and agnosticdb.db.normalize_name then
     return agnosticdb.db.normalize_name(name) or name
@@ -1566,6 +1594,7 @@ local function stats_column_layout(items, item_width)
   local cols = math.floor((wrap - 2 + gutter) / (item_width + gutter))
   if cols < 1 then cols = 1 end
   if cols > #items then cols = #items end
+  if cols > 3 then cols = 3 end
   return cols, gutter
 end
 
@@ -1593,7 +1622,7 @@ local function print_stats_section(label, map)
 
   local cols, gutter = stats_column_layout(items, item_width)
   local rows = math.ceil(#items / cols)
-  echo_section(label, #list)
+  report_section(label, #list)
   for row = 1, rows do
     local line = "  "
     for col = 1, cols do
@@ -1608,7 +1637,7 @@ local function print_stats_section(label, map)
         end
       end
     end
-    echo_line(line)
+    report_line(line)
   end
 end
 
@@ -1665,8 +1694,8 @@ function agnosticdb.ui.stats()
     end
   end
 
-  echo_title("Stats Summary")
-  echo_kv("Total", tostring(#rows))
+  report_title("Stats Summary")
+  report_kv("Total", tostring(#rows))
   print_stats_section("By class", by_class)
   print_stats_section("By city", by_city)
   print_stats_section("By race", by_race)
