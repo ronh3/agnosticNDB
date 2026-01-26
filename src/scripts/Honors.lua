@@ -6,6 +6,7 @@ agnosticdb.honors.queue = agnosticdb.honors.queue or {}
 agnosticdb.honors.queue_running = agnosticdb.honors.queue_running or false
 agnosticdb.honors.queue_stats = agnosticdb.honors.queue_stats or nil
 agnosticdb.honors.queue_on_done = agnosticdb.honors.queue_on_done or nil
+agnosticdb.honors.queue_opts = agnosticdb.honors.queue_opts or nil
 
 local function prefix()
   return "<cyan>[agnosticdb]<reset> "
@@ -21,6 +22,23 @@ local function normalize_person_name(name)
   end
   if type(name) ~= "string" or name == "" then return nil end
   return name:sub(1, 1):upper() .. name:sub(2):lower()
+end
+
+local function format_duration(seconds)
+  if seconds <= 0 then return "now" end
+  local secs = math.floor(seconds)
+  local mins = math.floor(secs / 60)
+  secs = secs % 60
+  local hours = math.floor(mins / 60)
+  mins = mins % 60
+
+  if hours > 0 then
+    return string.format("%dh %dm %ds", hours, mins, secs)
+  end
+  if mins > 0 then
+    return string.format("%dm %ds", mins, secs)
+  end
+  return string.format("%ds", secs)
 end
 
 local function honors_delay_seconds()
@@ -284,15 +302,21 @@ function agnosticdb.honors.finish_capture()
   end
 end
 
-function agnosticdb.honors.capture(name, on_finish)
+function agnosticdb.honors.capture(name, on_finish, opts)
   local normalized = normalize_person_name(name)
   if not normalized then return end
+
+  if agnosticdb.honors.active and not opts then
+    return
+  end
 
   agnosticdb.honors.abort_capture()
   local capture = {
     name = normalized,
     lines = {},
-    on_finish = on_finish
+    on_finish = on_finish,
+    suppress_output = opts and opts.suppress_output or false,
+    announce = opts and opts.announce or false
   }
   agnosticdb.honors.active = capture
 
@@ -309,6 +333,9 @@ function agnosticdb.honors.capture(name, on_finish)
       agnosticdb.honors.finish_capture()
       return
     end
+    if capture.suppress_output and type(deleteLine) == "function" then
+      deleteLine()
+    end
     capture.lines[#capture.lines + 1] = text
   end)
 
@@ -318,7 +345,11 @@ function agnosticdb.honors.capture(name, on_finish)
     end)
   end
 
-  echo_line(string.format("Capturing honors for %s...", normalized))
+  if capture.announce then
+    echo_line(string.format("Honorsing: %s.", normalized))
+  elseif not opts then
+    echo_line(string.format("Capturing honors for %s...", normalized))
+  end
 end
 
 function agnosticdb.honors.cancel_queue()
@@ -326,9 +357,10 @@ function agnosticdb.honors.cancel_queue()
   agnosticdb.honors.queue_running = false
   agnosticdb.honors.queue_stats = nil
   agnosticdb.honors.queue_on_done = nil
+  agnosticdb.honors.queue_opts = nil
 end
 
-function agnosticdb.honors.queue_names(names, on_done)
+function agnosticdb.honors.queue_names(names, on_done, opts)
   if type(names) ~= "table" then return end
   if agnosticdb.honors.queue_running then
     echo_line("Honors queue already running.")
@@ -336,6 +368,7 @@ function agnosticdb.honors.queue_names(names, on_done)
   end
 
   agnosticdb.honors.queue_on_done = on_done
+  agnosticdb.honors.queue_opts = opts
   local seen = {}
   agnosticdb.honors.queue = {}
   for _, name in ipairs(names) do
@@ -354,6 +387,9 @@ function agnosticdb.honors.queue_names(names, on_done)
   agnosticdb.honors.queue_running = true
   agnosticdb.honors.queue_stats = { total = #agnosticdb.honors.queue, processed = 0, started_at = os.time() }
   echo_line(string.format("Honors queue: %d names.", #agnosticdb.honors.queue))
+  local delay = honors_delay_seconds()
+  local eta = #agnosticdb.honors.queue * delay
+  echo_line(string.format("Estimated completion: ~%s", format_duration(eta)))
   agnosticdb.honors.run_queue()
 end
 
@@ -365,6 +401,6 @@ function agnosticdb.honors.run_queue()
   end
 
   local name = table.remove(agnosticdb.honors.queue, 1)
-  agnosticdb.honors.capture(name, finish_queue_item)
+  agnosticdb.honors.capture(name, finish_queue_item, agnosticdb.honors.queue_opts)
   send("HONORS " .. name)
 end

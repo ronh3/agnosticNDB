@@ -1238,7 +1238,7 @@ function agnosticdb.ui.compCity(city)
         echo_line(string.format("Queueing honors for %d name(s)...", #targets))
         agnosticdb.honors.queue_names(targets, function()
           render_comp(names)
-        end)
+        end, { suppress_output = true, announce = true })
       else
         render_comp(names)
       end
@@ -1255,7 +1255,7 @@ function agnosticdb.ui.honors(name)
     agnosticdb.honors.cancel_queue()
   end
   if agnosticdb.honors and agnosticdb.honors.capture then
-    agnosticdb.honors.capture(name)
+    agnosticdb.honors.capture(name, nil, { suppress_output = true, announce = true })
   end
   send("HONORS " .. name)
 end
@@ -1268,7 +1268,7 @@ function agnosticdb.ui.honors_online()
       return
     end
     if agnosticdb.honors and agnosticdb.honors.queue_names then
-      agnosticdb.honors.queue_names(names)
+      agnosticdb.honors.queue_names(names, nil, { suppress_output = true, announce = true })
     end
   end)
 end
@@ -1303,7 +1303,7 @@ function agnosticdb.ui.honors_online_city(city)
       end
 
       if agnosticdb.honors and agnosticdb.honors.queue_names then
-        agnosticdb.honors.queue_names(targets)
+        agnosticdb.honors.queue_names(targets, nil, { suppress_output = true, announce = true })
       end
     end)
   end)
