@@ -230,6 +230,26 @@
               "isLua": "yes"
        },
        {
+              "name": "adb export",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+export(?:\\s+(.+))?$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.exportData(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb import",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+import\\s+(.+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.importData(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb forget",
               "isActive": "yes",
               "isFolder": "no",

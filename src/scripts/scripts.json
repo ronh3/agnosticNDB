@@ -1,5 +1,6 @@
 [
        {"name": "Config", "isActive": "yes", "isFolder": "no"},
+       {"name": "Transfer", "isActive": "yes", "isFolder": "no"},
        {"name": "Colors", "isActive": "yes", "isFolder": "no"},
        {"name": "Db", "isActive": "yes", "isFolder": "no"},
        {"name": "Enemies", "isActive": "yes", "isFolder": "no"},

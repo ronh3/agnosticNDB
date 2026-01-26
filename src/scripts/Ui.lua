@@ -752,6 +752,8 @@ function agnosticdb.ui.show_help()
   entry("adb dbcheck", "check database health")
   entry("adb dbreset", "reset database (drops people table)")
   entry("adb forget <name>", "remove a person from the database")
+  entry("adb export [path]", "export database to JSON")
+  entry("adb import <path>", "import database from JSON")
   entry("adbtest", "run self-test")
   entry("qwp", "online list grouped by city")
   entry("qwpr", "online list grouped by city + race")
@@ -964,6 +966,55 @@ function agnosticdb.ui.db_reset()
   end
 
   echo_line("Database reset complete.")
+end
+
+local function export_error(err)
+  if err == "json_unavailable" then return "JSON support unavailable." end
+  if err == "db_unavailable" then return "Database not ready." end
+  if err == "db_error" then return "Database query failed." end
+  if err == "encode_failed" then return "Export encode failed." end
+  if err and err:match("^io_error:") then return err:gsub("^io_error:", "File error: ") end
+  return err or "unknown"
+end
+
+local function import_error(err)
+  if err == "path_required" then return "Provide a JSON file path." end
+  if err == "json_unavailable" then return "JSON support unavailable." end
+  if err == "db_unavailable" then return "Database not ready." end
+  if err == "decode_failed" then return "Import decode failed." end
+  if err == "invalid_format" then return "Import file format not recognized." end
+  if err and err:match("^io_error:") then return err:gsub("^io_error:", "File error: ") end
+  return err or "unknown"
+end
+
+function agnosticdb.ui.exportData(path)
+  if not agnosticdb.transfer or not agnosticdb.transfer.exportData then
+    echo_line("Export unavailable (transfer module missing).")
+    return
+  end
+  local info, err = agnosticdb.transfer.exportData(path)
+  if not info then
+    echo_line(string.format("Export failed: %s", export_error(err)))
+    return
+  end
+  echo_line(string.format("Exported %d people to %s.", info.count or 0, info.path or "(unknown)"))
+end
+
+function agnosticdb.ui.importData(path)
+  if not path or path == "" then
+    echo_line("Usage: adb import <path>")
+    return
+  end
+  if not agnosticdb.transfer or not agnosticdb.transfer.importData then
+    echo_line("Import unavailable (transfer module missing).")
+    return
+  end
+  local info, err = agnosticdb.transfer.importData(path)
+  if not info then
+    echo_line(string.format("Import failed: %s", import_error(err)))
+    return
+  end
+  echo_line(string.format("Import complete: %d imported, %d skipped. (%s)", info.imported or 0, info.skipped or 0, info.path or ""))
 end
 
 function agnosticdb.ui.forget(name)
