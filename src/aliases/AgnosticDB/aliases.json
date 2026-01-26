@@ -100,6 +100,16 @@
               "isLua": "yes"
        },
        {
+              "name": "adb elemental",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+elemental\\s+(\\w+)\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.set_elemental_lord(matches[2], matches[3]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb whois",
               "isActive": "yes",
               "isFolder": "no",

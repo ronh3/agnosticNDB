@@ -734,6 +734,7 @@ function agnosticdb.ui.show_help()
   entry("adb note clear <name>", "clear notes for a person")
   entry("adb note clear all", "clear notes for everyone")
   entry("adb iff <name> enemy|ally|auto", "set friend/foe status")
+  entry("adb elemental <name> <type>", "set elemental lord type (air/earth/fire/water/clear)")
   entry("adb whois <name>", "show stored data (fetch if needed)")
   entry("adb fetch [name]", "fetch online list or single person")
   entry("adb refresh", "force refresh all online names")
@@ -807,6 +808,9 @@ function agnosticdb.ui.show_person(name)
   if person.race and person.race ~= "" then
     echo_line(string.format("Race: %s", person.race))
   end
+  if person.elemental_lord_type and person.elemental_lord_type ~= "" then
+    echo_line(string.format("Elemental Lord: %s", person.elemental_lord_type))
+  end
   echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
   echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
   if person.army_rank and person.army_rank >= 0 then
@@ -859,6 +863,45 @@ end
 function agnosticdb.ui.set_iff(name, status)
   agnosticdb.iff.set(name, status)
   echo_line(string.format("IFF for %s set to %s.", display_name(name), status))
+end
+
+local function normalize_elemental_type(value)
+  if type(value) ~= "string" then return nil end
+  local lower = value:lower()
+  if lower == "clear" or lower == "none" or lower == "reset" then
+    return ""
+  end
+  local map = {
+    air = "Air",
+    earth = "Earth",
+    fire = "Fire",
+    water = "Water"
+  }
+  return map[lower]
+end
+
+function agnosticdb.ui.set_elemental_lord(name, element)
+  if not name or name == "" then
+    echo_line("Provide a name.")
+    return
+  end
+  if not element or element == "" then
+    echo_line("Provide a type: air|earth|fire|water|clear.")
+    return
+  end
+
+  local normalized = normalize_elemental_type(element)
+  if normalized == nil then
+    echo_line("Elemental type must be air, earth, fire, water, or clear.")
+    return
+  end
+
+  agnosticdb.db.upsert_person({ name = name, elemental_lord_type = normalized })
+  if normalized == "" then
+    echo_line(string.format("Elemental lord type cleared for %s.", display_name(name)))
+  else
+    echo_line(string.format("Elemental lord type for %s set to %s.", display_name(name), normalized))
+  end
 end
 
 function agnosticdb.ui.toggle_ignore(name)

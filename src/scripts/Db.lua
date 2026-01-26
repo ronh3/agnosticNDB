@@ -88,6 +88,7 @@ local function required_columns()
     "house",
     "race",
     "army_rank",
+    "elemental_lord_type",
     "enemy_city",
     "enemy_house",
     "title",
@@ -188,6 +189,7 @@ function agnosticdb.db.init()
       house = "",
       race = "",
       army_rank = -1,
+      elemental_lord_type = "",
       enemy_city = "",
       enemy_house = "",
       title = "",
@@ -216,6 +218,7 @@ function agnosticdb.db.init()
   add_column_if_missing(sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
   add_column_if_missing(sample, "race", [[ALTER TABLE people ADD COLUMN "race" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "army_rank", [[ALTER TABLE people ADD COLUMN "army_rank" INTEGER NULL DEFAULT -1]])
+  add_column_if_missing(sample, "elemental_lord_type", [[ALTER TABLE people ADD COLUMN "elemental_lord_type" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "enemy_city", [[ALTER TABLE people ADD COLUMN "enemy_city" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "enemy_house", [[ALTER TABLE people ADD COLUMN "enemy_house" TEXT NULL DEFAULT ""]])
   add_column_if_missing(sample, "city_rank", [[ALTER TABLE people ADD COLUMN "city_rank" INTEGER NULL DEFAULT -1]])
@@ -311,6 +314,10 @@ end
 
 function agnosticdb.getRace(name)
   return get_field(name, "race")
+end
+
+function agnosticdb.getElementalLordType(name)
+  return get_field(name, "elemental_lord_type")
 end
 
 function agnosticdb.getLevel(name)
