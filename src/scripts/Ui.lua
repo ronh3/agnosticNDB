@@ -1113,6 +1113,34 @@ function agnosticdb.ui.enemyOnline(city)
     return
   end
 
+  local class_priority = { "druid", "jester", "shaman", "depthswalker", "alchemist" }
+  local class_index = {}
+  for i, class in ipairs(class_priority) do
+    class_index[class] = i
+  end
+
+  local function build_enemy_key(person, fallback_name)
+    local army_rank = tonumber(person.army_rank) or -1
+    local level = tonumber(person.level) or -1
+    local class = (person.class or ""):lower()
+    local sort_name = (person.name or fallback_name or ""):lower()
+
+    if army_rank >= 3 and army_rank <= 6 then
+      return 0, -army_rank, -level, sort_name
+    end
+
+    local idx = class_index[class]
+    if idx then
+      return idx, -army_rank, -level, sort_name
+    end
+
+    if army_rank > 0 then
+      return #class_priority + 1, -army_rank, -level, sort_name
+    end
+
+    return #class_priority + 2, -level, 0, sort_name
+  end
+
   echo_line(string.format("Refreshing online data for %s...", normalized))
   agnosticdb.api.fetch_list(function(names, status)
     if status ~= "ok" or type(names) ~= "table" then
@@ -1122,22 +1150,45 @@ function agnosticdb.ui.enemyOnline(city)
 
     agnosticdb.api.seed_names(names, "api_list")
     update_online_names(names, function()
-      local targets = {}
+      local entries = {}
+      local skipped = 0
       for _, name in ipairs(names) do
         local person = agnosticdb.db.get_person(name)
         if person and city_matches(person.city or "", normalized) then
-          targets[#targets + 1] = person.name or name
+          if person.iff == "enemy" then
+            skipped = skipped + 1
+          else
+            local group, primary, secondary, sort_name = build_enemy_key(person, name)
+            entries[#entries + 1] = {
+              name = person.name or name,
+              group = group,
+              primary = primary,
+              secondary = secondary,
+              sort_name = sort_name
+            }
+          end
         end
       end
 
-      if #targets == 0 then
-        echo_line(string.format("No online names found for %s.", normalized))
+      if #entries == 0 then
+        if skipped > 0 then
+          echo_line(string.format("No new enemies for %s (%d already marked).", normalized, skipped))
+        else
+          echo_line(string.format("No online names found for %s.", normalized))
+        end
         return
       end
 
+      table.sort(entries, function(a, b)
+        if a.group ~= b.group then return a.group < b.group end
+        if a.primary ~= b.primary then return a.primary < b.primary end
+        if a.secondary ~= b.secondary then return a.secondary < b.secondary end
+        return a.sort_name < b.sort_name
+      end)
+
       local commands = {}
-      for _, name in ipairs(targets) do
-        commands[#commands + 1] = "enemy " .. name
+      for _, entry in ipairs(entries) do
+        commands[#commands + 1] = "enemy " .. entry.name
       end
 
       if type(sendAll) == "function" then
@@ -1148,7 +1199,12 @@ function agnosticdb.ui.enemyOnline(city)
         end
       end
 
-      echo_line(string.format("Sent %d enemy command(s) for %s.", #targets, normalized))
+      local sent = #commands
+      if skipped > 0 then
+        echo_line(string.format("Sent %d enemy command(s) for %s (%d already marked).", sent, normalized, skipped))
+      else
+        echo_line(string.format("Sent %d enemy command(s) for %s.", sent, normalized))
+      end
     end)
   end)
 end
