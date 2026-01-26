@@ -746,6 +746,7 @@ function agnosticdb.ui.show_help()
   entry("adb config toggle <key>", "toggle config values")
   entry("adb honors <name>", "request honors + ingest")
   entry("adb honors online", "request honors for all online names")
+  entry("adb honors online <city>", "request honors for online names in a city")
   entry("adb list class|city|race <value>", "list people by class/city/race")
   entry("adb list enemy", "list people marked as enemies")
   entry("adb enemies", "capture personal enemy list from game output")
@@ -1186,6 +1187,42 @@ function agnosticdb.ui.honors_online()
     if agnosticdb.honors and agnosticdb.honors.queue_names then
       agnosticdb.honors.queue_names(names)
     end
+  end)
+end
+
+function agnosticdb.ui.honors_online_city(city)
+  local normalized = normalize_city_input(city)
+  if not normalized then
+    echo_line("Provide a city (e.g., Ashtan).")
+    return
+  end
+
+  echo_line(string.format("Queueing honors for online %s...", normalized))
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      echo_line(string.format("Honors online failed (%s).", status or "unknown"))
+      return
+    end
+
+    agnosticdb.api.seed_names(names, "api_list")
+    update_online_names(names, function()
+      local targets = {}
+      for _, name in ipairs(names) do
+        local person = agnosticdb.db.get_person(name)
+        if person and city_matches(person.city or "", normalized) then
+          targets[#targets + 1] = person.name or name
+        end
+      end
+
+      if #targets == 0 then
+        echo_line(string.format("No online names found for %s.", normalized))
+        return
+      end
+
+      if agnosticdb.honors and agnosticdb.honors.queue_names then
+        agnosticdb.honors.queue_names(targets)
+      end
+    end)
   end)
 end
 
