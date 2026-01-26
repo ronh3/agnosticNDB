@@ -1516,13 +1516,31 @@ function agnosticdb.ui.highlights_clear()
   echo_line("Highlights cleared.")
 end
 
-local function sorted_keys(map)
-  local keys = {}
-  for k, _ in pairs(map) do
-    keys[#keys + 1] = k
+local function sorted_counts(map)
+  local list = {}
+  for key, count in pairs(map) do
+    list[#list + 1] = { key = key, count = count }
   end
-  table.sort(keys)
-  return keys
+  table.sort(list, function(a, b)
+    if a.count == b.count then
+      return a.key:lower() < b.key:lower()
+    end
+    return a.count > b.count
+  end)
+  return list
+end
+
+local function print_stats_section(label, map)
+  local list = sorted_counts(map)
+  if #list == 0 then return end
+  local width = 0
+  for _, entry in ipairs(list) do
+    width = math.max(width, #entry.key)
+  end
+  echo_line(label .. ":")
+  for _, entry in ipairs(list) do
+    echo_line(string.format("  %-*s %d", width, entry.key, entry.count))
+  end
 end
 
 function agnosticdb.ui.stats()
@@ -1539,25 +1557,52 @@ function agnosticdb.ui.stats()
 
   local by_class = {}
   local by_city = {}
+  local by_race = {}
+  local by_spec = {}
+  local by_elemental = {}
+  local by_dragon_color = {}
 
   for _, row in ipairs(rows) do
     local class = row.class or ""
     local city = row.city or ""
+    local race = row.race or ""
+    local spec = row.specialization or ""
+    local elord = row.elemental_lord_type or ""
     if class == "" then class = "(unknown)" end
     if city == "" or city == "(none)" then city = "Rogue" end
+    if race == "" then race = "(unknown)" end
     by_class[class] = (by_class[class] or 0) + 1
     by_city[city] = (by_city[city] or 0) + 1
+    by_race[race] = (by_race[race] or 0) + 1
+
+    if spec ~= "" then
+      local label = string.format("%s (%s)", class, spec)
+      by_spec[label] = (by_spec[label] or 0) + 1
+    end
+
+    if elord ~= "" then
+      by_elemental[elord] = (by_elemental[elord] or 0) + 1
+    end
+
+    if race == "Dragon" then
+      local color = ""
+      if type(row.class) == "string" and row.class ~= "" then
+        color = row.class:match("^(.+) Dragon$") or ""
+      end
+      if color == "" then
+        color = "(unknown)"
+      end
+      by_dragon_color[color] = (by_dragon_color[color] or 0) + 1
+    end
   end
 
   echo_line(string.format("Stats: %d people total", #rows))
-  echo_line("By class:")
-  for _, key in ipairs(sorted_keys(by_class)) do
-    echo_line(string.format("  %s: %d", key, by_class[key]))
-  end
-  echo_line("By city:")
-  for _, key in ipairs(sorted_keys(by_city)) do
-    echo_line(string.format("  %s: %d", key, by_city[key]))
-  end
+  print_stats_section("By class", by_class)
+  print_stats_section("By city", by_city)
+  print_stats_section("By race", by_race)
+  print_stats_section("Specializations", by_spec)
+  print_stats_section("Elemental lords", by_elemental)
+  print_stats_section("Dragon colors", by_dragon_color)
 end
 
 local function class_abbrev_map()
