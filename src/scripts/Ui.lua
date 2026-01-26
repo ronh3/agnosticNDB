@@ -23,6 +23,29 @@ local function echo_line(text)
   cecho(lead .. prefix() .. text .. "\n")
 end
 
+local function echo_title(text)
+  local bar = string.rep("-", 48)
+  echo_line(bar)
+  echo_line(text)
+  echo_line(bar)
+end
+
+local function echo_section(label, count)
+  if count and count > 0 then
+    echo_line(string.format("%s (%d)", label, count))
+  else
+    echo_line(label)
+  end
+end
+
+local function echo_kv(label, value)
+  local width = 16
+  local pad = width - #label
+  if pad < 0 then pad = 0 end
+  local left = label .. string.rep(" ", pad)
+  echo_line(string.format("%s %s", left, value))
+end
+
 local function display_name(name)
   if agnosticdb and agnosticdb.db and agnosticdb.db.normalize_name then
     return agnosticdb.db.normalize_name(name) or name
@@ -817,38 +840,38 @@ function agnosticdb.ui.show_person(name)
     return
   end
 
-  echo_line(string.format("Name: %s", person.name))
-  echo_line(string.format("Class: %s", person.class ~= "" and person.class or "(unknown)"))
+  echo_title(string.format("Whois: %s", person.name))
+  echo_kv("Class", person.class ~= "" and person.class or "(unknown)")
   if person.specialization and person.specialization ~= "" then
-    echo_line(string.format("Specialization: %s", person.specialization))
+    echo_kv("Specialization", person.specialization)
   end
   if person.race and person.race ~= "" then
-    echo_line(string.format("Race: %s", person.race))
+    echo_kv("Race", person.race)
   end
   if person.elemental_lord_type and person.elemental_lord_type ~= "" then
-    echo_line(string.format("Elemental Lord: %s", person.elemental_lord_type))
+    echo_kv("Elemental Lord", person.elemental_lord_type)
   end
-  echo_line(string.format("City: %s", person.city ~= "" and person.city or "(unknown)"))
-  echo_line(string.format("House: %s", person.house ~= "" and person.house or "(unknown)"))
+  echo_kv("City", person.city ~= "" and person.city or "(unknown)")
+  echo_kv("House", person.house ~= "" and person.house or "(unknown)")
   if person.army_rank and person.army_rank >= 0 then
-    echo_line(string.format("Army Rank: %d", person.army_rank))
+    echo_kv("Army Rank", tostring(person.army_rank))
   end
   if person.enemy_city and person.enemy_city ~= "" then
-    echo_line(string.format("Enemied to City: %s", person.enemy_city))
+    echo_kv("Enemied to City", person.enemy_city)
   end
   if person.enemy_house and person.enemy_house ~= "" then
-    echo_line(string.format("Enemied to House: %s", person.enemy_house))
+    echo_kv("Enemied to House", person.enemy_house)
   end
-  echo_line(string.format("IFF: %s", person.iff or "auto"))
+  echo_kv("IFF", person.iff or "auto")
   if person.notes and person.notes ~= "" then
-    echo_line("Notes:")
+    echo_section("Notes")
     echo_line(person.notes)
   end
   if person.xp_rank and person.xp_rank >= 0 then
-    echo_line(string.format("XP Rank: %d", person.xp_rank))
+    echo_kv("XP Rank", tostring(person.xp_rank))
   end
   if person.level and person.level >= 0 then
-    echo_line(string.format("Level: %d", person.level))
+    echo_kv("Level", tostring(person.level))
   end
 end
 
@@ -863,7 +886,7 @@ function agnosticdb.ui.show_note(name)
     echo_line(string.format("No notes for %s.", display_name(name)))
     return
   end
-  echo_line(string.format("Notes for %s:", display_name(name)))
+  echo_title(string.format("Notes: %s", display_name(name)))
   echo_line(note)
 end
 
@@ -1442,7 +1465,8 @@ function agnosticdb.ui.list(filter, value)
   if value and value ~= "" then
     label = string.format("%s %s", filter, value)
   end
-  echo_line(string.format("List (%s): %d", label, #results))
+  echo_title(string.format("List: %s", label))
+  echo_kv("Total", tostring(#results))
   for _, row in ipairs(results) do
     local parts = {}
     if row.city and row.city ~= "" then parts[#parts + 1] = row.city end
@@ -1452,7 +1476,7 @@ function agnosticdb.ui.list(filter, value)
     if #parts > 0 then
       suffix = " (" .. table.concat(parts, ", ") .. ")"
     end
-    echo_line(string.format("%s%s", display_name(row.name), suffix))
+    echo_line(string.format("  %s%s", display_name(row.name), suffix))
   end
 end
 
@@ -1537,7 +1561,7 @@ local function print_stats_section(label, map)
   for _, entry in ipairs(list) do
     width = math.max(width, #entry.key)
   end
-  echo_line(label .. ":")
+  echo_section(label, #list)
   for _, entry in ipairs(list) do
     local pad = width - #entry.key
     if pad < 0 then pad = 0 end
@@ -1599,7 +1623,8 @@ function agnosticdb.ui.stats()
     end
   end
 
-  echo_line(string.format("Stats: %d people total", #rows))
+  echo_title("Stats Summary")
+  echo_kv("Total", tostring(#rows))
   print_stats_section("By class", by_class)
   print_stats_section("By city", by_city)
   print_stats_section("By race", by_race)
