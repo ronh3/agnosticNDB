@@ -1539,7 +1539,10 @@ local function print_stats_section(label, map)
   end
   echo_line(label .. ":")
   for _, entry in ipairs(list) do
-    echo_line(string.format("  %-*s %d", width, entry.key, entry.count))
+    local pad = width - #entry.key
+    if pad < 0 then pad = 0 end
+    local padded = entry.key .. string.rep(" ", pad)
+    echo_line(string.format("  %s %d", padded, entry.count))
   end
 end
 

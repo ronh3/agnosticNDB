@@ -2,7 +2,7 @@
        "package": "agnosticDB",
        "title": "agnosticDB (Achaea Name Database)",
        "description": "Standalone name database for Mudlet and Achaea.",
-       "version": "0.3.34",
+       "version": "0.3.35",
        "author": "Nikolais",
        "icon": "",
        "dependencies": "",
