@@ -73,8 +73,19 @@ local function style_for(person)
     style.italicize = city_cfg.italicize
   end
 
-  if agnosticdb.iff.is_enemy(person.name) then
-    local enemy_cfg = config.enemies or {}
+  local enemy_cfg = config.enemies or {}
+  local enemy_enabled = enemy_cfg.enabled ~= false
+  local require_personal = enemy_cfg.require_personal == true
+  local is_enemy = false
+  if enemy_enabled then
+    if require_personal then
+      is_enemy = (person.iff == "enemy")
+    else
+      is_enemy = agnosticdb.iff.is_enemy(person.name)
+    end
+  end
+
+  if is_enemy then
     if enemy_cfg.color and enemy_cfg.color ~= "" then
       style.color = enemy_cfg.color
     end

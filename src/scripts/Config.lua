@@ -59,7 +59,7 @@ function agnosticdb.config.load()
   agnosticdb.conf.prune_dormant = agnosticdb.conf.prune_dormant or false
 
   agnosticdb.conf.highlight = agnosticdb.conf.highlight or {
-    enemies = { color = "", bold = false, underline = true, italicize = true },
+    enemies = { color = "", bold = false, underline = true, italicize = true, enabled = true, require_personal = false },
     cities = {
       ashtan = { color = "purple", bold = false, underline = false, italicize = false },
       cyrene = { color = "cornflower_blue", bold = false, underline = false, italicize = false },

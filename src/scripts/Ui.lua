@@ -86,8 +86,16 @@ local function ensure_conf_defaults()
     color = "",
     bold = false,
     underline = true,
-    italicize = true
+    italicize = true,
+    enabled = true,
+    require_personal = false
   }
+  if agnosticdb.conf.highlight.enemies.enabled == nil then
+    agnosticdb.conf.highlight.enemies.enabled = true
+  end
+  if agnosticdb.conf.highlight.enemies.require_personal == nil then
+    agnosticdb.conf.highlight.enemies.require_personal = false
+  end
   agnosticdb.conf.highlight.cities = agnosticdb.conf.highlight.cities or {}
   local defaults = {
     ashtan = { color = "purple", bold = false, underline = false, italicize = false },
@@ -323,6 +331,12 @@ local function config_set_boolean(path, value)
   elseif path == "highlight.enemies.italicize" then
     agnosticdb.conf.highlight.enemies.italicize = value
     config_save()
+  elseif path == "highlight.enemies.enabled" then
+    agnosticdb.conf.highlight.enemies.enabled = value
+    config_save()
+  elseif path == "highlight.enemies.require_personal" then
+    agnosticdb.conf.highlight.enemies.require_personal = value
+    config_save()
   else
   local city, field = path:match("^highlight%.cities%.([^%.]+)%.([%a_]+)$")
   if city and field and (field == "bold" or field == "underline" or field == "italicize") then
@@ -358,6 +372,10 @@ local function config_toggle_boolean(path)
     current = agnosticdb.conf.highlight.enemies.underline
   elseif path == "highlight.enemies.italicize" then
     current = agnosticdb.conf.highlight.enemies.italicize
+  elseif path == "highlight.enemies.enabled" then
+    current = agnosticdb.conf.highlight.enemies.enabled
+  elseif path == "highlight.enemies.require_personal" then
+    current = agnosticdb.conf.highlight.enemies.require_personal
   else
     local city, field = path:match("^highlight%.cities%.([^%.]+)%.([%a_]+)$")
     if city and field and (field == "bold" or field == "underline" or field == "italicize") then
@@ -460,7 +478,8 @@ function agnosticdb.ui.config_set(path, value)
   local lower = normalized_key
   local value_text = tostring(value):gsub("^%s+", ""):gsub("%s+$", "")
   if lower == "api.enabled" or lower == "highlights_enabled" or lower == "prune_dormant"
-    or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize" then
+    or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize"
+    or lower == "highlight.enemies.enabled" or lower == "highlight.enemies.require_personal" then
     local val = value_text:lower()
     local bool = (val == "true" or val == "on" or val == "1" or val == "yes")
     if val == "false" or val == "off" or val == "0" or val == "no" then
@@ -625,6 +644,8 @@ function agnosticdb.ui.show_config()
   cecho(" ")
   config_line_link("[I]", "agnosticdb.ui.config_toggle('highlight.enemies.italicize')", "Toggle italic", theme)
   cecho("\n")
+  toggle_line("Enemy override", "highlight.enemies.enabled", enemy_style.enabled)
+  toggle_line("Enemy requires personal", "highlight.enemies.require_personal", enemy_style.require_personal)
 
   local city_order = {
     "ashtan",
