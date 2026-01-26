@@ -37,9 +37,7 @@ local function sorted_keys(tbl)
   for key in pairs(tbl or {}) do
     keys[#keys + 1] = key
   end
-  table.sort(keys, function(a, b)
-    return a:lower() < b:lower()
-  end)
+  table.sort(keys)
   return keys
 end
 
