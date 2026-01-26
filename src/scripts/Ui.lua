@@ -116,7 +116,7 @@ local function config_theme()
     accent = "<cyan>",
     border = "<grey>",
     text = "<white>",
-    muted = "<silver>",
+    muted = "<light_grey>",
     reset = "<reset>"
   }
 end
