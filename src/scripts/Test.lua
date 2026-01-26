@@ -6,8 +6,21 @@ local function prefix()
   return "<cyan>[agnosticdb test]<reset> "
 end
 
+local function needs_leading_newline()
+  if type(line) ~= "string" or line == "" then return false end
+  if agnosticdb._echo_line_pending then return false end
+  agnosticdb._echo_line_pending = true
+  if type(tempTimer) == "function" then
+    tempTimer(0, function() agnosticdb._echo_line_pending = false end)
+  else
+    agnosticdb._echo_line_pending = false
+  end
+  return true
+end
+
 local function echo_line(text)
-  cecho(prefix() .. text .. "\n")
+  local lead = needs_leading_newline() and "\n" or ""
+  cecho(lead .. prefix() .. text .. "\n")
 end
 
 local function pass(msg)
