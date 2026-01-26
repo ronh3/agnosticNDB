@@ -734,7 +734,7 @@ function agnosticdb.ui.show_help()
   entry("adb note clear <name>", "clear notes for a person")
   entry("adb note clear all", "clear notes for everyone")
   entry("adb iff <name> enemy|ally|auto", "set friend/foe status")
-  entry("adb elemental <name> <type>", "set elemental lord type (air/earth/fire/water/clear)")
+  entry("adb elord <name> <type>", "set elemental lord type (air/earth/fire/water/clear)")
   entry("adb whois <name>", "show stored data (fetch if needed)")
   entry("adb fetch [name]", "fetch online list or single person")
   entry("adb refresh", "force refresh all online names")
@@ -1160,6 +1160,52 @@ function agnosticdb.ui.compCity(city)
     return
   end
 
+  local function render_comp(names)
+    if type(names) ~= "table" then
+      echo_line(string.format("Composition for %s: 0 online", normalized))
+      return
+    end
+    local by_class = {}
+    local total = 0
+    for _, name in ipairs(names) do
+      local person = agnosticdb.db.get_person(name)
+      if person and city_matches(person.city or "", normalized) then
+        local race = person.race or ""
+        local class
+        if race == "Dragon" or race == "Elemental" then
+          class = race
+        else
+          class = person.class ~= "" and person.class or "(unknown)"
+        end
+        by_class[class] = by_class[class] or {}
+        table.insert(by_class[class], person.name or name)
+        total = total + 1
+      end
+    end
+
+    echo_line(string.format("Composition for %s: %d online", normalized, total))
+    if total == 0 then return end
+
+    local classes = {}
+    for class, list in pairs(by_class) do
+      table.sort(list, function(a, b)
+        return a:lower() < b:lower()
+      end)
+      classes[#classes + 1] = { name = class, list = list, count = #list }
+    end
+
+    table.sort(classes, function(a, b)
+      if a.count == b.count then
+        return a.name:lower() < b.name:lower()
+      end
+      return a.count > b.count
+    end)
+
+    for _, entry in ipairs(classes) do
+      echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(entry.list, ", ")))
+    end
+  end
+
   echo_line(string.format("Refreshing online data for %s...", normalized))
   agnosticdb.api.fetch_list(function(names, status)
     if status ~= "ok" or type(names) ~= "table" then
@@ -1169,44 +1215,32 @@ function agnosticdb.ui.compCity(city)
 
     agnosticdb.api.seed_names(names, "api_list")
     update_online_names(names, function()
-      local by_class = {}
-      local total = 0
+      local targets = {}
       for _, name in ipairs(names) do
         local person = agnosticdb.db.get_person(name)
         if person and city_matches(person.city or "", normalized) then
-          local race = person.race or ""
-          local class
-          if race == "Dragon" or race == "Elemental" then
-            class = race
-          else
-            class = person.class ~= "" and person.class or "(unknown)"
-          end
-          by_class[class] = by_class[class] or {}
-          table.insert(by_class[class], person.name or name)
-          total = total + 1
+          targets[#targets + 1] = person.name or name
         end
       end
 
-      echo_line(string.format("Composition for %s: %d online", normalized, total))
-      if total == 0 then return end
+      if #targets == 0 then
+        render_comp(names)
+        return
+      end
 
-      local classes = {}
-      for class, list in pairs(by_class) do
-        table.sort(list, function(a, b)
-          return a:lower() < b:lower()
+      if agnosticdb.honors and agnosticdb.honors.queue_running then
+        echo_line("Honors queue already running; showing composition without honors refresh.")
+        render_comp(names)
+        return
+      end
+
+      if agnosticdb.honors and agnosticdb.honors.queue_names then
+        echo_line(string.format("Queueing honors for %d name(s)...", #targets))
+        agnosticdb.honors.queue_names(targets, function()
+          render_comp(names)
         end)
-        classes[#classes + 1] = { name = class, list = list, count = #list }
-      end
-
-      table.sort(classes, function(a, b)
-        if a.count == b.count then
-          return a.name:lower() < b.name:lower()
-        end
-        return a.count > b.count
-      end)
-
-      for _, entry in ipairs(classes) do
-        echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(entry.list, ", ")))
+      else
+        render_comp(names)
       end
     end)
   end)

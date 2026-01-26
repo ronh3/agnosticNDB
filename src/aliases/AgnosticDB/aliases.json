@@ -100,11 +100,11 @@
               "isLua": "yes"
        },
        {
-              "name": "adb elemental",
+              "name": "adb elord",
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
-              "regex": "^adb\\s+elemental\\s+(\\w+)\\s+(\\w+)$",
+              "regex": "^adb\\s+elord\\s+(\\w+)\\s+(\\w+)$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.set_elemental_lord(matches[2], matches[3]) end",
               "matchall": "no",
               "isLua": "yes"

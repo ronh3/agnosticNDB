@@ -5,6 +5,7 @@ agnosticdb.honors.active = agnosticdb.honors.active or nil
 agnosticdb.honors.queue = agnosticdb.honors.queue or {}
 agnosticdb.honors.queue_running = agnosticdb.honors.queue_running or false
 agnosticdb.honors.queue_stats = agnosticdb.honors.queue_stats or nil
+agnosticdb.honors.queue_on_done = agnosticdb.honors.queue_on_done or nil
 
 local function prefix()
   return "<cyan>[agnosticdb]<reset> "
@@ -256,6 +257,13 @@ local function finish_queue_item()
     stats.elapsed_seconds = stats.finished_at - (stats.started_at or stats.finished_at)
     local elapsed = stats.elapsed_seconds or 0
     echo_line(string.format("Honors queue complete: %d processed in %ds.", stats.processed or 0, elapsed))
+    if type(agnosticdb.honors.queue_on_done) == "function" then
+      local callback = agnosticdb.honors.queue_on_done
+      agnosticdb.honors.queue_on_done = nil
+      callback(stats)
+    else
+      agnosticdb.honors.queue_on_done = nil
+    end
     return
   end
   tempTimer(honors_delay_seconds(), agnosticdb.honors.run_queue)
@@ -317,15 +325,17 @@ function agnosticdb.honors.cancel_queue()
   agnosticdb.honors.queue = {}
   agnosticdb.honors.queue_running = false
   agnosticdb.honors.queue_stats = nil
+  agnosticdb.honors.queue_on_done = nil
 end
 
-function agnosticdb.honors.queue_names(names)
+function agnosticdb.honors.queue_names(names, on_done)
   if type(names) ~= "table" then return end
   if agnosticdb.honors.queue_running then
     echo_line("Honors queue already running.")
     return
   end
 
+  agnosticdb.honors.queue_on_done = on_done
   local seen = {}
   agnosticdb.honors.queue = {}
   for _, name in ipairs(names) do
