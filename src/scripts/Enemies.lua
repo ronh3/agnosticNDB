@@ -103,6 +103,44 @@ local function apply_city_list(city, names)
   return updated, cleared
 end
 
+local function apply_personal_list(names)
+  if not ensure_db_ready() then
+    return nil, nil, "db_unavailable"
+  end
+
+  local current = {}
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.iff, "enemy"))
+  if rows then
+    for _, row in ipairs(rows) do
+      if row.name and row.name ~= "" then
+        current[row.name] = true
+      end
+    end
+  end
+
+  local cleared = 0
+  for name in pairs(current) do
+    if not names[name] then
+      agnosticdb.db.upsert_person({ name = name, iff = "auto" })
+      cleared = cleared + 1
+    end
+  end
+
+  local updated = 0
+  for name in pairs(names) do
+    agnosticdb.db.upsert_person({ name = name, iff = "enemy" })
+    updated = updated + 1
+  end
+
+  return updated, cleared
+end
+
+local function refresh_highlights()
+  if agnosticdb.highlights and agnosticdb.highlights.reload then
+    agnosticdb.highlights.reload()
+  end
+end
+
 local function apply_house_list(house, names)
   if not ensure_db_ready() then
     return nil, nil, "db_unavailable"
@@ -173,6 +211,15 @@ function agnosticdb.enemies.finish_capture()
     end
     local total = count_names(names)
     echo_line(string.format("House enemies updated for %s: %d listed, %d set, %d cleared.", capture.org, total, updated, cleared))
+  elseif capture.kind == "personal" then
+    local updated, cleared, err = apply_personal_list(names)
+    if err == "db_unavailable" then
+      echo_line("Personal enemies update skipped; database not ready.")
+      return
+    end
+    local total = count_names(names)
+    echo_line(string.format("Personal enemies updated: %d listed, %d set, %d cleared.", total, updated, cleared))
+    refresh_highlights()
   end
 end
 
@@ -218,6 +265,82 @@ function agnosticdb.enemies.capture_city(city)
   end
 
   echo_line(string.format("Capturing city enemies for %s...", org))
+end
+
+function agnosticdb.enemies.capture_personal()
+  agnosticdb.enemies.abort_capture()
+  local capture = {
+    kind = "personal",
+    names = {}
+  }
+  agnosticdb.enemies.capture = capture
+
+  if type(tempRegexTrigger) ~= "function" then
+    echo_line("Mudlet temp triggers unavailable; cannot capture personal enemies.")
+    agnosticdb.enemies.capture = nil
+    return
+  end
+
+  capture.line_trigger = tempRegexTrigger("^.*$", function()
+    local text = line or ""
+    if text == "" then return end
+    if type(isPrompt) == "function" and isPrompt() then
+      agnosticdb.enemies.finish_capture()
+      return
+    end
+    if text:find("^You have currently used") then
+      agnosticdb.enemies.finish_capture()
+      return
+    end
+    parse_names_into(capture.names, text)
+  end)
+
+  if type(tempPromptTrigger) == "function" then
+    capture.prompt_trigger = tempPromptTrigger(function()
+      agnosticdb.enemies.finish_capture()
+    end)
+  end
+
+  echo_line("Capturing personal enemies...")
+end
+
+function agnosticdb.enemies.set_personal(name, is_enemy)
+  if not ensure_db_ready() then
+    echo_line("Personal enemies update skipped; database not ready.")
+    return
+  end
+  local normalized = normalize_person_name(name)
+  if not normalized then return end
+
+  if is_enemy then
+    agnosticdb.db.upsert_person({ name = normalized, iff = "enemy" })
+  else
+    local person = agnosticdb.db.get_person(normalized)
+    if person and person.iff == "enemy" then
+      agnosticdb.db.upsert_person({ name = normalized, iff = "auto" })
+    end
+  end
+
+  refresh_highlights()
+end
+
+function agnosticdb.enemies.clear_personal()
+  if not ensure_db_ready() then
+    echo_line("Personal enemies update skipped; database not ready.")
+    return
+  end
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people, db:eq(agnosticdb.db.people.iff, "enemy"))
+  local cleared = 0
+  if rows then
+    for _, row in ipairs(rows) do
+      if row.name and row.name ~= "" then
+        agnosticdb.db.upsert_person({ name = row.name, iff = "auto" })
+        cleared = cleared + 1
+      end
+    end
+  end
+  echo_line(string.format("Personal enemies cleared: %d.", cleared))
+  refresh_highlights()
 end
 
 function agnosticdb.enemies.capture_house(house)

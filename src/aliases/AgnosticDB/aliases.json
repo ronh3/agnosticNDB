@@ -350,6 +350,16 @@
               "isLua": "yes"
        },
        {
+              "name": "adb enemies",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+enemies$",
+              "script": "if agnosticdb and agnosticdb.enemies then send(\"enemies\") end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb list field",
               "isActive": "yes",
               "isFolder": "no",
