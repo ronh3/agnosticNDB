@@ -1554,19 +1554,61 @@ local function sorted_counts(map)
   return list
 end
 
+local function stats_column_layout(items, item_width)
+  local wrap = 80
+  if type(getWindowWrap) == "function" then
+    local ok, value = pcall(getWindowWrap, "main")
+    if ok and type(value) == "number" and value > 0 then
+      wrap = value
+    end
+  end
+  local gutter = 2
+  local cols = math.floor((wrap - 2 + gutter) / (item_width + gutter))
+  if cols < 1 then cols = 1 end
+  if cols > #items then cols = #items end
+  return cols, gutter
+end
+
 local function print_stats_section(label, map)
   local list = sorted_counts(map)
   if #list == 0 then return end
-  local width = 0
+
+  local key_width = 0
+  local count_width = 0
   for _, entry in ipairs(list) do
-    width = math.max(width, #entry.key)
+    key_width = math.max(key_width, #entry.key)
+    count_width = math.max(count_width, #tostring(entry.count))
   end
-  echo_section(label, #list)
+  local item_width = key_width + 1 + count_width
+  local items = {}
   for _, entry in ipairs(list) do
-    local pad = width - #entry.key
-    if pad < 0 then pad = 0 end
-    local padded = entry.key .. string.rep(" ", pad)
-    echo_line(string.format("  %s %d", padded, entry.count))
+    local key_pad = key_width - #entry.key
+    local count = tostring(entry.count)
+    local count_pad = count_width - #count
+    if key_pad < 0 then key_pad = 0 end
+    if count_pad < 0 then count_pad = 0 end
+    local item = entry.key .. string.rep(" ", key_pad) .. " " .. string.rep(" ", count_pad) .. count
+    items[#items + 1] = item
+  end
+
+  local cols, gutter = stats_column_layout(items, item_width)
+  local rows = math.ceil(#items / cols)
+  echo_section(label, #list)
+  for row = 1, rows do
+    local line = "  "
+    for col = 1, cols do
+      local idx = (row - 1) * cols + col
+      local item = items[idx]
+      if item then
+        local pad = item_width - #item
+        if pad < 0 then pad = 0 end
+        line = line .. item .. string.rep(" ", pad)
+        if col < cols then
+          line = line .. string.rep(" ", gutter)
+        end
+      end
+    end
+    echo_line(line)
   end
 end
 
