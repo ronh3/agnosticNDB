@@ -72,8 +72,8 @@ function agnosticdb.qwhom.start(filter)
   end
 
   if type(enableTrigger) == "function" then
-    enableTrigger("ADB Qwhom Capture")
-    enableTrigger("ADB Qwhom Display")
+    enableTrigger("Qwhom Capture")
+    enableTrigger("Qwhom Display")
   end
 
   if type(send) == "function" then
@@ -121,8 +121,8 @@ function agnosticdb.qwhom.finish()
   agnosticdb.qwhom.active = false
 
   if type(disableTrigger) == "function" then
-    disableTrigger("ADB Qwhom Capture")
-    disableTrigger("ADB Qwhom Display")
+    disableTrigger("Qwhom Capture")
+    disableTrigger("Qwhom Display")
   end
 
   if type(deleteLine) == "function" then
