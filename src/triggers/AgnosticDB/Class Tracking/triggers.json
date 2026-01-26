@@ -293,10 +293,6 @@
               "highlightBG": "#ffff00",
               "patterns": [
                      {
-                            "pattern": "^You feel sickened and weak by the aura of death emanating from (\\w+)\\.$",
-                            "type": "regex"
-                     },
-                     {
                             "pattern": "^Your very blood rebels against the profane touch of (.+)\\.$",
                             "type": "regex"
                      },
