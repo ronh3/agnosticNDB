@@ -1151,44 +1151,42 @@ function agnosticdb.ui.enemyOnline(city)
     agnosticdb.api.seed_names(names, "api_list")
     update_online_names(names, function()
       local entries = {}
-      local skipped = 0
       for _, name in ipairs(names) do
         local person = agnosticdb.db.get_person(name)
         if person and city_matches(person.city or "", normalized) then
-          if person.iff == "enemy" then
-            skipped = skipped + 1
-          else
-            local group, primary, secondary, sort_name = build_enemy_key(person, name)
-            entries[#entries + 1] = {
-              name = person.name or name,
-              group = group,
-              primary = primary,
-              secondary = secondary,
-              sort_name = sort_name
-            }
-          end
+          local group, primary, secondary, sort_name = build_enemy_key(person, name)
+          entries[#entries + 1] = {
+            name = person.name or name,
+            group = group,
+            primary = primary,
+            secondary = secondary,
+            sort_name = sort_name
+          }
         end
       end
 
       if #entries == 0 then
-        if skipped > 0 then
-          echo_line(string.format("No new enemies for %s (%d already marked).", normalized, skipped))
-        else
-          echo_line(string.format("No online names found for %s.", normalized))
-        end
+        echo_line(string.format("No online names found for %s.", normalized))
         return
       end
 
-      table.sort(entries, function(a, b)
-        if a.group ~= b.group then return a.group < b.group end
-        if a.primary ~= b.primary then return a.primary < b.primary end
-        if a.secondary ~= b.secondary then return a.secondary < b.secondary end
-        return a.sort_name < b.sort_name
-      end)
+      if #entries > 20 then
+        table.sort(entries, function(a, b)
+          if a.group ~= b.group then return a.group < b.group end
+          if a.primary ~= b.primary then return a.primary < b.primary end
+          if a.secondary ~= b.secondary then return a.secondary < b.secondary end
+          return a.sort_name < b.sort_name
+        end)
+      end
 
       local commands = {}
+      commands[#commands + 1] = "unenemy all"
       for _, entry in ipairs(entries) do
         commands[#commands + 1] = "enemy " .. entry.name
+      end
+
+      if agnosticdb.enemies and agnosticdb.enemies.clear_personal then
+        agnosticdb.enemies.clear_personal()
       end
 
       if type(sendAll) == "function" then
@@ -1200,11 +1198,7 @@ function agnosticdb.ui.enemyOnline(city)
       end
 
       local sent = #commands
-      if skipped > 0 then
-        echo_line(string.format("Sent %d enemy command(s) for %s (%d already marked).", sent, normalized, skipped))
-      else
-        echo_line(string.format("Sent %d enemy command(s) for %s.", sent, normalized))
-      end
+      echo_line(string.format("Sent %d enemy command(s) for %s.", sent, normalized))
     end)
   end)
 end
