@@ -324,15 +324,15 @@ local function config_set_boolean(path, value)
     agnosticdb.conf.highlight.enemies.italicize = value
     config_save()
   else
-    local city, field = path:match("^highlight%.cities%.([^%.]+)%.(bold|underline|italicize)$")
-    if city and field then
-      local style = config_city_style(city)
-      style[field] = value
-      config_save()
-    else
-      echo_line(string.format("Config set: unknown key (%q -> %q).", raw, path))
-      return
-    end
+  local city, field = path:match("^highlight%.cities%.([^%.]+)%.([%a_]+)$")
+  if city and field and (field == "bold" or field == "underline" or field == "italicize") then
+    local style = config_city_style(city)
+    style[field] = value
+    config_save()
+  else
+    echo_line(string.format("Config set: unknown key (%q -> %q).", raw, path))
+    return
+  end
   end
 
   if agnosticdb.highlights and agnosticdb.highlights.reload then
@@ -359,8 +359,8 @@ local function config_toggle_boolean(path)
   elseif path == "highlight.enemies.italicize" then
     current = agnosticdb.conf.highlight.enemies.italicize
   else
-    local city, field = path:match("^highlight%.cities%.([^%.]+)%.(bold|underline|italicize)$")
-    if city and field then
+    local city, field = path:match("^highlight%.cities%.([^%.]+)%.([%a_]+)$")
+    if city and field and (field == "bold" or field == "underline" or field == "italicize") then
       current = config_city_style(city)[field]
     else
       echo_line(string.format("Config toggle: unknown key (%q -> %q).", raw, path))
@@ -480,14 +480,17 @@ function agnosticdb.ui.config_set(path, value)
     return
   end
 
-  local city, field = lower:match("^highlight%.cities%.([^%.]+)%.(color|bold|underline|italicize)$")
+  local city, field = lower:match("^highlight%.cities%.([^%.]+)%.([%a_]+)$")
   if city and field then
     local style = config_city_style(city)
     if field == "color" then
       style.color = value_text
-    else
+    elseif field == "bold" or field == "underline" or field == "italicize" then
       local val = value_text:lower()
       style[field] = (val == "true" or val == "on" or val == "1" or val == "yes")
+    else
+      echo_line(string.format("Config set: unknown key (%q -> %q).", raw_key, lower))
+      return
     end
     config_save()
     if agnosticdb.highlights and agnosticdb.highlights.reload then
