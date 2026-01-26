@@ -279,3 +279,90 @@ function agnosticdb.db.delete_person(name)
     agnosticdb.highlights.remove(normalized)
   end
 end
+
+local function get_person_record(name)
+  if not agnosticdb.db or not agnosticdb.db.get_person then return nil end
+  return agnosticdb.db.get_person(name)
+end
+
+local function get_field(name, key)
+  local person = get_person_record(name)
+  if not person then return nil end
+  local value = person[key]
+  if value == "" then return nil end
+  return value
+end
+
+function agnosticdb.getPerson(name)
+  return get_person_record(name)
+end
+
+function agnosticdb.getClass(name)
+  return get_field(name, "class")
+end
+
+function agnosticdb.getCity(name)
+  return get_field(name, "city")
+end
+
+function agnosticdb.getHouse(name)
+  return get_field(name, "house")
+end
+
+function agnosticdb.getRace(name)
+  return get_field(name, "race")
+end
+
+function agnosticdb.getLevel(name)
+  local value = get_field(name, "level")
+  if value == nil or value < 0 then return nil end
+  return value
+end
+
+function agnosticdb.getTitle(name)
+  return get_field(name, "title")
+end
+
+function agnosticdb.getXpRank(name)
+  local value = get_field(name, "xp_rank")
+  if value == nil or value < 0 then return nil end
+  return value
+end
+
+function agnosticdb.getCityRank(name)
+  local value = get_field(name, "city_rank")
+  if value == nil or value < 0 then return nil end
+  return value
+end
+
+function agnosticdb.getArmyRank(name)
+  local value = get_field(name, "army_rank")
+  if value == nil or value < 0 then return nil end
+  return value
+end
+
+function agnosticdb.getIff(name)
+  return get_field(name, "iff")
+end
+
+function agnosticdb.getEnemyCity(name)
+  return get_field(name, "enemy_city")
+end
+
+function agnosticdb.getEnemyHouse(name)
+  return get_field(name, "enemy_house")
+end
+
+function agnosticdb.getNotes(name)
+  return get_field(name, "notes")
+end
+
+function agnosticdb.getLastChecked(name)
+  local value = get_field(name, "last_checked")
+  if value == nil or value <= 0 then return nil end
+  return value
+end
+
+function agnosticdb.getSource(name)
+  return get_field(name, "source")
+end
