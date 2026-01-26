@@ -983,6 +983,10 @@ function agnosticdb.ui.refresh_online()
 end
 
 function agnosticdb.ui.db_check()
+  if not agnosticdb.db or not agnosticdb.db.check then
+    echo_line("Database module not loaded; reload the package.")
+    return
+  end
   local ok, info = agnosticdb.db.check()
   if ok then
     echo_line("Database check: OK.")
@@ -999,6 +1003,10 @@ function agnosticdb.ui.db_check()
 end
 
 function agnosticdb.ui.db_reset()
+  if not agnosticdb.db or not agnosticdb.db.reset then
+    echo_line("Database module not loaded; reload the package.")
+    return
+  end
   echo_line("Resetting database...")
   local ok, err = agnosticdb.db.reset()
   if not ok then
