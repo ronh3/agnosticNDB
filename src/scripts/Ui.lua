@@ -1131,7 +1131,13 @@ function agnosticdb.ui.compCity(city)
       for _, name in ipairs(names) do
         local person = agnosticdb.db.get_person(name)
         if person and city_matches(person.city or "", normalized) then
-          local class = person.class ~= "" and person.class or "(unknown)"
+          local race = person.race or ""
+          local class
+          if race == "Dragon" or race == "Elemental" then
+            class = race
+          else
+            class = person.class ~= "" and person.class or "(unknown)"
+          end
           by_class[class] = by_class[class] or {}
           table.insert(by_class[class], person.name or name)
           total = total + 1
