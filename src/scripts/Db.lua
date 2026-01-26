@@ -333,7 +333,7 @@ function agnosticdb.getCityColor(name)
     key = "rogue"
   end
   local entry = cfg[key]
-  if entry and entry.color and entry.color ~= \"\" then
+  if entry and entry.color and entry.color ~= "" then
     return entry.color
   end
   return nil
