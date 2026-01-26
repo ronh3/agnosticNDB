@@ -370,6 +370,16 @@
               "isLua": "yes"
        },
        {
+              "name": "qwhom",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^qwhom(?:\\s+(.+))?$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qwhom(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb list",
               "isActive": "yes",
               "isFolder": "no",

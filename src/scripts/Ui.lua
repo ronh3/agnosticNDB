@@ -779,6 +779,7 @@ function agnosticdb.ui.show_help()
   entry("qwprc", "online list grouped by city + race/class")
   entry("qwpcr", "online list grouped by city + class/race")
   entry("qwp rank <n>", "online list grouped by city, filtered by army rank")
+  entry("qwhom [area]", "who list grouped by area/location (mapper required)")
   line()
 end
 
@@ -1728,4 +1729,12 @@ function agnosticdb.ui.qwp(mode, filter)
     end
     cecho("\n")
   end)
+end
+
+function agnosticdb.ui.qwhom(filter)
+  if not agnosticdb.qwhom or not agnosticdb.qwhom.start then
+    echo_line("Qwhom unavailable (module missing).")
+    return
+  end
+  agnosticdb.qwhom.start(filter)
 end

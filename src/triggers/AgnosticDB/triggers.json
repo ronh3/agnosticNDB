@@ -204,5 +204,11 @@
               "isActive": "yes",
               "isFolder": "yes",
               "script": ""
+       },
+       {
+              "name": "Qwhom",
+              "isActive": "yes",
+              "isFolder": "yes",
+              "script": ""
        }
 ]
