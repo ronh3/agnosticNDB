@@ -329,8 +329,8 @@ function agnosticdb.getCityColor(name)
   local cfg = agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities or nil
   if not cfg then return nil end
   local key = city:lower()
-  if key == \"(none)\" or key == \"none\" then
-    key = \"rogue\"
+  if key == "(none)" or key == "none" then
+    key = "rogue"
   end
   local entry = cfg[key]
   if entry and entry.color and entry.color ~= \"\" then
