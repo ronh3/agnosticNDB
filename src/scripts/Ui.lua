@@ -762,7 +762,7 @@ function agnosticdb.ui.show_config()
   line(footer_line())
 end
 
-function agnosticdb.ui.show_help()
+function agnosticdb.ui.show_help(include_status)
   local theme = config_theme()
   local width = 88
   local header_label = "agnosticDB Help"
@@ -799,6 +799,7 @@ function agnosticdb.ui.show_help()
   line(header_line())
   line(separator())
   line(section("Core"))
+  entry("adb status", "system status overview")
   entry("adb config", "open configuration UI")
   entry("adb config set <key> <value>", "set config values")
   entry("adb config toggle <key>", "toggle config values")
@@ -858,6 +859,116 @@ function agnosticdb.ui.show_help()
   line(separator())
   line(section("Utilities"))
   entry("adbtest", "run self-test")
+  line(separator())
+  line(footer_line())
+  if include_status then
+    cecho("\n")
+    if agnosticdb.ui and agnosticdb.ui.show_status then
+      agnosticdb.ui.show_status()
+    end
+  end
+end
+
+function agnosticdb.ui.show_status()
+  local theme = config_theme()
+  local width = 72
+  local header_label = "agnosticDB Status"
+  local footer_label = "adb status"
+
+  local function header_line()
+    return string.format("%s┌─%s%s%s─┐%s", theme.border, theme.accent, header_label, theme.border, theme.reset)
+  end
+
+  local function separator()
+    return string.format("%s%s%s", theme.border, string.rep("─", width), theme.reset)
+  end
+
+  local function section(title, padding)
+    padding = padding or ""
+    return string.format("%s%s└─%s%s%s─┘%s", padding, theme.border, theme.accent, title, theme.border, theme.reset)
+  end
+
+  local function footer_line()
+    local tab = string.format("└─%s%s%s─┘", theme.accent, footer_label, theme.border)
+    local padding = math.max(0, width - (#footer_label + 4))
+    return string.format("%s%s%s%s", string.rep(" ", padding), theme.border, tab, theme.reset)
+  end
+
+  local function line(text)
+    cecho(text .. "\n")
+  end
+
+  local function kv(label, value)
+    cecho(string.format("%s  %-18s%s   %s%s%s\n", theme.text, label .. ":", theme.reset, theme.text, value, theme.reset))
+  end
+
+  if agnosticdb.db and agnosticdb.db.ensure then
+    agnosticdb.db.ensure()
+  end
+  local db_ready = agnosticdb.db and agnosticdb.db.people and not agnosticdb.db.disabled
+  local rows = db_ready and agnosticdb.db.safe_fetch(agnosticdb.db.people) or nil
+  local row_count = rows and #rows or 0
+
+  local api_enabled = agnosticdb.conf and agnosticdb.conf.api and agnosticdb.conf.api.enabled
+  local last_list = agnosticdb.api and agnosticdb.api.last_list_time or 0
+  local last_list_label = "never"
+  if last_list > 0 then
+    last_list_label = string.format("%s ago", format_duration(os.time() - last_list))
+  end
+
+  local backoff_until = agnosticdb.api and agnosticdb.api.backoff_until or 0
+  local backoff_label = "none"
+  if backoff_until > os.time() then
+    backoff_label = string.format("%s remaining", format_duration(backoff_until - os.time()))
+  end
+
+  local api_queue_len = agnosticdb.api and agnosticdb.api.queue and #agnosticdb.api.queue or 0
+  local api_stats = agnosticdb.api and agnosticdb.api.queue_stats or nil
+  local api_running = agnosticdb.api and agnosticdb.api.queue_running or false
+  local api_elapsed = 0
+  if api_running and api_stats and api_stats.started_at then
+    api_elapsed = os.time() - api_stats.started_at
+  end
+
+  local honors_queue_len = agnosticdb.honors and agnosticdb.honors.queue and #agnosticdb.honors.queue or 0
+  local honors_stats = agnosticdb.honors and agnosticdb.honors.queue_stats or nil
+  local honors_running = agnosticdb.honors and agnosticdb.honors.queue_running or false
+  local honors_elapsed = 0
+  if honors_running and honors_stats and honors_stats.started_at then
+    honors_elapsed = os.time() - honors_stats.started_at
+  end
+
+  line(header_line())
+  line(separator())
+  line(section("Database"))
+  kv("DB ready", db_ready and "yes" or "no")
+  kv("Rows", tostring(row_count))
+  line(separator())
+  line(section("API"))
+  kv("Enabled", api_enabled and "on" or "off")
+  kv("Last online list", last_list_label)
+  kv("Backoff", backoff_label)
+  line(separator())
+  line(section("Queues"))
+  if api_running and api_stats then
+    kv("API queue", string.format("running (%d/%d, queued %d, %s)", api_stats.processed or 0, api_stats.total or 0, api_queue_len, format_duration(api_elapsed)))
+  else
+    kv("API queue", string.format("idle (queued %d)", api_queue_len))
+  end
+  if honors_running and honors_stats then
+    kv("Honors queue", string.format("running (%d/%d, queued %d, %s)", honors_stats.processed or 0, honors_stats.total or 0, honors_queue_len, format_duration(honors_elapsed)))
+  else
+    kv("Honors queue", string.format("idle (queued %d)", honors_queue_len))
+  end
+  line(separator())
+  line(section("Timing"))
+  local api_conf = agnosticdb.conf and agnosticdb.conf.api or {}
+  local honors_conf = agnosticdb.conf and agnosticdb.conf.honors or {}
+  kv("Min refresh", string.format("%dh", api_conf.min_refresh_hours or 0))
+  kv("Min interval", string.format("%ss", api_conf.min_interval_seconds or 0))
+  kv("Timeout", string.format("%ss", api_conf.timeout_seconds or 0))
+  kv("Backoff", string.format("%ss", api_conf.backoff_seconds or 0))
+  kv("Honors delay", string.format("%ss", honors_conf.delay_seconds or 0))
   line(separator())
   line(footer_line())
 end

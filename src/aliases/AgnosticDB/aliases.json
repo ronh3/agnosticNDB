@@ -5,7 +5,17 @@
               "isFolder": "no",
               "command": "",
               "regex": "^adb$",
-              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_help() end",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_help(true) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb status",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+status$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_status() end",
               "matchall": "no",
               "isLua": "yes"
        },

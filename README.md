@@ -15,6 +15,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 
 ### Core
 - `adb`: show help.
+- `adb status`: system status overview.
 - `adb config`: open configuration UI (colors, toggles, timing).
 - `adb config set <key> <value>`: set a config value.
 - `adb config toggle <key>`: toggle a config value.
