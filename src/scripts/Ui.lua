@@ -1170,10 +1170,23 @@ function agnosticdb.ui.show_config()
 
   local categories = theme_categories()
   for _, category in ipairs(categories) do
-    cecho(string.format("%s  %s: ", theme.text, category.label))
+    local indent = "   "
+    local prefix_text = string.format("%s: ", category.label)
+    local prefix = indent .. prefix_text
+    local pad = string.rep(" ", #prefix)
+    local wrap = nil
+    if category.label == "Classes" then
+      wrap = 5
+    end
+    cecho(theme.text .. prefix)
+    local count = 0
     for _, name in ipairs(category.names) do
+      if wrap and count > 0 and (count % wrap) == 0 then
+        cecho("\n" .. theme.text .. pad)
+      end
       config_line_link("[" .. theme_display_name(name) .. "]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
       cecho(" ")
+      count = count + 1
     end
     cecho("\n")
   end
