@@ -51,3 +51,6 @@
 - API rate limiting strategy and backoff thresholds.
 - Export/import format and sharing workflow.
 - How to merge remote data with local overrides (notes/IFF).
+
+## Future Work
+- Consider a lightweight wiki or `docs/` folder (install, workflows, troubleshooting, FAQ).
