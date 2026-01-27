@@ -1815,7 +1815,10 @@ local function build_comp_by_class(names, target_city)
         class = person.class ~= "" and person.class or "(unknown)"
       end
       by_class[class] = by_class[class] or {}
-      table.insert(by_class[class], person.name or name)
+      table.insert(by_class[class], {
+        name = person.name or name,
+        level = tonumber(person.level or -1) or -1
+      })
       total = total + 1
     end
   end
@@ -1836,20 +1839,22 @@ local function render_comp_for_city(names, city_label, suppress_empty)
   local classes = {}
   for class, list in pairs(by_class) do
     table.sort(list, function(a, b)
-      return a:lower() < b:lower()
+      return a.name:lower() < b.name:lower()
     end)
     classes[#classes + 1] = { name = class, list = list, count = #list }
   end
 
   table.sort(classes, function(a, b)
-    if a.count == b.count then
-      return a.name:lower() < b.name:lower()
-    end
-    return a.count > b.count
+    return a.name:lower() < b.name:lower()
   end)
 
   for _, entry in ipairs(classes) do
-    echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(entry.list, ", ")))
+    local names = {}
+    for _, item in ipairs(entry.list) do
+      local suffix = item.level and item.level >= 0 and string.format(" (%d)", item.level) or ""
+      names[#names + 1] = item.name .. suffix
+    end
+    echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(names, ", ")))
   end
 
   return true
@@ -1861,25 +1866,39 @@ local function render_comp_for_city_report(names, city_label)
     return false
   end
 
-  report_section(city_label, total)
+  local theme = config_theme()
+  local city_color = "white"
+  if agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities then
+    local key = city_label:lower()
+    if key == "rogue" then key = "rogue" end
+    local entry = agnosticdb.conf.highlight.cities[key]
+    if entry and entry.color and entry.color ~= "" then
+      city_color = entry.color
+    end
+  end
+  local city_label_colored = string.format("<%s>%s%s", city_color, city_label, theme.reset)
+  report_section(city_label_colored, total)
 
   local classes = {}
   for class, list in pairs(by_class) do
     table.sort(list, function(a, b)
-      return a:lower() < b:lower()
+      return a.name:lower() < b.name:lower()
     end)
     classes[#classes + 1] = { name = class, list = list, count = #list }
   end
 
   table.sort(classes, function(a, b)
-    if a.count == b.count then
-      return a.name:lower() < b.name:lower()
-    end
-    return a.count > b.count
+    return a.name:lower() < b.name:lower()
   end)
 
   for _, entry in ipairs(classes) do
-    report_line(string.format("  %-12s (%d) %s", entry.name, entry.count, table.concat(entry.list, ", ")))
+    local names = {}
+    for _, item in ipairs(entry.list) do
+      local suffix = item.level and item.level >= 0 and string.format(" (%d)", item.level) or ""
+      local name_color = city_color
+      names[#names + 1] = string.format("<%s>%s%s", name_color, item.name .. suffix, theme.reset)
+    end
+    report_line(string.format("  %-12s (%d) %s", entry.name, entry.count, table.concat(names, ", ")))
   end
   report_line("")
   return true
@@ -2122,7 +2141,7 @@ function agnosticdb.ui.qcompAll()
       end
 
       local printed = 0
-      report_title("City Composition (Online)")
+  report_title("Composition (Online)")
       for _, city in ipairs(ordered) do
         if render_comp_for_city_report(names, city) then
           printed = printed + 1
