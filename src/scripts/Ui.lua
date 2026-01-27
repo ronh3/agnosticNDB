@@ -763,67 +763,90 @@ function agnosticdb.ui.show_config()
 end
 
 function agnosticdb.ui.show_help()
-  local accent = "<cyan>"
-  local text = "<white>"
-  local border = "<grey>"
-  local reset = "<reset>"
-  local cmd_pad = 24
-  local header = "agnosticDB Help"
-
-  local function emit(raw)
-    cecho(raw .. "\n")
-  end
-
-  local function line()
-    emit(border .. string.rep("-", 70) .. reset)
-  end
+  local theme = config_theme()
+  local width = 88
+  local header_label = "agnosticDB Help"
+  local footer_label = "adb"
+  local cmd_pad = 28
 
   local function header_line()
-    emit(border .. "+ " .. accent .. header .. border .. " +" .. reset)
+    return string.format("%s┌─%s%s%s─┐%s", theme.border, theme.accent, header_label, theme.border, theme.reset)
+  end
+
+  local function separator()
+    return string.format("%s%s%s", theme.border, string.rep("─", width), theme.reset)
+  end
+
+  local function section(title, padding)
+    padding = padding or ""
+    return string.format("%s%s└─%s%s%s─┘%s", padding, theme.border, theme.accent, title, theme.border, theme.reset)
+  end
+
+  local function footer_line()
+    local tab = string.format("└─%s%s%s─┘", theme.accent, footer_label, theme.border)
+    local padding = math.max(0, width - (#footer_label + 4))
+    return string.format("%s%s%s%s", string.rep(" ", padding), theme.border, tab, theme.reset)
+  end
+
+  local function line(text)
+    cecho(text .. "\n")
   end
 
   local function entry(cmd, desc)
-    emit(string.format("%s%-24s%s | %s%s%s", accent, cmd, reset, text, desc, reset))
+    cecho(string.format("%s  %-28s%s%s%s%s\n", theme.accent, cmd, theme.reset, theme.text, desc, theme.reset))
   end
 
-  line()
-  header_line()
-  line()
+  line(header_line())
+  line(separator())
+  line(section("Core"))
+  entry("adb config", "open configuration UI")
+  entry("adb config set <key> <value>", "set config values")
+  entry("adb config toggle <key>", "toggle config values")
   entry("adb politics", "show politics menu")
+  line(separator())
+  line(section("Highlights & Notes"))
   entry("adb highlights on|off", "toggle highlights")
   entry("adb highlights reload", "rebuild highlight triggers")
   entry("adb highlights clear", "remove all highlight triggers")
+  entry("adb ignore <name>", "toggle highlight ignore")
   entry("adb note <name> <notes>", "set notes")
   entry("adb note <name>", "show notes")
   entry("adb note clear <name>", "clear notes for a person")
   entry("adb note clear all", "clear notes for everyone")
   entry("adb iff <name> enemy|ally|auto", "set friend/foe status")
   entry("adb elord <name> <type>", "set elemental lord type (air/earth/fire/water/clear)")
+  line(separator())
+  line(section("Lookup & Updates"))
   entry("adb whois <name>", "show stored data (fetch if needed)")
   entry("adb fetch [name]", "fetch online list or single person")
   entry("adb refresh", "force refresh all online names")
   entry("adb quick", "fetch online list (new names only)")
   entry("adb update", "refresh all known names")
-  entry("adb stats", "counts by class/city")
-  entry("adb ignore <name>", "toggle highlight ignore")
-  entry("adb config", "open configuration UI")
-  entry("adb config set <key> <value>", "set config values")
-  entry("adb config toggle <key>", "toggle config values")
+  line(separator())
+  line(section("Honors"))
   entry("adb honors <name>", "request honors + ingest")
   entry("adb honors online", "request honors for all online names")
   entry("adb honors online <city>", "request honors for online names in a city")
+  line(separator())
+  line(section("Reports & Lists"))
+  entry("adb stats", "counts by class/city/race/spec")
   entry("adb list class|city|race <value>", "list people by class/city/race")
   entry("adb list enemy", "list people marked as enemies")
-  entry("adb enemies", "capture personal enemy list from game output")
-  entry("adb enemy <city>", "enemy all online members of a city")
   entry("adb comp <city>", "online composition by class for a city")
   entry("adb qcomp <city>", "online composition by class (no honors refresh)")
+  line(separator())
+  line(section("Enemies"))
+  entry("adb enemies", "capture personal enemy list from game output")
+  entry("adb enemy <city>", "enemy all online members of a city")
+  line(separator())
+  line(section("Database"))
   entry("adb dbcheck", "check database health")
   entry("adb dbreset", "reset database (drops people table)")
   entry("adb forget <name>", "remove a person from the database")
   entry("adb export [path]", "export database to JSON")
   entry("adb import <path>", "import database from JSON")
-  entry("adbtest", "run self-test")
+  line(separator())
+  line(section("Who Lists"))
   entry("qwp", "online list grouped by city")
   entry("qwpr", "online list grouped by city + race")
   entry("qwpa", "online list grouped by city + army rank")
@@ -832,7 +855,11 @@ function agnosticdb.ui.show_help()
   entry("qwpcr", "online list grouped by city + class/race")
   entry("qwp rank <n>", "online list grouped by city, filtered by army rank")
   entry("qwhom [area]", "who list grouped by area/location (mapper required)")
-  line()
+  line(separator())
+  line(section("Utilities"))
+  entry("adbtest", "run self-test")
+  line(separator())
+  line(footer_line())
 end
 
 function agnosticdb.ui.show_politics()
