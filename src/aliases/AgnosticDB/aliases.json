@@ -20,6 +20,36 @@
               "isLua": "yes"
        },
        {
+              "name": "adb theme list",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+theme\\s+list$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.theme_list() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb theme set color",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+theme\\s+set\\s+(accent|border|text|muted)\\s+(\\S+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.theme_set_color(matches[2], matches[3]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb theme",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+theme\\s+(\\w+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.theme_set(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb queue cancel",
               "isActive": "yes",
               "isFolder": "no",

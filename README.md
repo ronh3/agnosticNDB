@@ -23,6 +23,9 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 ### Core
 - `adb`: show help.
 - `adb status`: system status overview.
+- `adb theme <name>`: set UI theme (auto/custom/city).
+- `adb theme list`: list available themes.
+- `adb theme set <key> <color>`: set custom theme palette keys (accent/border/text/muted).
 - `adb queue cancel`: stop and clear the pending API queue.
 - `adb config`: open configuration UI (colors, toggles, timing).
 - `adb config set <key> <value>`: set a config value.
@@ -109,6 +112,13 @@ These triggers ingest data when you run the corresponding in-game commands:
 - `last_checked` tracks when a character was last queried.
 - `last_updated` tracks when their stored data actually changed (used by `adb recent`).
 - Enable `api.announce_changes_only` to suppress queue output if nothing changed.
+
+## Themes
+agnosticDB supports built-in themes (one per city + Rogue) and custom palettes.
+- Use `adb theme list` to view options.
+- Use `adb theme <city>` (e.g., `adb theme mhaldor`) or `adb theme auto`.
+- Use `adb theme set <key> <color>` to set custom palette keys, then `adb theme custom`.
+Auto city themes only apply when no explicit theme/custom selection is set.
 
 ## Build
 - Work only in `src/`.

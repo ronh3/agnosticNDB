@@ -50,6 +50,18 @@ function agnosticdb.config.load()
   if agnosticdb.conf.api.announce_changes_only == nil then
     agnosticdb.conf.api.announce_changes_only = false
   end
+
+  agnosticdb.conf.theme = agnosticdb.conf.theme or {}
+  if agnosticdb.conf.theme.auto_city == nil then
+    agnosticdb.conf.theme.auto_city = true
+  end
+  agnosticdb.conf.theme.name = agnosticdb.conf.theme.name or ""
+  agnosticdb.conf.theme.custom = agnosticdb.conf.theme.custom or {
+    accent = "cyan",
+    border = "grey",
+    text = "white",
+    muted = "light_grey"
+  }
   agnosticdb.conf.honors = agnosticdb.conf.honors or { delay_seconds = 2 }
   agnosticdb.conf.honors.delay_seconds = agnosticdb.conf.honors.delay_seconds or 2
 

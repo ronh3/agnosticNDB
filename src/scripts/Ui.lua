@@ -186,6 +186,18 @@ local function ensure_conf_defaults()
   agnosticdb.conf.honors = agnosticdb.conf.honors or { delay_seconds = 2 }
   agnosticdb.conf.honors.delay_seconds = agnosticdb.conf.honors.delay_seconds or 2
 
+  agnosticdb.conf.theme = agnosticdb.conf.theme or {}
+  if agnosticdb.conf.theme.auto_city == nil then
+    agnosticdb.conf.theme.auto_city = true
+  end
+  agnosticdb.conf.theme.name = agnosticdb.conf.theme.name or ""
+  agnosticdb.conf.theme.custom = agnosticdb.conf.theme.custom or {
+    accent = "cyan",
+    border = "grey",
+    text = "white",
+    muted = "light_grey"
+  }
+
   if agnosticdb.conf.highlights_enabled == nil then
     agnosticdb.conf.highlights_enabled = true
   end
@@ -230,16 +242,6 @@ local function ensure_conf_defaults()
   end
 end
 
-config_theme = function()
-  return {
-    accent = "<cyan>",
-    border = "<grey>",
-    text = "<white>",
-    muted = "<light_grey>",
-    reset = "<reset>"
-  }
-end
-
 local function config_color_palette()
   if agnosticdb.colors and type(agnosticdb.colors.list) == "function" then
     return agnosticdb.colors.list()
@@ -250,6 +252,92 @@ end
 local function config_display_color(value)
   if not value or value == "" then return "none" end
   return value
+end
+
+local function theme_palette_keys()
+  return { "accent", "border", "text", "muted" }
+end
+
+local function theme_default_palette()
+  return { accent = "cyan", border = "grey", text = "white", muted = "light_grey" }
+end
+
+local function builtin_themes()
+  return {
+    default = { accent = "cyan", border = "grey", text = "white", muted = "light_grey" },
+    ashtan = { accent = "purple", border = "dark_orchid", text = "white", muted = "light_grey" },
+    cyrene = { accent = "cornflower_blue", border = "dodger_blue", text = "white", muted = "light_grey" },
+    eleusis = { accent = "forest_green", border = "dark_olive_green", text = "white", muted = "light_grey" },
+    hashan = { accent = "yellow", border = "goldenrod", text = "white", muted = "light_grey" },
+    mhaldor = { accent = "red", border = "firebrick", text = "white", muted = "light_grey" },
+    targossas = { accent = "white", border = "light_grey", text = "white", muted = "grey" },
+    rogue = { accent = "orange", border = "dark_orange", text = "white", muted = "light_grey" }
+  }
+end
+
+local function parse_gmcp_city()
+  if not gmcp or not gmcp.Char or not gmcp.Char.Status then return nil end
+  local raw = gmcp.Char.Status.City
+  if type(raw) ~= "string" or raw == "" then return nil end
+  local city = raw:gsub("%b()", ""):gsub("%s+$", ""):gsub("^%s+", "")
+  if city == "" then return nil end
+  return city
+end
+
+local function normalize_theme_city(city)
+  if type(city) ~= "string" then return nil end
+  local trimmed = city:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed == "" then return nil end
+  local lower = trimmed:lower()
+  if lower == "none" or lower == "rogue" then return "rogue" end
+  return lower
+end
+
+local function resolve_theme_name()
+  ensure_conf_defaults()
+  local theme = agnosticdb.conf.theme or {}
+  if theme.name and theme.name ~= "" then
+    return theme.name:lower()
+  end
+  if theme.auto_city then
+    local city = normalize_theme_city(parse_gmcp_city())
+    if city then return city end
+  end
+  return "default"
+end
+
+local function theme_to_tags(def)
+  local function tag(value)
+    if not value or value == "" then return "<reset>" end
+    if value:sub(1, 1) == "<" then return value end
+    return "<" .. value .. ">"
+  end
+  return {
+    accent = tag(def.accent or "cyan"),
+    border = tag(def.border or "grey"),
+    text = tag(def.text or "white"),
+    muted = tag(def.muted or "light_grey"),
+    reset = "<reset>"
+  }
+end
+
+local function theme_display_name(name)
+  local label = tostring(name or "")
+  if label == "" then return "Default" end
+  label = label:gsub("_", " ")
+  return label:sub(1, 1):upper() .. label:sub(2)
+end
+
+config_theme = function()
+  ensure_conf_defaults()
+  local name = resolve_theme_name()
+  local themes = builtin_themes()
+  if name == "custom" then
+    local custom = agnosticdb.conf.theme.custom or theme_default_palette()
+    return theme_to_tags(custom)
+  end
+  local def = themes[name] or themes.default
+  return theme_to_tags(def)
 end
 
 local function config_save()
@@ -425,6 +513,9 @@ local function config_set_boolean(path, value)
   elseif path == "api.announce_changes_only" then
     agnosticdb.conf.api.announce_changes_only = value
     config_save()
+  elseif path == "theme.auto_city" then
+    agnosticdb.conf.theme.auto_city = value
+    config_save()
   elseif path == "highlights_enabled" then
     if agnosticdb.highlights and agnosticdb.highlights.toggle then
       agnosticdb.highlights.toggle(value)
@@ -478,6 +569,8 @@ local function config_toggle_boolean(path)
     current = agnosticdb.conf.api.enabled
   elseif path == "api.announce_changes_only" then
     current = agnosticdb.conf.api.announce_changes_only
+  elseif path == "theme.auto_city" then
+    current = agnosticdb.conf.theme.auto_city
   elseif path == "highlights_enabled" then
     current = agnosticdb.conf.highlights_enabled
   elseif path == "prune_dormant" then
@@ -541,6 +634,14 @@ local function config_cycle_color(path)
   local current = ""
   if path == "highlight.enemies.color" then
     current = agnosticdb.conf.highlight.enemies.color or ""
+  elseif path == "theme.custom.accent" then
+    current = agnosticdb.conf.theme.custom.accent or ""
+  elseif path == "theme.custom.border" then
+    current = agnosticdb.conf.theme.custom.border or ""
+  elseif path == "theme.custom.text" then
+    current = agnosticdb.conf.theme.custom.text or ""
+  elseif path == "theme.custom.muted" then
+    current = agnosticdb.conf.theme.custom.muted or ""
   else
     local city = path:match("^highlight%.cities%.([^%.]+)%.color$")
     if city then
@@ -561,6 +662,18 @@ local function config_cycle_color(path)
 
   if path == "highlight.enemies.color" then
     agnosticdb.conf.highlight.enemies.color = next_value
+  elseif path == "theme.custom.accent" then
+    agnosticdb.conf.theme.custom.accent = next_value
+    agnosticdb.conf.theme.name = "custom"
+  elseif path == "theme.custom.border" then
+    agnosticdb.conf.theme.custom.border = next_value
+    agnosticdb.conf.theme.name = "custom"
+  elseif path == "theme.custom.text" then
+    agnosticdb.conf.theme.custom.text = next_value
+    agnosticdb.conf.theme.name = "custom"
+  elseif path == "theme.custom.muted" then
+    agnosticdb.conf.theme.custom.muted = next_value
+    agnosticdb.conf.theme.name = "custom"
   else
     local city = path:match("^highlight%.cities%.([%w_]+)%.color$")
     if city then
@@ -593,7 +706,7 @@ function agnosticdb.ui.config_set(path, value)
   local raw_key, normalized_key = normalize_config_key(path)
   local lower = normalized_key
   local value_text = tostring(value):gsub("^%s+", ""):gsub("%s+$", "")
-  if lower == "api.enabled" or lower == "api.announce_changes_only" or lower == "highlights_enabled" or lower == "prune_dormant"
+  if lower == "api.enabled" or lower == "api.announce_changes_only" or lower == "theme.auto_city" or lower == "highlights_enabled" or lower == "prune_dormant"
     or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize"
     or lower == "highlight.enemies.enabled" or lower == "highlight.enemies.require_personal" then
     local val = value_text:lower()
@@ -611,6 +724,23 @@ function agnosticdb.ui.config_set(path, value)
     if agnosticdb.highlights and agnosticdb.highlights.reload then
       agnosticdb.highlights.reload()
     end
+    config_refresh()
+    return
+  end
+
+  local theme_key = lower:match("^theme%.custom%.([%a_]+)$")
+  if theme_key then
+    local allowed = {}
+    for _, key in ipairs(theme_palette_keys()) do
+      allowed[key] = true
+    end
+    if not allowed[theme_key] then
+      echo_line(string.format("Config set: unknown key (%q -> %q).", raw_key, lower))
+      return
+    end
+    agnosticdb.conf.theme.custom[theme_key] = value_text
+    agnosticdb.conf.theme.name = "custom"
+    config_save()
     config_refresh()
     return
   end
@@ -659,6 +789,76 @@ function agnosticdb.ui.config_step(path, delta)
   local next_value = current + (tonumber(delta) or 0)
   if next_value < 0 then next_value = 0 end
   config_set_number(path, next_value)
+end
+
+function agnosticdb.ui.theme_set(name)
+  ensure_conf_defaults()
+  if not name or name == "" then
+    echo_line("Usage: adb theme <name>|auto|custom")
+    return
+  end
+  local lower = tostring(name):lower()
+  if lower == "auto" or lower == "city" or lower == "clear" then
+    agnosticdb.conf.theme.name = ""
+    agnosticdb.conf.theme.auto_city = true
+    config_save()
+    config_refresh()
+    echo_line("Theme set to auto (city).")
+    return
+  end
+
+  if lower == "custom" then
+    agnosticdb.conf.theme.name = "custom"
+    config_save()
+    config_refresh()
+    echo_line("Theme set to custom.")
+    return
+  end
+
+  local themes = builtin_themes()
+  if not themes[lower] then
+    echo_line(string.format("Unknown theme: %s", name))
+    return
+  end
+  agnosticdb.conf.theme.name = lower
+  config_save()
+  config_refresh()
+  echo_line(string.format("Theme set to %s.", theme_display_name(lower)))
+end
+
+function agnosticdb.ui.theme_list()
+  local themes = builtin_themes()
+  local names = {}
+  for name in pairs(themes) do
+    names[#names + 1] = name
+  end
+  table.sort(names, function(a, b) return a < b end)
+  echo_title("Themes")
+  echo_line("Built-in:")
+  for _, name in ipairs(names) do
+    echo_line(string.format("  - %s", theme_display_name(name)))
+  end
+  echo_line("Special:")
+  echo_line("  - auto (city-based)")
+  echo_line("  - custom (use custom palette)")
+end
+
+function agnosticdb.ui.theme_set_color(key, value)
+  ensure_conf_defaults()
+  local lower = tostring(key or ""):lower()
+  local allowed = {}
+  for _, name in ipairs(theme_palette_keys()) do
+    allowed[name] = true
+  end
+  if not allowed[lower] then
+    echo_line("Theme set: unknown key.")
+    return
+  end
+  agnosticdb.conf.theme.custom[lower] = tostring(value or "")
+  agnosticdb.conf.theme.name = "custom"
+  config_save()
+  config_refresh()
+  echo_line(string.format("Custom theme %s set to %s.", lower, tostring(value or "")))
 end
 
 function agnosticdb.ui.config_cycle_color(path)
@@ -803,6 +1003,39 @@ function agnosticdb.ui.show_config()
   cecho(theme.muted .. "  Tip: click [color] to open the palette." .. theme.reset .. "\n")
 
   line(separator())
+  line(section("Theme"))
+  local auto_city = conf.theme.auto_city
+  local selected = conf.theme.name
+  local auto_city_name = normalize_theme_city(parse_gmcp_city() or "") or "default"
+  local current_label = selected ~= "" and theme_display_name(selected) or (auto_city and ("Auto (" .. theme_display_name(auto_city_name) .. ")") or "Default")
+  cecho(string.format("%s  Current: %s%s", theme.text, theme.text, current_label))
+  cecho(" ")
+  config_line_link("[auto]", "agnosticdb.ui.theme_set('auto')", "Use auto city theme", theme)
+  cecho(" ")
+  config_line_link("[custom]", "agnosticdb.ui.theme_set('custom')", "Use custom theme", theme)
+  cecho("\n")
+  toggle_line("Auto by city", "theme.auto_city", auto_city)
+
+  cecho(theme.text .. "  Built-ins: ")
+  for _, name in ipairs({"default", "ashtan", "cyrene", "eleusis", "hashan", "mhaldor", "targossas", "rogue"}) do
+    config_line_link("[" .. theme_display_name(name) .. "]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
+    cecho(" ")
+  end
+  cecho("\n")
+
+  cecho(theme.text .. "  Custom palette: ")
+  config_line_link("[use]", "agnosticdb.ui.theme_set('custom')", "Apply custom theme", theme)
+  cecho("\n")
+  for _, key in ipairs(theme_palette_keys()) do
+    local value = conf.theme.custom[key] or ""
+    cecho(string.format("%s  %-10s: %s%s", theme.text, key, theme.text, config_display_color(value)))
+    cecho(" ")
+    config_color_popup(string.format("theme.custom.%s", key), theme)
+    cecho("\n")
+  end
+  cecho(theme.muted .. "  Tip: set colors, then click [use] to apply the custom theme." .. theme.reset .. "\n")
+
+  line(separator())
   line(section("Politics"))
   cecho(theme.text .. "  Open politics menu ")
   config_line_link("[open]", "agnosticdb.ui.show_politics()", "Open politics menu", theme)
@@ -853,6 +1086,9 @@ function agnosticdb.ui.show_help(include_status)
   line(separator())
   line(section("Core"))
   entry("adb status", "system status overview")
+  entry("adb theme <name>", "set UI theme (auto/custom/city)")
+  entry("adb theme list", "list available themes")
+  entry("adb theme set <key> <color>", "set custom theme color")
   entry("adb queue cancel", "stop and clear pending API queue")
   entry("adb config", "open configuration UI")
   entry("adb config set <key> <value>", "set config values")
