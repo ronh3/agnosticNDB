@@ -20,3 +20,5 @@ Guidance for Codex when working in this repository.
 - Make aliases responsive with confirmation output when they do not already emit results.
 - Explain the reasoning behind code changes in responses.
 - Commit and push changes unless the user asks otherwise.
+- Keep `README.md` and `agnosticdb.ui.show_help()` in sync when commands or features change.
+- Maintain the config UI look/feel (config theme + sectioned layout) for new menus.
