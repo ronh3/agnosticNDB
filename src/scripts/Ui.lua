@@ -1815,6 +1815,25 @@ local function comp_city_label(city)
   return city
 end
 
+local function comp_city_color(city_label)
+  local key = city_label:lower()
+  if key == "rogue" or key == "hidden" then
+    key = key
+  end
+  local cfg = agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities or {}
+  local entry = cfg[key]
+  if entry and entry.color and entry.color ~= "" then
+    return entry.color
+  end
+  return "white"
+end
+
+local function comp_section_tab(city_label, count, city_color)
+  local theme = config_theme()
+  local label = string.format("<%s>%s%s (%d)", city_color, city_label, theme.text, count)
+  return string.format("%s└─%s%s─┘%s", theme.border, label, theme.border, theme.reset)
+end
+
 local function build_comp_by_class(names, target_city)
   local by_class = {}
   local total = 0
@@ -1848,7 +1867,9 @@ local function render_comp_for_city(names, city_label, suppress_empty)
     return false
   end
 
-  echo_line(string.format("Composition for %s: %d online", city_label, total))
+  local theme = config_theme()
+  local city_color = comp_city_color(city_label)
+  echo_line(comp_section_tab(city_label, total, city_color))
 
   local classes = {}
   for class, list in pairs(by_class) do
@@ -1866,7 +1887,7 @@ local function render_comp_for_city(names, city_label, suppress_empty)
     local names = {}
     for _, item in ipairs(entry.list) do
       local suffix = item.level and item.level >= 0 and string.format(" (%d)", item.level) or ""
-      names[#names + 1] = item.name .. suffix
+      names[#names + 1] = string.format("<%s>%s%s", city_color, item.name .. suffix, theme.reset)
     end
     echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(names, ", ")))
   end
@@ -1881,17 +1902,8 @@ local function render_comp_for_city_report(names, city_label)
   end
 
   local theme = config_theme()
-  local city_color = "white"
-  if agnosticdb.conf and agnosticdb.conf.highlight and agnosticdb.conf.highlight.cities then
-    local key = city_label:lower()
-    if key == "rogue" then key = "rogue" end
-    local entry = agnosticdb.conf.highlight.cities[key]
-    if entry and entry.color and entry.color ~= "" then
-      city_color = entry.color
-    end
-  end
-  local city_label_colored = string.format("<%s>%s%s", city_color, city_label, theme.reset)
-  report_section(city_label_colored, total)
+  local city_color = comp_city_color(city_label)
+  report_line(comp_section_tab(city_label, total, city_color))
 
   local classes = {}
   for class, list in pairs(by_class) do
@@ -1909,8 +1921,7 @@ local function render_comp_for_city_report(names, city_label)
     local names = {}
     for _, item in ipairs(entry.list) do
       local suffix = item.level and item.level >= 0 and string.format(" (%d)", item.level) or ""
-      local name_color = city_color
-      names[#names + 1] = string.format("<%s>%s%s", name_color, item.name .. suffix, theme.reset)
+      names[#names + 1] = string.format("<%s>%s%s", city_color, item.name .. suffix, theme.reset)
     end
     report_line(string.format("  %-12s (%d) %s", entry.name, entry.count, table.concat(names, ", ")))
   end
