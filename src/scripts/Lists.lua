@@ -3,6 +3,9 @@ agnosticdb = agnosticdb or {}
 agnosticdb.lists = agnosticdb.lists or {}
 
 local function prefix()
+  if agnosticdb.ui and agnosticdb.ui.format_prefix then
+    return agnosticdb.ui.format_prefix()
+  end
   return "<cyan>[agnosticdb]<reset> "
 end
 
@@ -20,7 +23,14 @@ end
 
 local function echo_line(text)
   local lead = needs_leading_newline() and "\n" or ""
-  cecho(lead .. prefix() .. text .. "\n")
+  local reset = "<reset>"
+  if agnosticdb.ui and agnosticdb.ui.theme_tags then
+    local theme = agnosticdb.ui.theme_tags()
+    if theme and theme.reset then
+      reset = theme.reset
+    end
+  end
+  cecho(lead .. prefix() .. text .. reset .. "\n")
 end
 
 local function ensure_db_ready()

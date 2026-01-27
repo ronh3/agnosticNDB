@@ -3,6 +3,12 @@ agnosticdb = agnosticdb or {}
 agnosticdb.test = agnosticdb.test or {}
 
 local function prefix()
+  if agnosticdb.ui and agnosticdb.ui.theme_tags then
+    local theme = agnosticdb.ui.theme_tags()
+    if theme and theme.accent and theme.text then
+      return string.format("%s[agnosticdb test]%s %s", theme.accent, theme.reset or "<reset>", theme.text)
+    end
+  end
   return "<cyan>[agnosticdb test]<reset> "
 end
 
@@ -20,7 +26,14 @@ end
 
 local function echo_line(text)
   local lead = needs_leading_newline() and "\n" or ""
-  cecho(lead .. prefix() .. text .. "\n")
+  local reset = "<reset>"
+  if agnosticdb.ui and agnosticdb.ui.theme_tags then
+    local theme = agnosticdb.ui.theme_tags()
+    if theme and theme.reset then
+      reset = theme.reset
+    end
+  end
+  cecho(lead .. prefix() .. text .. reset .. "\n")
 end
 
 local function pass(msg)

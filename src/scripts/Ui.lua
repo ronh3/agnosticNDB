@@ -3,6 +3,9 @@ agnosticdb = agnosticdb or {}
 agnosticdb.ui = agnosticdb.ui or {}
 
 local function prefix()
+  if agnosticdb.ui and agnosticdb.ui.format_prefix then
+    return agnosticdb.ui.format_prefix()
+  end
   return "<cyan>[agnosticdb]<reset> "
 end
 
@@ -20,7 +23,14 @@ end
 
 local function echo_line(text)
   local lead = needs_leading_newline() and "\n" or ""
-  cecho(lead .. prefix() .. text .. "\n")
+  local reset = "<reset>"
+  if agnosticdb.ui and agnosticdb.ui.theme_tags then
+    local theme = agnosticdb.ui.theme_tags()
+    if theme and theme.reset then
+      reset = theme.reset
+    end
+  end
+  cecho(lead .. prefix() .. text .. reset .. "\n")
 end
 
 local function config_theme()
@@ -360,6 +370,18 @@ config_theme = function()
   end
   local def = themes[name] or themes.default
   return theme_to_tags(def)
+end
+
+function agnosticdb.ui.theme_tags()
+  return config_theme()
+end
+
+function agnosticdb.ui.format_prefix()
+  local theme = config_theme()
+  if theme and theme.accent and theme.text then
+    return string.format("%s[agnosticdb]%s %s", theme.accent, theme.reset or "<reset>", theme.text)
+  end
+  return "<cyan>[agnosticdb]<reset> "
 end
 
 local function theme_categories()

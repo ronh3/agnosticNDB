@@ -9,6 +9,9 @@ agnosticdb.honors.queue_on_done = agnosticdb.honors.queue_on_done or nil
 agnosticdb.honors.queue_opts = agnosticdb.honors.queue_opts or nil
 
 local function prefix()
+  if agnosticdb.ui and agnosticdb.ui.format_prefix then
+    return agnosticdb.ui.format_prefix()
+  end
   return "<cyan>[agnosticdb]<reset> "
 end
 
@@ -26,7 +29,14 @@ end
 
 local function echo_line(text)
   local lead = needs_leading_newline() and "\n" or ""
-  cecho(lead .. prefix() .. text .. "\n")
+  local reset = "<reset>"
+  if agnosticdb.ui and agnosticdb.ui.theme_tags then
+    local theme = agnosticdb.ui.theme_tags()
+    if theme and theme.reset then
+      reset = theme.reset
+    end
+  end
+  cecho(lead .. prefix() .. text .. reset .. "\n")
 end
 
 local function normalize_person_name(name)
