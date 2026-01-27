@@ -23,19 +23,43 @@ local function echo_line(text)
   cecho(lead .. prefix() .. text .. "\n")
 end
 
+local function frame_theme()
+  return config_theme()
+end
+
+local function frame_width()
+  return 72
+end
+
+local function frame_line(left, fill, right, label, align)
+  local theme = frame_theme()
+  local width = frame_width()
+  if label then
+    local text = " " .. label .. " "
+    local pad = width - #text
+    if pad < 0 then pad = 0 end
+    if align == "center" then
+      local left_pad = math.floor(pad / 2)
+      local right_pad = pad - left_pad
+      return string.format("%s%s%s%s%s%s%s%s%s", theme.border, left, string.rep(fill, left_pad), theme.accent, text, theme.border, string.rep(fill, right_pad), right, theme.reset)
+    end
+    return string.format("%s%s%s%s%s%s%s%s", theme.border, left, theme.accent, text, theme.border, string.rep(fill, pad), right, theme.reset)
+  end
+  return string.format("%s%s%s%s%s", theme.border, left, string.rep(fill, width), right, theme.reset)
+end
+
 local function echo_title(text)
-  local bar = string.rep("-", 48)
-  echo_line(bar)
-  echo_line(text)
-  echo_line(bar)
+  echo_line(frame_line("╔", "═", "╗"))
+  echo_line(frame_line("║", " ", "║", text, "center"))
+  echo_line(frame_line("╚", "═", "╝"))
 end
 
 local function echo_section(label, count)
+  local title = label
   if count and count > 0 then
-    echo_line(string.format("%s (%d)", label, count))
-  else
-    echo_line(label)
+    title = string.format("%s (%d)", label, count)
   end
+  echo_line(frame_line("╟", "─", "╢", title, "left"))
 end
 
 local function echo_kv(label, value)
@@ -52,18 +76,17 @@ local function report_line(text)
 end
 
 local function report_title(text)
-  local bar = string.rep("-", 48)
-  report_line(bar)
-  report_line(text)
-  report_line(bar)
+  report_line(frame_line("╔", "═", "╗"))
+  report_line(frame_line("║", " ", "║", text, "center"))
+  report_line(frame_line("╚", "═", "╝"))
 end
 
 local function report_section(label, count)
+  local title = label
   if count and count > 0 then
-    report_line(string.format("%s (%d)", label, count))
-  else
-    report_line(label)
+    title = string.format("%s (%d)", label, count)
   end
+  report_line(frame_line("╟", "─", "╢", title, "left"))
 end
 
 local function report_kv(label, value)
