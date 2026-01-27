@@ -64,6 +64,7 @@ end
 
 function agnosticdb.qwhom.start(filter)
   agnosticdb.qwhom.data = {}
+  agnosticdb.qwhom.dead = {}
   agnosticdb.qwhom.active = true
   agnosticdb.qwhom.filter = nil
 
@@ -90,6 +91,13 @@ function agnosticdb.qwhom.capture_line(who_raw, where_raw)
 
   local who = trim(who_raw)
   if who == "" then return end
+  local dead_name = who:match("^%s*%(%s*Embracing Death%s*%)%s*(%w+)%s*$")
+  if dead_name then
+    local normalized = normalize_name(dead_name) or dead_name
+    agnosticdb.qwhom.dead = agnosticdb.qwhom.dead or {}
+    agnosticdb.qwhom.dead[#agnosticdb.qwhom.dead + 1] = normalized
+    return
+  end
   local lower = who:lower()
   if lower:find("^total:") or lower:find("^name") or lower:find("^%-%-") then
     return
@@ -151,7 +159,14 @@ function agnosticdb.qwhom.finish()
   end
 
   cecho("\n")
+  if agnosticdb.qwhom.dead and #agnosticdb.qwhom.dead > 0 then
+    table.sort(agnosticdb.qwhom.dead, function(a, b)
+      return a:lower() < b:lower()
+    end)
+    cecho(string.format("<ansi_yellow>Dead:<reset> %s\n", table.concat(agnosticdb.qwhom.dead, ", ")))
+  end
 
   agnosticdb.qwhom.data = {}
+  agnosticdb.qwhom.dead = {}
   agnosticdb.qwhom.filter = nil
 end
