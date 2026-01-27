@@ -11,6 +11,13 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - In-game list ingestion (citizens/hwho/cwho/enemies) + class tracking from combat lines.
 - Import/export for sharing or backup.
 
+## Getting Started
+1) Install the package in Mudlet (via Muddler or the packaged ZIP).
+2) Run `adb` to open help and confirm the package is loaded.
+3) Run `adb fetch` to seed online names, or `adb fetch <name>` to start with a single character.
+4) Use `adb whois <name>` to see stored data and `adb stats` for overall totals.
+5) Customize highlights and timing in `adb config`.
+
 ## Command Reference
 
 ### Core
@@ -96,6 +103,11 @@ These triggers ingest data when you run the corresponding in-game commands:
 - Title, city rank, XP rank, level, army rank, elemental lord type.
 - Enemy city/house markers and IFF (ally/enemy/auto).
 - Notes, immortal/dragon flags, last checked time, last updated time, source.
+
+## Notes on Updates
+- `last_checked` tracks when a character was last queried.
+- `last_updated` tracks when their stored data actually changed (used by `adb recent`).
+- Enable `api.announce_changes_only` to suppress queue output if nothing changed.
 
 ## Build
 - Work only in `src/`.

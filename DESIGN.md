@@ -39,6 +39,13 @@
 - `ClassTracking`: class/spec/race updates from combat text.
 - `Transfer`: import/export helpers.
 
+## Config Flags
+- `api.announce_changes_only`: when enabled, suppress queue completion output if nothing changed and mark API results as `unchanged`.
+
+## Data Semantics
+- `last_checked`: last time a character was queried or refreshed.
+- `last_updated`: last time a character's stored data actually changed (used by `adb recent`).
+
 ## Open Questions
 - Mudlet version floor for HTTP and DB features.
 - API rate limiting strategy and backoff thresholds.
