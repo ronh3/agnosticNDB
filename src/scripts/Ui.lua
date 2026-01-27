@@ -1171,7 +1171,7 @@ function agnosticdb.ui.show_config()
   local categories = theme_categories()
   for _, category in ipairs(categories) do
     local indent = "   "
-    local prefix_text = string.format("%s: ", category.label)
+    local prefix_text = string.format("%s:  ", category.label)
     local prefix = indent .. prefix_text
     local pad = string.rep(" ", #prefix)
     local wrap = nil
