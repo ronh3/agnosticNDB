@@ -45,6 +45,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 
 ### Reports & Lists
 - `adb stats`: counts by class/city/race/spec/elemental/dragon.
+- `adb recent [n]`: show most recently updated people (default 20).
 - `adb list class|city|race <value>`: list people by a field.
 - `adb list enemy`: list people marked as enemies.
 
@@ -92,7 +93,7 @@ These triggers ingest data when you run the corresponding in-game commands:
 - Name, class, specialization, city, house, race.
 - Title, city rank, XP rank, level, army rank, elemental lord type.
 - Enemy city/house markers and IFF (ally/enemy/auto).
-- Notes, immortal/dragon flags, last checked time, source.
+- Notes, immortal/dragon flags, last checked time, last updated time, source.
 
 ## Build
 - Work only in `src/`.

@@ -300,6 +300,16 @@
               "isLua": "yes"
        },
        {
+              "name": "adb recent",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+recent(?:\\s+(\\d+))?$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_recent(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adbtest",
               "isActive": "yes",
               "isFolder": "no",

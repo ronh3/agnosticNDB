@@ -101,6 +101,7 @@ local function required_columns()
     "immortal",
     "dragon",
     "last_checked",
+    "last_updated",
     "source"
   }
 end
@@ -203,6 +204,7 @@ function agnosticdb.db.init()
       immortal = 0,
       dragon = 0,
       last_checked = 0,
+      last_updated = 0,
       source = "",
 
       _unique = {"name"},
@@ -230,6 +232,7 @@ function agnosticdb.db.init()
   add_column_if_missing(sample, "immortal", [[ALTER TABLE people ADD COLUMN "immortal" INTEGER NULL DEFAULT 0]])
   add_column_if_missing(sample, "dragon", [[ALTER TABLE people ADD COLUMN "dragon" INTEGER NULL DEFAULT 0]])
   add_column_if_missing(sample, "last_checked", [[ALTER TABLE people ADD COLUMN "last_checked" INTEGER NULL DEFAULT 0]])
+  add_column_if_missing(sample, "last_updated", [[ALTER TABLE people ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
   add_column_if_missing(sample, "source", [[ALTER TABLE people ADD COLUMN "source" TEXT NULL DEFAULT ""]])
 end
 
@@ -259,6 +262,74 @@ function agnosticdb.db.upsert_person(fields)
       if record[k] == nil then
         record[k] = v
       end
+    end
+  end
+
+  local function normalize_numeric(value, default)
+    local num = tonumber(value)
+    if num == nil then return default end
+    return num
+  end
+
+  local function normalize_string(value, default)
+    if value == nil then return default end
+    return tostring(value)
+  end
+
+  local field_defaults = {
+    class = "",
+    specialization = "",
+    city = "",
+    house = "",
+    race = "",
+    army_rank = -1,
+    elemental_lord_type = "",
+    enemy_city = "",
+    enemy_house = "",
+    title = "",
+    notes = "",
+    iff = "auto",
+    city_rank = -1,
+    xp_rank = -1,
+    level = -1,
+    immortal = 0,
+    dragon = 0,
+    source = ""
+  }
+  local numeric_fields = {
+    army_rank = true,
+    city_rank = true,
+    xp_rank = true,
+    level = true,
+    immortal = true,
+    dragon = true
+  }
+
+  local function record_changed()
+    if not existing then return true end
+    for field, default in pairs(field_defaults) do
+      local new_value = record[field]
+      local old_value = existing[field]
+      if numeric_fields[field] then
+        new_value = normalize_numeric(new_value, default)
+        old_value = normalize_numeric(old_value, default)
+      else
+        new_value = normalize_string(new_value, default)
+        old_value = normalize_string(old_value, default)
+      end
+      if new_value ~= old_value then
+        return true
+      end
+    end
+    return false
+  end
+
+  local changed = record_changed()
+  if record.last_updated == nil then
+    if changed then
+      record.last_updated = os.time()
+    else
+      record.last_updated = existing and existing.last_updated or 0
     end
   end
 

@@ -831,6 +831,7 @@ function agnosticdb.ui.show_help(include_status)
   line(separator())
   line(section("Reports & Lists"))
   entry("adb stats", "counts by class/city/race/spec")
+  entry("adb recent [n]", "recently updated people (default 20)")
   entry("adb list class|city|race <value>", "list people by class/city/race")
   entry("adb list enemy", "list people marked as enemies")
   entry("adb comp <city>", "online composition by class for a city")
@@ -971,6 +972,70 @@ function agnosticdb.ui.show_status()
   kv("Honors delay", string.format("%ss", honors_conf.delay_seconds or 0))
   line(separator())
   line(footer_line())
+end
+
+function agnosticdb.ui.show_recent(limit)
+  if agnosticdb.db and agnosticdb.db.ensure then
+    agnosticdb.db.ensure()
+  end
+  if not agnosticdb.db or not agnosticdb.db.people then
+    echo_line("Recent updates unavailable (DB not initialized).")
+    return
+  end
+
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  if not rows or #rows == 0 then
+    echo_line("Recent updates: no people in DB.")
+    return
+  end
+
+  local max = tonumber(limit) or 20
+  if max < 1 then max = 20 end
+
+  local items = {}
+  local function normalize_city(city)
+    if city == "" or city == "(none)" then return "Rogue" end
+    if city == "(hidden)" then return "Hidden" end
+    return city
+  end
+
+  for _, row in ipairs(rows) do
+    local ts = tonumber(row.last_updated or 0) or 0
+    if ts > 0 then
+      local class = row.class or ""
+      if class == "" then class = "(unknown)" end
+      local city = normalize_city(row.city or "")
+      local source = row.source or ""
+      if source == "" then source = "(unknown)" end
+      items[#items + 1] = {
+        name = display_name(row.name or ""),
+        class = class,
+        city = city,
+        source = source,
+        ts = ts
+      }
+    end
+  end
+
+  if #items == 0 then
+    echo_line("Recent updates: none yet.")
+    return
+  end
+
+  table.sort(items, function(a, b)
+    return a.ts > b.ts
+  end)
+
+  if max > #items then max = #items end
+
+  report_title(string.format("Recent Updates (showing %d of %d)", max, #items))
+  report_line(string.format("%-18s %-14s %-12s %-10s %s", "Name", "Class", "City", "Source", "Updated"))
+  report_line(string.rep("-", 66))
+  for i = 1, max do
+    local entry = items[i]
+    local ago = format_duration(os.time() - entry.ts) .. " ago"
+    report_line(string.format("%-18s %-14s %-12s %-10s %s", entry.name, entry.class, entry.city, entry.source, ago))
+  end
 end
 
 function agnosticdb.ui.show_politics()

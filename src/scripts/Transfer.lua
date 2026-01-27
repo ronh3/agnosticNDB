@@ -71,6 +71,7 @@ local function serialize_person(row)
   set_if(record, "immortal", row.immortal, 0)
   set_if(record, "dragon", row.dragon, 0)
   set_if(record, "last_checked", row.last_checked, 0)
+  set_if(record, "last_updated", row.last_updated, 0)
   set_if(record, "source", row.source, "")
 
   return record
