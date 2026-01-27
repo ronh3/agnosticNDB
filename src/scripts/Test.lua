@@ -25,6 +25,10 @@ local function needs_leading_newline()
 end
 
 local function echo_line(text)
+  if agnosticdb.ui and agnosticdb.ui.emit_line then
+    agnosticdb.ui.emit_line(text, { prefix = prefix() })
+    return
+  end
   local lead = needs_leading_newline() and "\n" or ""
   local reset = "<reset>"
   if agnosticdb.ui and agnosticdb.ui.theme_tags then

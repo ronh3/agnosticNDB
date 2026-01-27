@@ -22,6 +22,10 @@ local function needs_leading_newline()
 end
 
 local function echo_line(text)
+  if agnosticdb.ui and agnosticdb.ui.emit_line then
+    agnosticdb.ui.emit_line(text)
+    return
+  end
   local lead = needs_leading_newline() and "\n" or ""
   local reset = "<reset>"
   if agnosticdb.ui and agnosticdb.ui.theme_tags then
@@ -382,6 +386,74 @@ function agnosticdb.ui.format_prefix()
     return string.format("%s[agnosticdb]%s %s", theme.accent, theme.reset or "<reset>", theme.text)
   end
   return "<cyan>[agnosticdb]<reset> "
+end
+
+local function strip_color_tags(text)
+  return (tostring(text or ""):gsub("<[^>]->", ""))
+end
+
+local function frame_content_line(text)
+  local theme = frame_theme()
+  local width = frame_width()
+  local content = " " .. tostring(text or "") .. " "
+  local pad = width - #strip_color_tags(content)
+  if pad < 0 then pad = 0 end
+  return string.format("%s│%s%s%s%s│%s", theme.border, theme.text, content, string.rep(" ", pad), theme.border, theme.reset)
+end
+
+local function looks_framed(text)
+  if not text then return false end
+  return text:find("╔", 1, true) or text:find("╚", 1, true) or text:find("╟", 1, true) or text:find("┌", 1, true) or text:find("└", 1, true)
+end
+
+local function ensure_frame_open()
+  if agnosticdb.ui._frame_open then return end
+  report_line(frame_line("╔", "═", "╗"))
+  agnosticdb.ui._frame_open = true
+end
+
+local function schedule_frame_close()
+  agnosticdb.ui._frame_seq = (agnosticdb.ui._frame_seq or 0) + 1
+  local seq = agnosticdb.ui._frame_seq
+  if type(tempTimer) == "function" then
+    tempTimer(0, function()
+      if agnosticdb.ui._frame_seq ~= seq then return end
+      if agnosticdb.ui._frame_open then
+        report_line(frame_line("╚", "═", "╝"))
+        agnosticdb.ui._frame_open = false
+      end
+    end)
+  else
+    if agnosticdb.ui._frame_open then
+      report_line(frame_line("╚", "═", "╝"))
+      agnosticdb.ui._frame_open = false
+    end
+  end
+end
+
+function agnosticdb.ui.emit_line(text, opts)
+  local options = opts or {}
+  local msg = tostring(text or "")
+  local prefix_text = options.prefix
+  if prefix_text == nil then
+    prefix_text = prefix()
+  end
+  local full = prefix_text .. msg
+  if options.framed == false or looks_framed(msg) then
+    local reset = "<reset>"
+    if agnosticdb.ui and agnosticdb.ui.theme_tags then
+      local theme = agnosticdb.ui.theme_tags()
+      if theme and theme.reset then
+        reset = theme.reset
+      end
+    end
+    local lead = needs_leading_newline() and "\n" or ""
+    cecho(lead .. full .. reset .. "\n")
+    return
+  end
+  ensure_frame_open()
+  report_line(frame_content_line(full))
+  schedule_frame_close()
 end
 
 local function theme_categories()
