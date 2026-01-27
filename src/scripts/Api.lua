@@ -730,3 +730,13 @@ function agnosticdb.api.fetch(name, on_done, opts)
 end
 
 agnosticdb.api.url_for = api_url
+
+function agnosticdb.api.cancel_queue()
+  local pending = agnosticdb.api.queue and #agnosticdb.api.queue or 0
+  agnosticdb.api.queue = {}
+  agnosticdb.api.queued = {}
+  agnosticdb.api.queue_running = false
+  agnosticdb.api.queue_stats = nil
+  agnosticdb.api.on_queue_done = nil
+  return pending
+end

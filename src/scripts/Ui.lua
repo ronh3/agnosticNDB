@@ -826,6 +826,7 @@ function agnosticdb.ui.show_help(include_status)
   line(separator())
   line(section("Core"))
   entry("adb status", "system status overview")
+  entry("adb queue cancel", "stop and clear pending API queue")
   entry("adb config", "open configuration UI")
   entry("adb config set <key> <value>", "set config values")
   entry("adb config toggle <key>", "toggle config values")
@@ -998,6 +999,21 @@ function agnosticdb.ui.show_status()
   kv("Honors delay", string.format("%ss", honors_conf.delay_seconds or 0))
   line(separator())
   line(footer_line())
+end
+
+function agnosticdb.ui.api_queue_cancel()
+  if not agnosticdb.api or not agnosticdb.api.cancel_queue then
+    echo_line("API queue cancel unavailable.")
+    return
+  end
+  local pending = agnosticdb.api.queue and #agnosticdb.api.queue or 0
+  local cleared = agnosticdb.api.cancel_queue()
+  if pending == 0 and cleared == 0 then
+    echo_line("API queue already empty.")
+    return
+  end
+  echo_line(string.format("API queue canceled. Cleared %d pending item(s).", cleared or 0))
+  echo_line("Any in-flight requests will still complete.")
 end
 
 function agnosticdb.ui.show_recent(limit)

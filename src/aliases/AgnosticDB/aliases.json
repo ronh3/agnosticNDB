@@ -20,6 +20,16 @@
               "isLua": "yes"
        },
        {
+              "name": "adb queue cancel",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+queue\\s+cancel$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.api_queue_cancel() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb politics",
               "isActive": "yes",
               "isFolder": "no",
