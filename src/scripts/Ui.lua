@@ -856,20 +856,7 @@ function agnosticdb.ui.theme_set(name)
 end
 
 function agnosticdb.ui.theme_list()
-  local themes = builtin_themes()
-  local categories = theme_categories()
-  echo_title("Themes")
-  for _, category in ipairs(categories) do
-    echo_section(category.label)
-    for _, name in ipairs(category.names) do
-      if themes[name] then
-        echo_line(string.format("  - %s", theme_display_name(name)))
-      end
-    end
-  end
-  echo_line("Special:")
-  echo_line("  - auto (city-based)")
-  echo_line("  - custom (use custom palette)")
+  agnosticdb.ui.show_theme_samples()
 end
 
 function agnosticdb.ui.show_theme_samples()
