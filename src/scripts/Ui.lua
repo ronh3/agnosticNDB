@@ -279,7 +279,7 @@ local function builtin_themes()
     druid = { accent = "forest_green", border = "saddle_brown", text = "honeydew", muted = "pale_green" },
     infernal = { accent = "firebrick", border = "dark_slate_grey", text = "misty_rose", muted = "rosy_brown" },
     jester = { accent = "magenta", border = "dark_khaki", text = "light_yellow", muted = "light_grey" },
-    magi = { accent = "dodger_blue", border = "dark_orchid", text = "alice_blue", muted = "light_steel_blue" },
+    magi = { accent = "orange_red", border = "saddle_brown", text = "light_cyan", muted = "light_sky_blue" },
     monk = { accent = "burlywood", border = "sienna", text = "ivory", muted = "wheat" },
     occultist = { accent = "medium_purple", border = "midnight_blue", text = "lavender_blush", muted = "thistle" },
     paladin = { accent = "gold", border = "steel_blue", text = "ivory", muted = "light_goldenrod_yellow" },
@@ -1198,13 +1198,7 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb import <path>", "import database from JSON")
   line(separator())
   line(section("Who Lists"))
-  entry("qwp", "online list grouped by city")
-  entry("qwpr", "online list grouped by city + race")
-  entry("qwpa", "online list grouped by city + army rank")
-  entry("qwpc", "online list grouped by city + class")
-  entry("qwprc", "online list grouped by city + race/class")
-  entry("qwpcr", "online list grouped by city + class/race")
-  entry("qwp rank <n>", "online list grouped by city, filtered by army rank")
+  entry("qwp [opts]", "online list grouped by city (opts: c/r/rc/cr/a, rank <n>)")
   entry("qwhom [area]", "who list grouped by area/location (mapper required)")
   line(separator())
   line(section("Utilities"))
@@ -2631,6 +2625,82 @@ local function normalize_city_name(city)
   if city == "" or city == "(none)" then return "Rogue" end
   if city == "(hidden)" then return "Hidden" end
   return city
+end
+
+local function qwp_usage()
+  echo_line("Usage: qwp [options]")
+  echo_line("Options: c|class, r|race, rc|race+class, cr|class+race, a|army, rank <n>")
+end
+
+function agnosticdb.ui.qwp_command(args)
+  local input = tostring(args or ""):lower()
+  input = input:gsub("^%s+", ""):gsub("%s+$", "")
+  if input == "" then
+    agnosticdb.ui.qwp("none")
+    return
+  end
+  if input == "help" or input == "?" then
+    qwp_usage()
+    return
+  end
+
+  local tokens = {}
+  for token in input:gmatch("%S+") do
+    tokens[#tokens + 1] = token
+  end
+
+  local mode = "none"
+  local filter = nil
+  local saw_r = nil
+  local saw_c = nil
+  local unknown = nil
+
+  local i = 1
+  while i <= #tokens do
+    local tok = tokens[i]
+    if tok == "rank" then
+      local value = tokens[i + 1]
+      local num = tonumber(value or "")
+      if not num then
+        echo_line("qwp rank <n>: missing numeric rank.")
+        return
+      end
+      filter = { field = "army_rank", value = num }
+      i = i + 1
+    elseif tok == "army" or tok == "a" then
+      mode = "army"
+    elseif tok == "race" or tok == "r" then
+      if not saw_r then saw_r = i end
+    elseif tok == "class" or tok == "c" then
+      if not saw_c then saw_c = i end
+    elseif tok == "rc" or tok == "race_class" then
+      mode = "race_class"
+    elseif tok == "cr" or tok == "class_race" then
+      mode = "class_race"
+    else
+      unknown = tok
+    end
+    i = i + 1
+  end
+
+  if unknown then
+    qwp_usage()
+    return
+  end
+
+  if mode == "none" then
+    if saw_r and saw_c then
+      mode = (saw_r < saw_c) and "race_class" or "class_race"
+    elseif saw_r then
+      mode = "race"
+    elseif saw_c then
+      mode = "class"
+    elseif filter then
+      mode = "army"
+    end
+  end
+
+  agnosticdb.ui.qwp(mode, filter)
 end
 
 function agnosticdb.ui.qwp(mode, filter)

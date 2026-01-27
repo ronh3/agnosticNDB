@@ -69,13 +69,9 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb highlights clear`: remove all highlight triggers.
 
 ### QWP (Online Lists)
-- `qwp`: online list grouped by city.
-- `qwpr`: city + race.
-- `qwpc`: city + class (Elemental/Dragon shows race instead).
-- `qwprc`: city + race/class.
-- `qwpcr`: city + class/race.
-- `qwpa`: city + army rank (only shows people with an army rank).
-- `qwp rank <n>`: city list filtered to army rank >= n.
+- `qwp [opts]`: online list grouped by city.
+  - Options: `c|class`, `r|race`, `rc|race+class`, `cr|class+race`, `a|army`, `rank <n>`.
+  - Examples: `qwp c`, `qwp rc`, `qwp a`, `qwp rank 3`, `qwp c rank 3`.
 - `qwhom [area]`: who list grouped by area/location (mapper required).
 
 ### Composition / Enemies
