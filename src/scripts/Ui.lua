@@ -286,7 +286,7 @@ local function builtin_themes()
     mhaldor = { accent = "red", border = "black", text = "misty_rose", muted = "rosy_brown" },
     targossas = { accent = "ivory", border = "steel_blue", text = "white", muted = "gainsboro" },
     alchemist = { accent = "goldenrod", border = "dark_slate_grey", text = "antique_white", muted = "tan" },
-    apostate = { accent = "dark_orchid", border = "dark_slate_grey", text = "plum", muted = "thistle" },
+    apostate = { accent = "purple", border = "firebrick", text = "lavender_blush", muted = "plum" },
     bard = { accent = "medium_aquamarine", border = "royal_blue", text = "alice_blue", muted = "light_steel_blue" },
     blademaster = { accent = "steel_blue", border = "dark_goldenrod", text = "white_smoke", muted = "light_grey" },
     depthswalker = { accent = "dark_turquoise", border = "black", text = "light_cyan", muted = "cadet_blue" },
