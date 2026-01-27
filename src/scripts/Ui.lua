@@ -1425,6 +1425,36 @@ local function render_comp_for_city(names, city_label, suppress_empty)
   return true
 end
 
+local function render_comp_for_city_report(names, city_label)
+  local by_class, total = build_comp_by_class(names, city_label)
+  if total == 0 then
+    return false
+  end
+
+  report_section(city_label, total)
+
+  local classes = {}
+  for class, list in pairs(by_class) do
+    table.sort(list, function(a, b)
+      return a:lower() < b:lower()
+    end)
+    classes[#classes + 1] = { name = class, list = list, count = #list }
+  end
+
+  table.sort(classes, function(a, b)
+    if a.count == b.count then
+      return a.name:lower() < b.name:lower()
+    end
+    return a.count > b.count
+  end)
+
+  for _, entry in ipairs(classes) do
+    report_line(string.format("  %-12s (%d) %s", entry.name, entry.count, table.concat(entry.list, ", ")))
+  end
+  report_line("")
+  return true
+end
+
 local function update_online_names(names, on_done)
   if type(names) ~= "table" then
     if type(on_done) == "function" then on_done(0) end
@@ -1653,14 +1683,15 @@ function agnosticdb.ui.qcompAll()
       end
 
       local printed = 0
+      report_title("City Composition (Online)")
       for _, city in ipairs(ordered) do
-        if render_comp_for_city(names, city, true) then
+        if render_comp_for_city_report(names, city) then
           printed = printed + 1
         end
       end
 
       if printed == 0 then
-        echo_line("No online names found for any city.")
+        report_line("No online names found for any city.")
       end
     end)
   end)
