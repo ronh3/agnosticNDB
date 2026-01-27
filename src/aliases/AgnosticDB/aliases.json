@@ -5,7 +5,7 @@
               "isFolder": "no",
               "command": "",
               "regex": "^adb$",
-              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_help(true) end",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_help() end",
               "matchall": "no",
               "isLua": "yes"
        },
