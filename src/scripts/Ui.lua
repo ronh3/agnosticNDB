@@ -266,35 +266,45 @@ local function builtin_themes()
   return {
     default = { accent = "cyan", border = "grey", text = "white", muted = "light_grey" },
     ashtan = { accent = "purple", border = "dark_orchid", text = "white", muted = "light_grey" },
-    cyrene = { accent = "cornflower_blue", border = "dodger_blue", text = "white", muted = "light_grey" },
+    cyrene = { accent = "cornflower_blue", border = "steel_blue", text = "white", muted = "light_grey" },
     eleusis = { accent = "forest_green", border = "dark_olive_green", text = "white", muted = "light_grey" },
-    hashan = { accent = "yellow", border = "goldenrod", text = "white", muted = "light_grey" },
+    hashan = { accent = "goldenrod", border = "saddle_brown", text = "white", muted = "light_grey" },
     mhaldor = { accent = "red", border = "firebrick", text = "white", muted = "light_grey" },
-    targossas = { accent = "white", border = "light_grey", text = "white", muted = "grey" },
-    rogue = { accent = "orange", border = "dark_orange", text = "white", muted = "light_grey" },
+    targossas = { accent = "light_goldenrod", border = "light_steel_blue", text = "white", muted = "light_grey" },
     superman = { accent = "red", border = "royal_blue", text = "white", muted = "light_grey" },
     batman = { accent = "yellow", border = "dim_grey", text = "white", muted = "grey" },
-    wonder_woman = { accent = "gold", border = "navy", text = "white", muted = "light_grey" },
+    wonder_woman = { accent = "gold", border = "saddle_brown", text = "white", muted = "light_grey" },
     flash = { accent = "orange_red", border = "gold", text = "white", muted = "light_grey" },
     green_lantern = { accent = "green_yellow", border = "dark_green", text = "white", muted = "light_grey" },
     spider_man = { accent = "red", border = "navy_blue", text = "white", muted = "light_grey" },
-    captain_america = { accent = "royal_blue", border = "red", text = "white", muted = "light_grey" },
-    joker = { accent = "purple", border = "green_yellow", text = "white", muted = "light_grey" },
-    harley = { accent = "red", border = "black", text = "white", muted = "grey" },
+    joker = { accent = "purple", border = "yellow_green", text = "white", muted = "light_grey" },
+    harley = { accent = "light_coral", border = "black", text = "white", muted = "grey" },
     venom = { accent = "white", border = "midnight_blue", text = "white", muted = "grey" },
-    thanos = { accent = "goldenrod", border = "purple", text = "white", muted = "light_grey" },
+    thanos = { accent = "goldenrod", border = "dark_orchid", text = "white", muted = "light_grey" },
     magneto = { accent = "magenta", border = "navy", text = "white", muted = "light_grey" },
     loki = { accent = "green", border = "goldenrod", text = "white", muted = "light_grey" },
-    synthwave = { accent = "orchid", border = "cyan", text = "white", muted = "light_grey" },
-    aurora = { accent = "aquamarine", border = "midnight_blue", text = "white", muted = "light_grey" },
-    ember = { accent = "orange_red", border = "saddle_brown", text = "white", muted = "light_grey" },
-    ocean = { accent = "turquoise", border = "navy_blue", text = "white", muted = "light_grey" },
+    ember = { accent = "orange_red", border = "sienna", text = "white", muted = "light_grey" },
+    frost = { accent = "light_cyan", border = "steel_blue", text = "white", muted = "light_grey" },
+    storm = { accent = "light_steel_blue", border = "dim_grey", text = "white", muted = "grey" },
+    ocean = { accent = "turquoise", border = "navy", text = "white", muted = "light_grey" },
     desert = { accent = "sandy_brown", border = "peru", text = "white", muted = "light_grey" },
-    arctic = { accent = "light_cyan", border = "steel_blue", text = "white", muted = "light_grey" },
-    noir = { accent = "dim_grey", border = "black", text = "white", muted = "grey" },
-    copper = { accent = "peru", border = "sienna", text = "white", muted = "light_grey" },
-    rose = { accent = "light_coral", border = "rosy_brown", text = "white", muted = "light_grey" },
-    twilight = { accent = "lavender", border = "navy", text = "white", muted = "light_grey" }
+    aurora = { accent = "aquamarine", border = "midnight_blue", text = "white", muted = "light_grey" },
+    nebula = { accent = "orchid", border = "midnight_blue", text = "white", muted = "light_grey" },
+    comet = { accent = "light_yellow", border = "royal_blue", text = "white", muted = "light_grey" },
+    eclipse = { accent = "white_smoke", border = "black", text = "white", muted = "grey" },
+    nova = { accent = "orange", border = "purple", text = "white", muted = "light_grey" },
+    galaxy = { accent = "royal_blue", border = "dark_orchid", text = "white", muted = "light_grey" },
+    copper = { accent = "chocolate", border = "sienna", text = "white", muted = "light_grey" },
+    silver = { accent = "light_grey", border = "grey", text = "white", muted = "grey" },
+    gold = { accent = "gold", border = "dark_goldenrod", text = "white", muted = "light_grey" },
+    jade = { accent = "medium_aquamarine", border = "dark_green", text = "white", muted = "light_grey" },
+    amethyst = { accent = "medium_orchid", border = "purple", text = "white", muted = "light_grey" },
+    synthwave = { accent = "orchid", border = "cyan", text = "white", muted = "light_grey" },
+    neon = { accent = "ansi_light_magenta", border = "ansi_cyan", text = "white", muted = "light_grey" },
+    circuit = { accent = "ansi_light_green", border = "dark_green", text = "white", muted = "light_grey" },
+    terminal = { accent = "green", border = "black", text = "ansi_light_green", muted = "grey" },
+    void = { accent = "midnight_blue", border = "black", text = "white", muted = "grey" },
+    rogue = { accent = "sandy_brown", border = "peru", text = "white", muted = "light_grey" }
   }
 end
 
@@ -367,10 +377,14 @@ end
 
 local function theme_categories()
   return {
-    { label = "Cities", names = { "default", "ashtan", "cyrene", "eleusis", "hashan", "mhaldor", "targossas", "rogue" } },
-    { label = "Heroes", names = { "superman", "batman", "wonder_woman", "flash", "green_lantern", "spider_man", "captain_america" } },
+    { label = "Cities", names = { "ashtan", "cyrene", "eleusis", "hashan", "mhaldor", "targossas" } },
+    { label = "Heroes", names = { "superman", "batman", "wonder_woman", "flash", "green_lantern", "spider_man" } },
     { label = "Villains", names = { "joker", "harley", "venom", "thanos", "magneto", "loki" } },
-    { label = "Creative", names = { "synthwave", "aurora", "ember", "ocean", "desert", "arctic", "noir", "copper", "rose", "twilight" } }
+    { label = "Elements", names = { "ember", "frost", "storm", "ocean", "desert", "aurora" } },
+    { label = "Cosmic", names = { "nebula", "comet", "eclipse", "nova", "galaxy" } },
+    { label = "Metals & Gems", names = { "copper", "silver", "gold", "jade", "amethyst" } },
+    { label = "Retro & Tech", names = { "synthwave", "neon", "circuit", "terminal", "void" } },
+    { label = "Outliers", names = { "rogue" } }
   }
 end
 
