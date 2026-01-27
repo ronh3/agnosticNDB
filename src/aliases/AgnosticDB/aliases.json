@@ -54,7 +54,7 @@
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
-              "regex": "^adb\\s+theme\\s+(\\w+)$",
+              "regex": "^adb\\s+theme\\s+(?!(?:list|preview)\\b)(?!set\\b)(\\w+)$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.theme_set(matches[2]) end",
               "matchall": "no",
               "isLua": "yes"

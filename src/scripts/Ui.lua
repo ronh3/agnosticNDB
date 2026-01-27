@@ -921,6 +921,10 @@ function agnosticdb.ui.theme_set(name)
     return
   end
   local lower = tostring(name):lower()
+  if lower == "list" or lower == "preview" then
+    agnosticdb.ui.show_theme_samples()
+    return
+  end
   if lower == "auto" or lower == "city" or lower == "clear" then
     agnosticdb.conf.theme.name = ""
     agnosticdb.conf.theme.auto_city = true
