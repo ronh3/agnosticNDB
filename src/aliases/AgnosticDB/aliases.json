@@ -134,8 +134,8 @@
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
-              "regex": "^adb\\s+whois\\s+(\\w+)$",
-              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_person(matches[2]) end",
+              "regex": "^adb\\s+whois\\s+(\\w+)(?:\\s+(short|compact|brief))?$",
+              "script": "if agnosticdb and agnosticdb.ui then local mode = matches[3] and \"compact\" or nil; agnosticdb.ui.show_person(matches[2], mode) end",
               "matchall": "no",
               "isLua": "yes"
        },

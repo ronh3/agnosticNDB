@@ -845,7 +845,7 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb elord <name> <type>", "set elemental lord type (air/earth/fire/water/clear)")
   line(separator())
   line(section("Lookup & Updates"))
-  entry("adb whois <name>", "show stored data (fetch if needed)")
+  entry("adb whois <name> [short]", "show stored data (fetch if needed)")
   entry("adb fetch [name]", "fetch online list or single person")
   entry("adb refresh", "force refresh all online names")
   entry("adb quick", "fetch online list (new names only)")
@@ -1099,7 +1099,53 @@ function agnosticdb.ui.show_politics()
   echo("\n")
 end
 
-function agnosticdb.ui.show_person(name)
+local function format_value(value, fallback)
+  if value == nil then return fallback end
+  if type(value) == "string" and value == "" then return fallback end
+  return value
+end
+
+local function format_rank(value)
+  if value == nil or value < 0 then return "-" end
+  return tostring(value)
+end
+
+local function show_person_compact(person)
+  local class = format_value(person.class, "(unknown)")
+  if person.specialization and person.specialization ~= "" then
+    class = string.format("%s (%s)", class, person.specialization)
+  end
+  local race = format_value(person.race, "-")
+  if person.elemental_lord_type and person.elemental_lord_type ~= "" then
+    race = string.format("%s (%s)", race, person.elemental_lord_type)
+  end
+  local city = format_value(person.city, "(unknown)")
+  local house = format_value(person.house, "-")
+  local army = format_rank(person.army_rank)
+  local xp = format_rank(person.xp_rank)
+  local level = format_rank(person.level)
+  local iff = format_value(person.iff, "auto")
+  local enemy = "-"
+  if person.enemy_city and person.enemy_city ~= "" then
+    enemy = "City: " .. person.enemy_city
+  elseif person.enemy_house and person.enemy_house ~= "" then
+    enemy = "House: " .. person.enemy_house
+  end
+
+  echo_title(string.format("Whois (compact): %s", person.name))
+  echo_line(string.format("Class: %s | Race: %s", class, race))
+  echo_line(string.format("City: %s | House: %s", city, house))
+  echo_line(string.format("Army: %s | XP: %s | Level: %s", army, xp, level))
+  echo_line(string.format("IFF: %s | Enemy: %s", iff, enemy))
+end
+
+function agnosticdb.ui.show_person(name, opts)
+  local mode = nil
+  if type(opts) == "string" then
+    mode = opts
+  elseif type(opts) == "table" then
+    mode = opts.mode
+  end
   local shown_name = display_name(name)
   local person = agnosticdb.db.get_person(name)
   if not person then
@@ -1109,8 +1155,13 @@ function agnosticdb.ui.show_person(name)
         return
       end
       echo_line(string.format("Fetch status: %s", status or "ok"))
-      agnosticdb.ui.show_person(fetched.name)
+      agnosticdb.ui.show_person(fetched.name, opts)
     end)
+    return
+  end
+
+  if mode == "compact" then
+    show_person_compact(person)
     return
   end
 

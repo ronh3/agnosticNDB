@@ -32,7 +32,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb elord <name> <type>`: set elemental lord type (air/earth/fire/water/clear).
 
 ### Lookup + Updates
-- `adb whois <name>`: show stored data (fetches if missing).
+- `adb whois <name> [short]`: show stored data (fetches if missing). Use `short` for compact output.
 - `adb fetch [name]`: fetch a person, or fetch the online list and queue updates.
 - `adb refresh`: force refresh all online names.
 - `adb quick`: fetch online list and only queue new names.
