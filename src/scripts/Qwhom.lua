@@ -78,7 +78,6 @@ function agnosticdb.qwhom.start(filter)
   end
 
   if type(send) == "function" then
-    send("config pagelength 250")
     send("queue add free who b")
   end
 end
@@ -152,9 +151,6 @@ function agnosticdb.qwhom.finish()
   end
 
   cecho("\n")
-  if type(send) == "function" then
-    send("config pagelength 40")
-  end
 
   agnosticdb.qwhom.data = {}
   agnosticdb.qwhom.filter = nil
