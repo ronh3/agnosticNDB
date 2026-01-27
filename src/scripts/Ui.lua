@@ -817,6 +817,7 @@ function agnosticdb.ui.show_help()
   entry("adb enemies", "capture personal enemy list from game output")
   entry("adb enemy <city>", "enemy all online members of a city")
   entry("adb comp <city>", "online composition by class for a city")
+  entry("adb qcomp <city>", "online composition by class (no honors refresh)")
   entry("adb dbcheck", "check database health")
   entry("adb dbreset", "reset database (drops people table)")
   entry("adb forget <name>", "remove a person from the database")
@@ -1279,7 +1280,7 @@ function agnosticdb.ui.enemyOnline(city)
   end)
 end
 
-function agnosticdb.ui.compCity(city)
+local function comp_city_impl(city, use_honors)
   local normalized = normalize_city_input(city)
   if not normalized then
     echo_line("Provide a city (e.g., Ashtan).")
@@ -1354,22 +1355,34 @@ function agnosticdb.ui.compCity(city)
         return
       end
 
-      if agnosticdb.honors and agnosticdb.honors.queue_running then
-        echo_line("Honors queue already running; showing composition without honors refresh.")
-        render_comp(names)
-        return
-      end
-
-      if agnosticdb.honors and agnosticdb.honors.queue_names then
-        echo_line(string.format("Queueing honors for %d name(s)...", #targets))
-        agnosticdb.honors.queue_names(targets, function()
+      if use_honors then
+        if agnosticdb.honors and agnosticdb.honors.queue_running then
+          echo_line("Honors queue already running; showing composition without honors refresh.")
           render_comp(names)
-        end, { suppress_output = true, announce = true })
+          return
+        end
+
+        if agnosticdb.honors and agnosticdb.honors.queue_names then
+          echo_line(string.format("Queueing honors for %d name(s)...", #targets))
+          agnosticdb.honors.queue_names(targets, function()
+            render_comp(names)
+          end, { suppress_output = true, announce = true })
+        else
+          render_comp(names)
+        end
       else
         render_comp(names)
       end
     end)
   end)
+end
+
+function agnosticdb.ui.compCity(city)
+  comp_city_impl(city, true)
+end
+
+function agnosticdb.ui.qcompCity(city)
+  comp_city_impl(city, false)
 end
 
 function agnosticdb.ui.honors(name)
