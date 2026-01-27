@@ -793,7 +793,7 @@ function agnosticdb.ui.show_help()
   end
 
   local function entry(cmd, desc)
-    cecho(string.format("%s  %-28s%s%s%s%s\n", theme.accent, cmd, theme.reset, theme.text, desc, theme.reset))
+    cecho(string.format("%s  %-28s%s   %s%s%s\n", theme.accent, cmd, theme.reset, theme.text, desc, theme.reset))
   end
 
   line(header_line())
