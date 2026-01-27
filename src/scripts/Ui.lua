@@ -265,12 +265,12 @@ end
 local function builtin_themes()
   return {
     default = { accent = "cyan", border = "grey", text = "white", muted = "light_grey" },
-    ashtan = { accent = "purple", border = "dark_orchid", text = "white", muted = "light_grey" },
-    cyrene = { accent = "cornflower_blue", border = "steel_blue", text = "white", muted = "light_grey" },
-    eleusis = { accent = "forest_green", border = "dark_olive_green", text = "white", muted = "light_grey" },
-    hashan = { accent = "goldenrod", border = "saddle_brown", text = "white", muted = "light_grey" },
-    mhaldor = { accent = "red", border = "firebrick", text = "white", muted = "light_grey" },
-    targossas = { accent = "light_goldenrod", border = "light_steel_blue", text = "white", muted = "light_grey" },
+    ashtan = { accent = "purple", border = "midnight_blue", text = "lavender_blush", muted = "thistle" },
+    cyrene = { accent = "cornflower_blue", border = "dark_slate_blue", text = "alice_blue", muted = "light_steel_blue" },
+    eleusis = { accent = "forest_green", border = "saddle_brown", text = "beige", muted = "tan" },
+    hashan = { accent = "yellow", border = "sienna", text = "light_yellow", muted = "wheat" },
+    mhaldor = { accent = "red", border = "black", text = "misty_rose", muted = "rosy_brown" },
+    targossas = { accent = "ivory", border = "steel_blue", text = "white", muted = "gainsboro" },
     superman = { accent = "red", border = "royal_blue", text = "white", muted = "light_grey" },
     batman = { accent = "yellow", border = "dim_grey", text = "white", muted = "grey" },
     wonder_woman = { accent = "gold", border = "saddle_brown", text = "white", muted = "light_grey" },
@@ -304,7 +304,7 @@ local function builtin_themes()
     circuit = { accent = "ansi_light_green", border = "dark_green", text = "white", muted = "light_grey" },
     terminal = { accent = "green", border = "black", text = "ansi_light_green", muted = "grey" },
     void = { accent = "midnight_blue", border = "black", text = "white", muted = "grey" },
-    rogue = { accent = "sandy_brown", border = "peru", text = "white", muted = "light_grey" }
+    rogue = { accent = "orange", border = "saddle_brown", text = "bisque", muted = "burlywood" }
   }
 end
 
