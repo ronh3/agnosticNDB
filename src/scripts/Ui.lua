@@ -153,6 +153,24 @@ local function attach_queue_progress()
   end
 end
 
+local function should_announce_queue(stats)
+  local announce_changes_only = agnosticdb.conf and agnosticdb.conf.api and agnosticdb.conf.api.announce_changes_only
+  if not announce_changes_only then
+    return true
+  end
+  if not stats then return false end
+  local ok = stats.ok or 0
+  local pruned = stats.pruned or 0
+  local api_error = stats.api_error or 0
+  local decode_failed = stats.decode_failed or 0
+  local download_error = stats.download_error or 0
+  local other = stats.other or 0
+  if ok == 0 and pruned == 0 and api_error == 0 and decode_failed == 0 and download_error == 0 and other == 0 then
+    return false
+  end
+  return true
+end
+
 local function ensure_conf_defaults()
   agnosticdb.conf = agnosticdb.conf or {}
   agnosticdb.conf.api = agnosticdb.conf.api or { enabled = true, min_refresh_hours = 24 }
@@ -1320,10 +1338,12 @@ function agnosticdb.ui.fetch(name)
   echo_line("Fetching online list...")
   attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
-    echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
-      stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
-    if stats.elapsed_seconds then
-      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    if should_announce_queue(stats) then
+      echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+        stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+      if stats.elapsed_seconds then
+        echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+      end
     end
   end
   agnosticdb.api.fetch_online(function(result, status)
@@ -1342,10 +1362,12 @@ function agnosticdb.ui.refresh_online()
   echo_line("Refreshing online list (force)...")
   attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
-    echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
-      stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
-    if stats.elapsed_seconds then
-      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    if should_announce_queue(stats) then
+      echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+        stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+      if stats.elapsed_seconds then
+        echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+      end
     end
   end
   agnosticdb.api.fetch_online(function(result, status)
@@ -1668,6 +1690,15 @@ function agnosticdb.ui.enemyOnline(city)
         agnosticdb.enemies.clear_personal()
       end
 
+      if agnosticdb.db and agnosticdb.db.upsert_person then
+        for _, entry in ipairs(entries) do
+          agnosticdb.db.upsert_person({ name = entry.name, iff = "enemy" })
+        end
+        if agnosticdb.highlights and agnosticdb.highlights.reload then
+          agnosticdb.highlights.reload()
+        end
+      end
+
       if type(sendAll) == "function" then
         sendAll(unpack(commands))
       else
@@ -1946,10 +1977,12 @@ function agnosticdb.ui.quick_update()
   echo_line("Fetching online list (new names only)...")
   attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
-    echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
-      stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
-    if stats.elapsed_seconds then
-      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    if should_announce_queue(stats) then
+      echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+        stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+      if stats.elapsed_seconds then
+        echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+      end
     end
   end
   agnosticdb.api.fetch_online_new(function(result, status)
@@ -1968,10 +2001,12 @@ function agnosticdb.ui.update_all()
   echo_line("Queueing updates for all known names...")
   attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
-    echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
-      stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
-    if stats.elapsed_seconds then
-      echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+    if should_announce_queue(stats) then
+      echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
+        stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
+      if stats.elapsed_seconds then
+        echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
+      end
     end
   end
   agnosticdb.api.update_all(function(result, status)
