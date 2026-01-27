@@ -66,7 +66,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 
 ### Composition / Enemies
 - `adb comp <city>`: composition for a city (honors refresh before report).
-- `adb qcomp <city>`: composition for a city (no honors refresh).
+- `adb qcomp [city]`: composition for a city (no honors refresh). With no city, lists all cities.
 - `adb enemies`: capture your personal enemy list from game output.
 - `adb enemy <city>`: enemy all online members of a city.
 

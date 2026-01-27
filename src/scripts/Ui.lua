@@ -835,7 +835,7 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb list class|city|race <value>", "list people by class/city/race")
   entry("adb list enemy", "list people marked as enemies")
   entry("adb comp <city>", "online composition by class for a city")
-  entry("adb qcomp <city>", "online composition by class (no honors refresh)")
+  entry("adb qcomp [city]", "online composition by class (no honors refresh)")
   line(separator())
   line(section("Enemies"))
   entry("adb enemies", "capture personal enemy list from game output")
@@ -1365,6 +1365,66 @@ local function city_matches(person_city, target_city)
   return person_city:lower() == target_city:lower()
 end
 
+local function comp_city_label(city)
+  if city == "" or city == "(none)" then return "Rogue" end
+  if city == "(hidden)" then return "Hidden" end
+  return city
+end
+
+local function build_comp_by_class(names, target_city)
+  local by_class = {}
+  local total = 0
+  for _, name in ipairs(names) do
+    local person = agnosticdb.db.get_person(name)
+    if person and city_matches(comp_city_label(person.city or ""), target_city) then
+      local race = person.race or ""
+      local class
+      if race == "Dragon" or race == "Elemental" then
+        class = race
+      else
+        class = person.class ~= "" and person.class or "(unknown)"
+      end
+      by_class[class] = by_class[class] or {}
+      table.insert(by_class[class], person.name or name)
+      total = total + 1
+    end
+  end
+  return by_class, total
+end
+
+local function render_comp_for_city(names, city_label, suppress_empty)
+  local by_class, total = build_comp_by_class(names, city_label)
+  if total == 0 then
+    if not suppress_empty then
+      echo_line(string.format("Composition for %s: 0 online", city_label))
+    end
+    return false
+  end
+
+  echo_line(string.format("Composition for %s: %d online", city_label, total))
+
+  local classes = {}
+  for class, list in pairs(by_class) do
+    table.sort(list, function(a, b)
+      return a:lower() < b:lower()
+    end)
+    classes[#classes + 1] = { name = class, list = list, count = #list }
+  end
+
+  table.sort(classes, function(a, b)
+    if a.count == b.count then
+      return a.name:lower() < b.name:lower()
+    end
+    return a.count > b.count
+  end)
+
+  for _, entry in ipairs(classes) do
+    echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(entry.list, ", ")))
+  end
+
+  return true
+end
+
 local function update_online_names(names, on_done)
   if type(names) ~= "table" then
     if type(on_done) == "function" then on_done(0) end
@@ -1495,45 +1555,7 @@ local function comp_city_impl(city, use_honors)
       echo_line(string.format("Composition for %s: 0 online", normalized))
       return
     end
-    local by_class = {}
-    local total = 0
-    for _, name in ipairs(names) do
-      local person = agnosticdb.db.get_person(name)
-      if person and city_matches(person.city or "", normalized) then
-        local race = person.race or ""
-        local class
-        if race == "Dragon" or race == "Elemental" then
-          class = race
-        else
-          class = person.class ~= "" and person.class or "(unknown)"
-        end
-        by_class[class] = by_class[class] or {}
-        table.insert(by_class[class], person.name or name)
-        total = total + 1
-      end
-    end
-
-    echo_line(string.format("Composition for %s: %d online", normalized, total))
-    if total == 0 then return end
-
-    local classes = {}
-    for class, list in pairs(by_class) do
-      table.sort(list, function(a, b)
-        return a:lower() < b:lower()
-      end)
-      classes[#classes + 1] = { name = class, list = list, count = #list }
-    end
-
-    table.sort(classes, function(a, b)
-      if a.count == b.count then
-        return a.name:lower() < b.name:lower()
-      end
-      return a.count > b.count
-    end)
-
-    for _, entry in ipairs(classes) do
-      echo_line(string.format("%s (%d): %s", entry.name, entry.count, table.concat(entry.list, ", ")))
-    end
+    render_comp_for_city(names, normalized, false)
   end
 
   echo_line(string.format("Refreshing online data for %s...", normalized))
@@ -1586,6 +1608,62 @@ end
 
 function agnosticdb.ui.qcompCity(city)
   comp_city_impl(city, false)
+end
+
+function agnosticdb.ui.qcompAll()
+  echo_line("Building city compositions (no honors refresh)...")
+  agnosticdb.api.fetch_list(function(names, status)
+    if status ~= "ok" or type(names) ~= "table" then
+      echo_line(string.format("Online list failed (%s).", status or "unknown"))
+      return
+    end
+
+    agnosticdb.api.seed_names(names, "api_list")
+    update_online_names(names, function()
+      local seen = {}
+      for _, name in ipairs(names) do
+        local person = agnosticdb.db.get_person(name)
+        if person then
+          local city = comp_city_label(person.city or "")
+          if city and city ~= "" then
+            seen[city] = true
+          end
+        end
+      end
+
+      local order = { "Ashtan", "Cyrene", "Eleusis", "Hashan", "Mhaldor", "Targossas", "Rogue", "Hidden" }
+      local ordered = {}
+      local remaining = {}
+      for city in pairs(seen) do
+        remaining[city] = true
+      end
+      for _, city in ipairs(order) do
+        if remaining[city] then
+          ordered[#ordered + 1] = city
+          remaining[city] = nil
+        end
+      end
+      local extras = {}
+      for city in pairs(remaining) do
+        extras[#extras + 1] = city
+      end
+      table.sort(extras, function(a, b) return a:lower() < b:lower() end)
+      for _, city in ipairs(extras) do
+        ordered[#ordered + 1] = city
+      end
+
+      local printed = 0
+      for _, city in ipairs(ordered) do
+        if render_comp_for_city(names, city, true) then
+          printed = printed + 1
+        end
+      end
+
+      if printed == 0 then
+        echo_line("No online names found for any city.")
+      end
+    end)
+  end)
 end
 
 function agnosticdb.ui.honors(name)
