@@ -343,6 +343,7 @@ function agnosticdb.db.upsert_person(fields)
   if agnosticdb.highlights and agnosticdb.highlights.update then
     agnosticdb.highlights.update(updated)
   end
+  return changed, updated
 end
 
 agnosticdb.db.normalize_name = normalize_name

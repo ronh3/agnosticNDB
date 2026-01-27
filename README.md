@@ -20,6 +20,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb config`: open configuration UI (colors, toggles, timing).
 - `adb config set <key> <value>`: set a config value.
 - `adb config toggle <key>`: toggle a config value.
+  - Example: `adb config toggle api.announce_changes_only` (only announce when data changes)
 - `adb politics`: show politics menu (city relations + highlight toggle).
 
 ### Notes + IFF

@@ -147,6 +147,9 @@ local function api_defaults()
   agnosticdb.conf.api.backoff_seconds = agnosticdb.conf.api.backoff_seconds or 30
   agnosticdb.conf.api.min_interval_seconds = agnosticdb.conf.api.min_interval_seconds or 0
   agnosticdb.conf.api.timeout_seconds = agnosticdb.conf.api.timeout_seconds or 15
+  if agnosticdb.conf.api.announce_changes_only == nil then
+    agnosticdb.conf.api.announce_changes_only = false
+  end
 end
 
 local function should_refresh(person)
@@ -499,12 +502,16 @@ local function perform_fetch(name, on_finished)
       return
     end
 
-    agnosticdb.db.upsert_person(record)
+    local changed = agnosticdb.db.upsert_person(record)
     local updated = agnosticdb.db.get_person(name)
     if agnosticdb.highlights and agnosticdb.highlights.update then
       agnosticdb.highlights.update(updated)
     end
-    finish(updated, "ok")
+    local status = "ok"
+    if agnosticdb.conf.api.announce_changes_only and changed == false then
+      status = "unchanged"
+    end
+    finish(updated, status)
   end
 
   local function download_fallback()
@@ -588,6 +595,7 @@ local function start_queue()
   agnosticdb.api.queue_running = true
   agnosticdb.api.queue_stats = {
     ok = 0,
+    unchanged = 0,
     cached = 0,
     pruned = 0,
     api_error = 0,
@@ -683,6 +691,8 @@ function agnosticdb.api.fetch(name, on_done, opts)
     if stats then
       if status == "ok" then
         stats.ok = stats.ok + 1
+      elseif status == "unchanged" then
+        stats.unchanged = (stats.unchanged or 0) + 1
       elseif status == "cached" then
         stats.cached = stats.cached + 1
       elseif status == "pruned" then
