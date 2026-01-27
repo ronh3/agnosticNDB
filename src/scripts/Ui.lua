@@ -1167,7 +1167,7 @@ function agnosticdb.ui.show_help(include_status)
   line(separator())
   line(section("Lookup & Updates"))
   entry("adb whois <name> [short]", "show stored data (fetch if needed)")
-  entry("adb fetch [name]", "fetch online list or single person")
+  entry("adb fetch <name>", "fetch a single person (force refresh)")
   entry("adb refresh", "force refresh all online names")
   entry("adb quick", "fetch online list (new names only)")
   entry("adb update", "refresh all known names")
@@ -1623,28 +1623,8 @@ function agnosticdb.ui.fetch(name)
     echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
     return
   end
-
-  echo_line("Fetching online list...")
-  attach_queue_progress()
-  agnosticdb.api.on_queue_done = function(stats)
-    if should_announce_queue(stats) then
-      echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
-        stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
-      if stats.elapsed_seconds then
-        echo_line(string.format("Queue time: %s", format_duration(stats.elapsed_seconds)))
-      end
-    end
-  end
-  agnosticdb.api.fetch_online(function(result, status)
-    if status ~= "ok" then
-      echo_line(string.format("Fetch online failed (%s).", status or "unknown"))
-      return
-    end
-
-    echo_line(string.format("Online list: %d names, %d added, %d queued.", #result.names, result.added, result.queued))
-    local eta = agnosticdb.api.estimate_queue_seconds(0)
-    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
-  end)
+  echo_line("Usage: adb fetch <name>")
+  echo_line("Tip: adb refresh (force online list), adb quick (new online only).")
 end
 
 function agnosticdb.ui.refresh_online()

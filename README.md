@@ -14,7 +14,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 ## Getting Started
 1) Install the package in Mudlet (via Muddler or the packaged ZIP).
 2) Run `adb` to open help and confirm the package is loaded.
-3) Run `adb fetch` to seed online names, or `adb fetch <name>` to start with a single character.
+3) Run `adb refresh` to seed online names, or `adb fetch <name>` to start with a single character.
 4) Use `adb whois <name>` to see stored data and `adb stats` for overall totals.
 5) Customize highlights and timing in `adb config`.
 
@@ -45,7 +45,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 
 ### Lookup + Updates
 - `adb whois <name> [short]`: show stored data (fetches if missing). Use `short` for compact output.
-- `adb fetch [name]`: fetch a person, or fetch the online list and queue updates.
+- `adb fetch <name>`: fetch a person (force refresh).
 - `adb refresh`: force refresh all online names.
 - `adb quick`: fetch online list and only queue new names.
 - `adb update`: refresh all known names.
