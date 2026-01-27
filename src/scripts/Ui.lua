@@ -23,6 +23,9 @@ local function echo_line(text)
   cecho(lead .. prefix() .. text .. "\n")
 end
 
+local function config_theme()
+end
+
 local function frame_theme()
   return config_theme()
 end
@@ -206,7 +209,7 @@ local function ensure_conf_defaults()
   end
 end
 
-local function config_theme()
+config_theme = function()
   return {
     accent = "<cyan>",
     border = "<grey>",
