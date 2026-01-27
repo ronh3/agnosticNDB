@@ -250,6 +250,16 @@
               "isLua": "yes"
        },
        {
+              "name": "adb honors all",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+honors\\s+all$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.honors_all() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb honors",
               "isActive": "yes",
               "isFolder": "no",

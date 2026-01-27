@@ -882,6 +882,7 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb honors <name>", "request honors + ingest")
   entry("adb honors online", "request honors for all online names")
   entry("adb honors online <city>", "request honors for online names in a city")
+  entry("adb honors all", "request honors for all database names")
   line(separator())
   line(section("Reports & Lists"))
   entry("adb stats", "counts by class/city/race/spec")
@@ -1898,6 +1899,39 @@ function agnosticdb.ui.honors_online_city(city)
       end
     end)
   end)
+end
+
+function agnosticdb.ui.honors_all()
+  if agnosticdb.db and agnosticdb.db.ensure then
+    agnosticdb.db.ensure()
+  end
+  if not agnosticdb.db or not agnosticdb.db.people then
+    echo_line("Honors all skipped; database not ready.")
+    return
+  end
+
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  if not rows or #rows == 0 then
+    echo_line("Honors all skipped; no names in database.")
+    return
+  end
+
+  local names = {}
+  for _, row in ipairs(rows) do
+    if row.name and row.name ~= "" then
+      names[#names + 1] = row.name
+    end
+  end
+
+  if #names == 0 then
+    echo_line("Honors all skipped; no names in database.")
+    return
+  end
+
+  echo_line(string.format("Queueing honors for %d database name(s)...", #names))
+  if agnosticdb.honors and agnosticdb.honors.queue_names then
+    agnosticdb.honors.queue_names(names, nil, { suppress_output = true, announce = true })
+  end
 end
 
 local function list_help()

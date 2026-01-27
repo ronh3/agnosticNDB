@@ -51,6 +51,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb honors <name>`: capture honors output and ingest fields.
 - `adb honors online`: queue honors for all online names (throttled; default 2s).
 - `adb honors online <city>`: queue honors for online names in a city.
+- `adb honors all`: queue honors for every name in the database.
 
 ### Reports & Lists
 - `adb stats`: counts by class/city/race/spec/elemental/dragon.
