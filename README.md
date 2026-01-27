@@ -26,6 +26,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb theme <name>`: set UI theme (auto/custom/city).
 - `adb theme list`: list available themes.
 - `adb theme set <key> <color>`: set custom theme palette keys (accent/border/text/muted).
+- `adb theme preview`: show built-in theme samples.
 - `adb queue cancel`: stop and clear the pending API queue.
 - `adb config`: open configuration UI (colors, toggles, timing).
 - `adb config set <key> <value>`: set a config value.

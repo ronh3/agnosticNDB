@@ -271,7 +271,17 @@ local function builtin_themes()
     hashan = { accent = "yellow", border = "goldenrod", text = "white", muted = "light_grey" },
     mhaldor = { accent = "red", border = "firebrick", text = "white", muted = "light_grey" },
     targossas = { accent = "white", border = "light_grey", text = "white", muted = "grey" },
-    rogue = { accent = "orange", border = "dark_orange", text = "white", muted = "light_grey" }
+    rogue = { accent = "orange", border = "dark_orange", text = "white", muted = "light_grey" },
+    superman = { accent = "red", border = "royal_blue", text = "white", muted = "light_grey" },
+    batman = { accent = "yellow", border = "dim_grey", text = "white", muted = "grey" },
+    wonder_woman = { accent = "gold", border = "red", text = "white", muted = "light_grey" },
+    flash = { accent = "gold", border = "red", text = "white", muted = "light_grey" },
+    green_lantern = { accent = "green_yellow", border = "dark_green", text = "white", muted = "light_grey" },
+    joker = { accent = "purple", border = "dark_orchid", text = "white", muted = "light_grey" },
+    harley = { accent = "red", border = "light_grey", text = "white", muted = "grey" },
+    venom = { accent = "white", border = "midnight_blue", text = "white", muted = "grey" },
+    thanos = { accent = "goldenrod", border = "purple", text = "white", muted = "light_grey" },
+    magneto = { accent = "magenta", border = "purple", text = "white", muted = "light_grey" }
   }
 end
 
@@ -325,7 +335,9 @@ local function theme_display_name(name)
   local label = tostring(name or "")
   if label == "" then return "Default" end
   label = label:gsub("_", " ")
-  return label:sub(1, 1):upper() .. label:sub(2)
+  return label:gsub("(%a)([%w']*)", function(a, b)
+    return a:upper() .. b:lower()
+  end)
 end
 
 config_theme = function()
@@ -338,6 +350,14 @@ config_theme = function()
   end
   local def = themes[name] or themes.default
   return theme_to_tags(def)
+end
+
+local function theme_categories()
+  return {
+    { label = "Cities", names = { "default", "ashtan", "cyrene", "eleusis", "hashan", "mhaldor", "targossas", "rogue" } },
+    { label = "Heroes", names = { "superman", "batman", "wonder_woman", "flash", "green_lantern" } },
+    { label = "Villains", names = { "joker", "harley", "venom", "thanos", "magneto" } }
+  }
 end
 
 local function config_save()
@@ -828,19 +848,55 @@ end
 
 function agnosticdb.ui.theme_list()
   local themes = builtin_themes()
-  local names = {}
-  for name in pairs(themes) do
-    names[#names + 1] = name
-  end
-  table.sort(names, function(a, b) return a < b end)
+  local categories = theme_categories()
   echo_title("Themes")
-  echo_line("Built-in:")
-  for _, name in ipairs(names) do
-    echo_line(string.format("  - %s", theme_display_name(name)))
+  for _, category in ipairs(categories) do
+    echo_section(category.label)
+    for _, name in ipairs(category.names) do
+      if themes[name] then
+        echo_line(string.format("  - %s", theme_display_name(name)))
+      end
+    end
   end
   echo_line("Special:")
   echo_line("  - auto (city-based)")
   echo_line("  - custom (use custom palette)")
+end
+
+function agnosticdb.ui.show_theme_samples()
+  local themes = builtin_themes()
+  local theme = config_theme()
+  local categories = theme_categories()
+
+  report_title("Theme Samples")
+  report_line("Click [use] to apply a theme.")
+
+  for _, category in ipairs(categories) do
+    report_section(category.label)
+    for _, name in ipairs(category.names) do
+      local def = themes[name]
+      if def then
+        local t = theme_to_tags(def)
+        cecho(string.format("%s[%s##%s] %s%-14s %sA%s %sB%s %sT%s %sM%s",
+          t.border, t.accent, t.border, t.reset, theme_display_name(name),
+          t.accent, t.reset, t.border, t.reset, t.text, t.reset, t.muted, t.reset))
+        cecho(" ")
+        config_line_link("[use]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
+        cecho("\n")
+      end
+    end
+    report_line("")
+  end
+
+  report_section("Custom")
+  local custom = agnosticdb.conf and agnosticdb.conf.theme and agnosticdb.conf.theme.custom or theme_default_palette()
+  local t = theme_to_tags(custom)
+  cecho(string.format("%s[%s##%s] %s%-14s %sA%s %sB%s %sT%s %sM%s",
+    t.border, t.accent, t.border, t.reset, "Custom",
+    t.accent, t.reset, t.border, t.reset, t.text, t.reset, t.muted, t.reset))
+  cecho(" ")
+  config_line_link("[use]", "agnosticdb.ui.theme_set('custom')", "Apply custom theme", theme)
+  cecho("\n")
 end
 
 function agnosticdb.ui.theme_set_color(key, value)
@@ -1013,15 +1069,20 @@ function agnosticdb.ui.show_config()
   config_line_link("[auto]", "agnosticdb.ui.theme_set('auto')", "Use auto city theme", theme)
   cecho(" ")
   config_line_link("[custom]", "agnosticdb.ui.theme_set('custom')", "Use custom theme", theme)
+  cecho(" ")
+  config_line_link("[preview]", "agnosticdb.ui.show_theme_samples()", "Preview themes", theme)
   cecho("\n")
   toggle_line("Auto by city", "theme.auto_city", auto_city)
 
-  cecho(theme.text .. "  Built-ins: ")
-  for _, name in ipairs({"default", "ashtan", "cyrene", "eleusis", "hashan", "mhaldor", "targossas", "rogue"}) do
-    config_line_link("[" .. theme_display_name(name) .. "]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
-    cecho(" ")
+  local categories = theme_categories()
+  for _, category in ipairs(categories) do
+    cecho(string.format("%s  %s: ", theme.text, category.label))
+    for _, name in ipairs(category.names) do
+      config_line_link("[" .. theme_display_name(name) .. "]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
+      cecho(" ")
+    end
+    cecho("\n")
   end
-  cecho("\n")
 
   cecho(theme.text .. "  Custom palette: ")
   config_line_link("[use]", "agnosticdb.ui.theme_set('custom')", "Apply custom theme", theme)
@@ -1089,6 +1150,7 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb theme <name>", "set UI theme (auto/custom/city)")
   entry("adb theme list", "list available themes")
   entry("adb theme set <key> <color>", "set custom theme color")
+  entry("adb theme preview", "preview built-in theme samples")
   entry("adb queue cancel", "stop and clear pending API queue")
   entry("adb config", "open configuration UI")
   entry("adb config set <key> <value>", "set config values")
