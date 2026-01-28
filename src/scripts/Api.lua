@@ -481,19 +481,20 @@ local function perform_fetch(name, on_finished)
     local class = titlecase(data.class or "")
     local house = titlecase(data.house or "")
 
+    local xp_rank = tonumber(data.xp_rank) or -1
     local record = {
       name = data.name or name,
       class = class,
       city = city,
       house = house,
       title = title,
-      xp_rank = data.xp_rank or -1,
+      xp_rank = xp_rank,
       level = data.level or -1,
       source = "api",
       last_checked = os.time()
     }
 
-    if agnosticdb.conf and agnosticdb.conf.prune_dormant and record.xp_rank == 0 and city ~= "Divine" then
+    if agnosticdb.conf and agnosticdb.conf.prune_dormant and xp_rank == 0 and city ~= "Divine" then
       agnosticdb.db.delete_person(record.name)
       if agnosticdb.highlights and agnosticdb.highlights.remove then
         agnosticdb.highlights.remove(record.name)
