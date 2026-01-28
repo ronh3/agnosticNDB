@@ -87,26 +87,30 @@ local function echo_kv(label, value)
   echo_line(string.format("%s %s", left, value))
 end
 
-local function report_line(text)
-  local lead = needs_leading_newline() and "\n" or ""
+local function report_line(text, opts)
+  local options = opts or {}
+  local lead = ""
+  if not options.no_lead then
+    lead = needs_leading_newline() and "\n" or ""
+  end
   cecho(lead .. text .. "\n")
 end
 
 local function report_title(text)
-  report_line(frame_line("╔", "═", "╗"))
-  report_line(frame_line("║", " ", "║", text, "center"))
-  report_line(frame_line("╚", "═", "╝"))
+  report_line(frame_line("╔", "═", "╗"), { no_lead = true })
+  report_line(frame_line("║", " ", "║", text, "center"), { no_lead = true })
+  report_line(frame_line("╚", "═", "╝"), { no_lead = true })
 end
 
 function agnosticdb.ui.report_frame_open(title)
-  report_line(frame_line("╔", "═", "╗"))
+  report_line(frame_line("╔", "═", "╗"), { no_lead = true })
   if title and title ~= "" then
-    report_line(frame_line("║", " ", "║", title, "center"))
+    report_line(frame_line("║", " ", "║", title, "center"), { no_lead = true })
   end
 end
 
 function agnosticdb.ui.report_frame_close()
-  report_line(frame_line("╚", "═", "╝"))
+  report_line(frame_line("╚", "═", "╝"), { no_lead = true })
 end
 
 local function report_section(label, count)
@@ -114,7 +118,7 @@ local function report_section(label, count)
   if count and count > 0 then
     title = string.format("%s (%d)", label, count)
   end
-  report_line(frame_line("╟", "─", "╢", title, "left"))
+  report_line(frame_line("╟", "─", "╢", title, "left"), { no_lead = true })
 end
 
 local function report_kv(label, value)
@@ -123,6 +127,15 @@ local function report_kv(label, value)
   if pad < 0 then pad = 0 end
   local left = label .. string.rep(" ", pad)
   report_line(string.format("%s %s", left, value))
+end
+
+local function is_quiet_mode()
+  return agnosticdb.conf and agnosticdb.conf.ui and agnosticdb.conf.ui.quiet_mode
+end
+
+local function quiet_echo(text)
+  if is_quiet_mode() then return end
+  echo_line(text)
 end
 
 local function display_name(name)
@@ -167,11 +180,8 @@ local function format_duration(seconds)
 end
 
 local function attach_queue_progress()
-  if agnosticdb.conf and agnosticdb.conf.ui and agnosticdb.conf.ui.quiet_mode then
-    agnosticdb.api.on_queue_progress = nil
-    return
-  end
   agnosticdb.api.on_queue_progress = function(percent, stats)
+    if is_quiet_mode() then return end
     local total = stats.total or 0
     local processed = stats.processed or 0
     if total > 0 then
@@ -439,7 +449,7 @@ local function frame_content_line(text)
   local content = " " .. tostring(text or "") .. " "
   local pad = width - #strip_color_tags(content)
   if pad < 0 then pad = 0 end
-  return string.format("%s│%s%s%s%s│%s", theme.border, theme.text, content, string.rep(" ", pad), theme.border, theme.reset)
+  return string.format("%s║%s%s%s%s║%s", theme.border, theme.text, content, string.rep(" ", pad), theme.border, theme.reset)
 end
 
 local function looks_framed(text)
@@ -456,7 +466,7 @@ end
 
 local function ensure_frame_open()
   if agnosticdb.ui._frame_open then return end
-  report_line(frame_line("╔", "═", "╗"))
+  report_line(frame_line("╔", "═", "╗"), { no_lead = true })
   agnosticdb.ui._frame_open = true
 end
 
@@ -467,13 +477,13 @@ local function schedule_frame_close()
     tempTimer(0, function()
       if agnosticdb.ui._frame_seq ~= seq then return end
       if agnosticdb.ui._frame_open then
-        report_line(frame_line("╚", "═", "╝"))
+        report_line(frame_line("╚", "═", "╝"), { no_lead = true })
         agnosticdb.ui._frame_open = false
       end
     end)
   else
     if agnosticdb.ui._frame_open then
-      report_line(frame_line("╚", "═", "╝"))
+      report_line(frame_line("╚", "═", "╝"), { no_lead = true })
       agnosticdb.ui._frame_open = false
     end
   end
@@ -1948,17 +1958,18 @@ function agnosticdb.ui.fetch(name)
   if name and name ~= "" then
     agnosticdb.ui.fetch_and_show(name)
     local eta = agnosticdb.api.estimate_queue_seconds(0)
-    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
+    quiet_echo(string.format("Estimated completion: ~%s", format_eta(eta)))
     return
   end
-  echo_line("Usage: adb fetch <name>")
-  echo_line("Tip: adb refresh (force online list), adb quick (new online only).")
+  quiet_echo("Usage: adb fetch <name>")
+  quiet_echo("Tip: adb refresh (force online list), adb quick (new online only).")
 end
 
 function agnosticdb.ui.refresh_online()
-  echo_line("Refreshing online list (force)...")
+  quiet_echo("Refreshing online list (force)...")
   attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
+    if is_quiet_mode() then return end
     if should_announce_queue(stats) then
       echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
         stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
@@ -1969,13 +1980,13 @@ function agnosticdb.ui.refresh_online()
   end
   agnosticdb.api.fetch_online(function(result, status)
     if status ~= "ok" then
-      echo_line(string.format("Refresh online failed (%s).", status or "unknown"))
+      quiet_echo(string.format("Refresh online failed (%s).", status or "unknown"))
       return
     end
 
-    echo_line(string.format("Online list: %d names, %d added, %d queued.", #result.names, result.added, result.queued))
+    quiet_echo(string.format("Online list: %d names, %d added, %d queued.", #result.names, result.added, result.queued))
     local eta = agnosticdb.api.estimate_queue_seconds(0)
-    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
+    quiet_echo(string.format("Estimated completion: ~%s", format_eta(eta)))
   end, { force = true })
 end
 
@@ -2743,9 +2754,10 @@ function agnosticdb.ui.find(term)
 end
 
 function agnosticdb.ui.quick_update()
-  echo_line("Fetching online list (new names only)...")
+  quiet_echo("Fetching online list (new names only)...")
   attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
+    if is_quiet_mode() then return end
     if should_announce_queue(stats) then
       echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
         stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
@@ -2756,20 +2768,21 @@ function agnosticdb.ui.quick_update()
   end
   agnosticdb.api.fetch_online_new(function(result, status)
     if status ~= "ok" then
-      echo_line(string.format("Quick update failed (%s).", status or "unknown"))
+      quiet_echo(string.format("Quick update failed (%s).", status or "unknown"))
       return
     end
 
-    echo_line(string.format("Online list: %d names, %d new, %d queued.", #result.names, result.added, result.queued))
+    quiet_echo(string.format("Online list: %d names, %d new, %d queued.", #result.names, result.added, result.queued))
     local eta = agnosticdb.api.estimate_queue_seconds(0)
-    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
+    quiet_echo(string.format("Estimated completion: ~%s", format_eta(eta)))
   end)
 end
 
 function agnosticdb.ui.update_all()
-  echo_line("Queueing updates for all known names...")
+  quiet_echo("Queueing updates for all known names...")
   attach_queue_progress()
   agnosticdb.api.on_queue_done = function(stats)
+    if is_quiet_mode() then return end
     if should_announce_queue(stats) then
       echo_line(string.format("Queue complete: ok=%d unchanged=%d cached=%d pruned=%d api_error=%d decode_failed=%d download_error=%d other=%d",
         stats.ok, stats.unchanged or 0, stats.cached, stats.pruned, stats.api_error, stats.decode_failed, stats.download_error, stats.other))
@@ -2780,13 +2793,13 @@ function agnosticdb.ui.update_all()
   end
   agnosticdb.api.update_all(function(result, status)
     if status ~= "ok" then
-      echo_line(string.format("Update failed (%s).", status or "unknown"))
+      quiet_echo(string.format("Update failed (%s).", status or "unknown"))
       return
     end
 
-    echo_line(string.format("Queued %d updates (from %d names).", result.queued, result.count))
+    quiet_echo(string.format("Queued %d updates (from %d names).", result.queued, result.count))
     local eta = agnosticdb.api.estimate_queue_seconds(0)
-    echo_line(string.format("Estimated completion: ~%s", format_eta(eta)))
+    quiet_echo(string.format("Estimated completion: ~%s", format_eta(eta)))
   end, { force = true })
 end
 
