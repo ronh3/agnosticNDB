@@ -403,7 +403,14 @@ end
 
 local function looks_framed(text)
   if not text then return false end
-  return text:find("╔", 1, true) or text:find("╚", 1, true) or text:find("╟", 1, true) or text:find("┌", 1, true) or text:find("└", 1, true)
+  return text:find("╔", 1, true)
+    or text:find("╚", 1, true)
+    or text:find("╟", 1, true)
+    or text:find("║", 1, true)
+    or text:find("┌", 1, true)
+    or text:find("└", 1, true)
+    or text:find("┐", 1, true)
+    or text:find("┘", 1, true)
 end
 
 local function ensure_frame_open()
@@ -439,7 +446,7 @@ function agnosticdb.ui.emit_line(text, opts)
     prefix_text = prefix()
   end
   local full = prefix_text .. msg
-  if options.framed == false or looks_framed(msg) then
+  if options.framed == false then
     local reset = "<reset>"
     if agnosticdb.ui and agnosticdb.ui.theme_tags then
       local theme = agnosticdb.ui.theme_tags()
@@ -449,6 +456,10 @@ function agnosticdb.ui.emit_line(text, opts)
     end
     local lead = needs_leading_newline() and "\n" or ""
     cecho(lead .. full .. reset .. "\n")
+    return
+  end
+  if looks_framed(msg) then
+    report_line(msg)
     return
   end
   ensure_frame_open()
