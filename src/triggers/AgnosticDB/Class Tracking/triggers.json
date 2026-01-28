@@ -45,7 +45,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Alchemist') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Alchemist') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Sublimation",
@@ -113,7 +113,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Apostate') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Apostate') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Bard",
@@ -141,7 +141,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Bard') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Bard') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Blademaster",
@@ -177,7 +177,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Blademaster') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Blademaster') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Depthswalker",
@@ -205,7 +205,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Depthswalker') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Depthswalker') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Dragon",
@@ -241,7 +241,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Dragon') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Dragon') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Druid",
@@ -277,7 +277,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Druid') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Druid') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Infernal",
@@ -301,7 +301,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Infernal') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Infernal') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Jester",
@@ -337,7 +337,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Jester') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Jester') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Magi",
@@ -373,7 +373,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Magi') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Magi') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Monk Shik",
@@ -437,7 +437,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class_spec(matches[2], 'Monk', 'Shikudo') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class_spec(matches[2], 'Monk', 'Shikudo') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Monk Tekura",
@@ -473,7 +473,7 @@
                             "type": "substring"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class_spec(matches[2], 'Monk', 'Tekura') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class_spec(matches[2], 'Monk', 'Tekura') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Occultist",
@@ -533,7 +533,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Occultist') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Occultist') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Paladin",
@@ -577,7 +577,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Paladin') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Paladin') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Pariah",
@@ -609,7 +609,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Pariah') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Pariah') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Priest",
@@ -645,7 +645,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Priest') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Priest') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Psion",
@@ -697,7 +697,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Psion') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Psion') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Runewarden",
@@ -717,7 +717,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Runewarden') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Runewarden') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Sentinel",
@@ -757,7 +757,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Sentinel') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Sentinel') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Serpent",
@@ -789,7 +789,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Serpent') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Serpent') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Shaman",
@@ -829,7 +829,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Shaman') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Shaman') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Sylvan",
@@ -873,7 +873,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Sylvan') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Sylvan') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Unnamable",
@@ -905,7 +905,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Unnamable') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_class(matches[2], 'Unnamable') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "2H",
@@ -933,7 +933,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], '2H') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], '2H') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "DwC",
@@ -961,7 +961,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwC') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwC') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "SnB",
@@ -989,7 +989,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'SnB') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'SnB') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "DwB",
@@ -1009,7 +1009,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwB') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwB') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Airlord",
@@ -1033,7 +1033,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Air') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Air') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Earthlord",
@@ -1073,7 +1073,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Earth') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Earth') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Firelord",
@@ -1097,7 +1097,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Fire') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Fire') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Waterlord",
@@ -1133,7 +1133,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Water') end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_race(matches[2], 'Elemental', 'Water') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Dual detector",
