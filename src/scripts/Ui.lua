@@ -247,6 +247,9 @@ local function ensure_conf_defaults()
   if agnosticdb.conf.ui.quiet_mode == nil then
     agnosticdb.conf.ui.quiet_mode = false
   end
+  if agnosticdb.conf.ui.frames_enabled == nil then
+    agnosticdb.conf.ui.frames_enabled = true
+  end
 
   agnosticdb.conf.highlight = agnosticdb.conf.highlight or { enemies = {}, cities = {} }
   agnosticdb.conf.highlight.enemies = agnosticdb.conf.highlight.enemies or {
@@ -492,9 +495,18 @@ end
 function agnosticdb.ui.emit_line(text, opts)
   local options = opts or {}
   local msg = tostring(text or "")
+  if options.framed ~= false then
+    if agnosticdb.conf and agnosticdb.conf.ui and agnosticdb.conf.ui.frames_enabled == false then
+      options.framed = false
+    end
+  end
   local prefix_text = options.prefix
   if prefix_text == nil then
-    prefix_text = prefix()
+    if options.framed == false then
+      prefix_text = prefix()
+    else
+      prefix_text = ""
+    end
   end
   local full = prefix_text .. msg
   if options.framed == false then
@@ -510,11 +522,11 @@ function agnosticdb.ui.emit_line(text, opts)
     return
   end
   if looks_framed(msg) then
-    report_line(msg)
+    report_line(msg, { no_lead = true })
     return
   end
   ensure_frame_open()
-  report_line(frame_content_line(full))
+  report_line(frame_content_line(full), { no_lead = true })
   schedule_frame_close()
 end
 
@@ -715,6 +727,9 @@ local function config_set_boolean(path, value)
   elseif path == "ui.quiet_mode" then
     agnosticdb.conf.ui.quiet_mode = value
     config_save()
+  elseif path == "ui.frames_enabled" then
+    agnosticdb.conf.ui.frames_enabled = value
+    config_save()
   elseif path == "highlight.enemies.bold" then
     agnosticdb.conf.highlight.enemies.bold = value
     config_save()
@@ -765,6 +780,8 @@ local function config_toggle_boolean(path)
     current = agnosticdb.conf.prune_dormant
   elseif path == "ui.quiet_mode" then
     current = agnosticdb.conf.ui.quiet_mode
+  elseif path == "ui.frames_enabled" then
+    current = agnosticdb.conf.ui.frames_enabled
   elseif path == "highlight.enemies.bold" then
     current = agnosticdb.conf.highlight.enemies.bold
   elseif path == "highlight.enemies.underline" then
@@ -897,7 +914,7 @@ function agnosticdb.ui.config_set(path, value)
   local lower = normalized_key
   local value_text = tostring(value):gsub("^%s+", ""):gsub("%s+$", "")
   if lower == "api.enabled" or lower == "api.announce_changes_only" or lower == "theme.auto_city" or lower == "highlights_enabled" or lower == "prune_dormant"
-    or lower == "ui.quiet_mode" or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize"
+    or lower == "ui.quiet_mode" or lower == "ui.frames_enabled" or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize"
     or lower == "highlight.enemies.enabled" or lower == "highlight.enemies.require_personal" then
     local val = value_text:lower()
     local bool = (val == "true" or val == "on" or val == "1" or val == "yes")
@@ -1301,6 +1318,7 @@ function agnosticdb.ui.show_config()
   line(separator())
   line(section("Output"))
   toggle_line("Quiet mode", "ui.quiet_mode", conf.ui.quiet_mode)
+  toggle_line("Frames", "ui.frames_enabled", conf.ui.frames_enabled)
   line(separator())
   line(section("Theme"))
   local auto_city = conf.theme.auto_city
