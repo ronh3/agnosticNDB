@@ -2539,6 +2539,15 @@ function agnosticdb.ui.honors(name)
     echo_line("Provide a name to honor-check.")
     return
   end
+  local lower = tostring(name):lower()
+  if lower == "all" then
+    agnosticdb.ui.honors_all()
+    return
+  end
+  if lower == "online" then
+    agnosticdb.ui.honors_online()
+    return
+  end
   if agnosticdb.honors and agnosticdb.honors.queue_running then
     agnosticdb.honors.cancel_queue()
   end
