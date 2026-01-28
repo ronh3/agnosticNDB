@@ -432,7 +432,7 @@ function agnosticdb.api.estimate_queue_seconds(extra)
   local total = queue_len + (extra or 0)
   if total <= 0 then return 0 end
 
-  local base = total * agnosticdb.conf.api.min_interval_seconds
+  local base = 0
   local now = os.time()
   local delay = 0
 
@@ -447,6 +447,18 @@ function agnosticdb.api.estimate_queue_seconds(extra)
     delay = delay + (backoff_until - now)
   end
 
+  local avg = nil
+  local stats = agnosticdb.api.queue_stats
+  if stats and stats.processed and stats.processed > 0 and stats.started_at then
+    avg = (now - stats.started_at) / stats.processed
+  end
+  if not avg or avg <= 0 then
+    avg = math.max(agnosticdb.conf.api.min_interval_seconds, 1)
+  else
+    avg = math.max(avg, agnosticdb.conf.api.min_interval_seconds)
+  end
+
+  base = total * avg
   return base + delay
 end
 
@@ -606,7 +618,14 @@ local function start_queue()
     started_at = os.time(),
     processed = 0,
     total = #agnosticdb.api.queue,
-    milestones = { [25] = false, [50] = false, [75] = false }
+    milestones = {},
+    thresholds = (function()
+      local eta = agnosticdb.api.estimate_queue_seconds(0)
+      if eta >= 60 then
+        return {10, 20, 30, 40, 50, 60, 70, 80, 90}
+      end
+      return {25, 50, 75}
+    end)()
   }
 
   local function step()
@@ -615,6 +634,8 @@ local function start_queue()
       if agnosticdb.api.queue_stats then
         agnosticdb.api.queue_stats.finished_at = os.time()
         agnosticdb.api.queue_stats.elapsed_seconds = agnosticdb.api.queue_stats.finished_at - agnosticdb.api.queue_stats.started_at
+        agnosticdb.api.last_prune_count = agnosticdb.api.queue_stats.pruned or 0
+        agnosticdb.api.last_prune_at = agnosticdb.api.queue_stats.finished_at
       end
       if type(agnosticdb.api.on_queue_done) == "function" then
         agnosticdb.api.on_queue_done(agnosticdb.api.queue_stats)
@@ -710,7 +731,8 @@ function agnosticdb.api.fetch(name, on_done, opts)
       stats.processed = stats.processed + 1
       if stats.total and stats.total > 0 then
         local percent = math.floor((stats.processed / stats.total) * 100)
-        for _, threshold in ipairs({25, 50, 75}) do
+        local thresholds = stats.thresholds or {25, 50, 75}
+        for _, threshold in ipairs(thresholds) do
           if percent >= threshold and not stats.milestones[threshold] then
             stats.milestones[threshold] = true
             if type(agnosticdb.api.on_queue_progress) == "function" then

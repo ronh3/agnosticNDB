@@ -98,6 +98,17 @@ local function report_title(text)
   report_line(frame_line("╚", "═", "╝"))
 end
 
+function agnosticdb.ui.report_frame_open(title)
+  report_line(frame_line("╔", "═", "╗"))
+  if title and title ~= "" then
+    report_line(frame_line("║", " ", "║", title, "center"))
+  end
+end
+
+function agnosticdb.ui.report_frame_close()
+  report_line(frame_line("╚", "═", "╝"))
+end
+
 local function report_section(label, count)
   local title = label
   if count and count > 0 then
@@ -156,6 +167,10 @@ local function format_duration(seconds)
 end
 
 local function attach_queue_progress()
+  if agnosticdb.conf and agnosticdb.conf.ui and agnosticdb.conf.ui.quiet_mode then
+    agnosticdb.api.on_queue_progress = nil
+    return
+  end
   agnosticdb.api.on_queue_progress = function(percent, stats)
     local total = stats.total or 0
     local processed = stats.processed or 0
@@ -211,12 +226,17 @@ local function ensure_conf_defaults()
     text = "white",
     muted = "light_grey"
   }
+  agnosticdb.conf.theme.customs = agnosticdb.conf.theme.customs or {}
 
   if agnosticdb.conf.highlights_enabled == nil then
     agnosticdb.conf.highlights_enabled = true
   end
   agnosticdb.conf.prune_dormant = agnosticdb.conf.prune_dormant or false
   agnosticdb.conf.highlight_ignore = agnosticdb.conf.highlight_ignore or {}
+  agnosticdb.conf.ui = agnosticdb.conf.ui or {}
+  if agnosticdb.conf.ui.quiet_mode == nil then
+    agnosticdb.conf.ui.quiet_mode = false
+  end
 
   agnosticdb.conf.highlight = agnosticdb.conf.highlight or { enemies = {}, cities = {} }
   agnosticdb.conf.highlight.enemies = agnosticdb.conf.highlight.enemies or {
@@ -364,6 +384,26 @@ local function theme_display_name(name)
   end)
 end
 
+local function normalize_theme_key(name)
+  local label = tostring(name or ""):gsub("^%s+", ""):gsub("%s+$", "")
+  if label == "" then return nil end
+  label = label:gsub("%s+", " ")
+  local key = label:lower()
+  return key, label
+end
+
+local function custom_themes()
+  return agnosticdb.conf and agnosticdb.conf.theme and agnosticdb.conf.theme.customs or {}
+end
+
+local function theme_label(name)
+  local custom = custom_themes()[name]
+  if custom and custom.label and custom.label ~= "" then
+    return custom.label
+  end
+  return theme_display_name(name)
+end
+
 config_theme = function()
   ensure_conf_defaults()
   local name = resolve_theme_name()
@@ -372,7 +412,8 @@ config_theme = function()
     local custom = agnosticdb.conf.theme.custom or theme_default_palette()
     return theme_to_tags(custom)
   end
-  local def = themes[name] or themes.default
+  local custom_def = custom_themes()[name]
+  local def = custom_def or themes[name] or themes.default
   return theme_to_tags(def)
 end
 
@@ -661,6 +702,9 @@ local function config_set_boolean(path, value)
   elseif path == "prune_dormant" then
     agnosticdb.conf.prune_dormant = value
     config_save()
+  elseif path == "ui.quiet_mode" then
+    agnosticdb.conf.ui.quiet_mode = value
+    config_save()
   elseif path == "highlight.enemies.bold" then
     agnosticdb.conf.highlight.enemies.bold = value
     config_save()
@@ -709,6 +753,8 @@ local function config_toggle_boolean(path)
     current = agnosticdb.conf.highlights_enabled
   elseif path == "prune_dormant" then
     current = agnosticdb.conf.prune_dormant
+  elseif path == "ui.quiet_mode" then
+    current = agnosticdb.conf.ui.quiet_mode
   elseif path == "highlight.enemies.bold" then
     current = agnosticdb.conf.highlight.enemies.bold
   elseif path == "highlight.enemies.underline" then
@@ -841,7 +887,7 @@ function agnosticdb.ui.config_set(path, value)
   local lower = normalized_key
   local value_text = tostring(value):gsub("^%s+", ""):gsub("%s+$", "")
   if lower == "api.enabled" or lower == "api.announce_changes_only" or lower == "theme.auto_city" or lower == "highlights_enabled" or lower == "prune_dormant"
-    or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize"
+    or lower == "ui.quiet_mode" or lower == "highlight.enemies.bold" or lower == "highlight.enemies.underline" or lower == "highlight.enemies.italicize"
     or lower == "highlight.enemies.enabled" or lower == "highlight.enemies.require_personal" then
     local val = value_text:lower()
     local bool = (val == "true" or val == "on" or val == "1" or val == "yes")
@@ -931,7 +977,8 @@ function agnosticdb.ui.theme_set(name)
     echo_line("Usage: adb theme <name>|auto|custom")
     return
   end
-  local lower = tostring(name):lower()
+  local key = normalize_theme_key(name)
+  local lower = key or tostring(name):lower()
   if lower == "list" or lower == "preview" then
     agnosticdb.ui.show_theme_samples()
     return
@@ -954,18 +1001,67 @@ function agnosticdb.ui.theme_set(name)
   end
 
   local themes = builtin_themes()
-  if not themes[lower] then
+  local custom = custom_themes()[lower]
+  if not themes[lower] and not custom then
     echo_line(string.format("Unknown theme: %s", name))
     return
   end
   agnosticdb.conf.theme.name = lower
   config_save()
   config_refresh()
-  echo_line(string.format("Theme set to %s.", theme_display_name(lower)))
+  echo_line(string.format("Theme set to %s.", theme_label(lower)))
 end
 
 function agnosticdb.ui.theme_list()
   agnosticdb.ui.show_theme_samples()
+end
+
+function agnosticdb.ui.theme_save_prompt()
+  echo_line("Usage: adb theme save <name>")
+end
+
+function agnosticdb.ui.theme_save(name)
+  ensure_conf_defaults()
+  local key, label = normalize_theme_key(name)
+  if not key then
+    echo_line("Usage: adb theme save <name>")
+    return
+  end
+  agnosticdb.conf.theme.customs = agnosticdb.conf.theme.customs or {}
+  local custom = agnosticdb.conf.theme.custom or theme_default_palette()
+  agnosticdb.conf.theme.customs[key] = {
+    label = label,
+    accent = custom.accent,
+    border = custom.border,
+    text = custom.text,
+    muted = custom.muted
+  }
+  agnosticdb.conf.theme.name = key
+  config_save()
+  config_refresh()
+  echo_line(string.format("Custom theme saved: %s.", label))
+end
+
+function agnosticdb.ui.theme_delete(name)
+  ensure_conf_defaults()
+  local key = normalize_theme_key(name)
+  if not key then
+    echo_line("Usage: adb theme delete <name>")
+    return
+  end
+  local customs = agnosticdb.conf.theme.customs or {}
+  if not customs[key] then
+    echo_line(string.format("Custom theme not found: %s.", name))
+    return
+  end
+  customs[key] = nil
+  if agnosticdb.conf.theme.name == key then
+    agnosticdb.conf.theme.name = ""
+    agnosticdb.conf.theme.auto_city = true
+  end
+  config_save()
+  config_refresh()
+  echo_line(string.format("Custom theme deleted: %s.", name))
 end
 
 function agnosticdb.ui.show_theme_samples()
@@ -983,7 +1079,7 @@ function agnosticdb.ui.show_theme_samples()
       if def then
         local t = theme_to_tags(def)
         cecho(string.format("%s[%s##%s] %s%-14s %sA%s %sB%s %sT%s %sM%s",
-          t.border, t.accent, t.border, t.reset, theme_display_name(name),
+          t.border, t.accent, t.border, t.reset, theme_label(name),
           t.accent, t.reset, t.border, t.reset, t.text, t.reset, t.muted, t.reset))
         cecho(" ")
         config_line_link("[use]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
@@ -993,7 +1089,34 @@ function agnosticdb.ui.show_theme_samples()
     report_line("")
   end
 
-  report_section("Custom")
+  local customs = custom_themes()
+  local custom_keys = {}
+  for key in pairs(customs) do
+    custom_keys[#custom_keys + 1] = key
+  end
+  table.sort(custom_keys, function(a, b)
+    return theme_label(a):lower() < theme_label(b):lower()
+  end)
+  if #custom_keys > 0 then
+    report_section("Custom Themes")
+    for _, key in ipairs(custom_keys) do
+      local def = customs[key]
+      if def then
+        local t = theme_to_tags(def)
+        cecho(string.format("%s[%s##%s] %s%-14s %sA%s %sB%s %sT%s %sM%s",
+          t.border, t.accent, t.border, t.reset, theme_label(key),
+          t.accent, t.reset, t.border, t.reset, t.text, t.reset, t.muted, t.reset))
+        cecho(" ")
+        config_line_link("[use]", string.format("agnosticdb.ui.theme_set(%q)", key), "Apply theme", theme)
+        cecho(" ")
+        config_line_link("[del]", string.format("agnosticdb.ui.theme_delete(%q)", key), "Delete custom theme", theme)
+        cecho("\n")
+      end
+    end
+    report_line("")
+  end
+
+  report_section("Custom Palette")
   local custom = agnosticdb.conf and agnosticdb.conf.theme and agnosticdb.conf.theme.custom or theme_default_palette()
   local t = theme_to_tags(custom)
   cecho(string.format("%s[%s##%s] %s%-14s %sA%s %sB%s %sT%s %sM%s",
@@ -1001,6 +1124,8 @@ function agnosticdb.ui.show_theme_samples()
     t.accent, t.reset, t.border, t.reset, t.text, t.reset, t.muted, t.reset))
   cecho(" ")
   config_line_link("[use]", "agnosticdb.ui.theme_set('custom')", "Apply custom theme", theme)
+  cecho(" ")
+  config_line_link("[save]", "agnosticdb.ui.theme_save_prompt()", "Save custom theme", theme)
   cecho("\n")
 end
 
@@ -1164,11 +1289,14 @@ function agnosticdb.ui.show_config()
   cecho(theme.muted .. "  Tip: click [color] to open the palette." .. theme.reset .. "\n")
 
   line(separator())
+  line(section("Output"))
+  toggle_line("Quiet mode", "ui.quiet_mode", conf.ui.quiet_mode)
+  line(separator())
   line(section("Theme"))
   local auto_city = conf.theme.auto_city
   local selected = conf.theme.name
   local auto_city_name = normalize_theme_city(parse_gmcp_city() or "") or "default"
-  local current_label = selected ~= "" and theme_display_name(selected) or (auto_city and ("Auto (" .. theme_display_name(auto_city_name) .. ")") or "Default")
+  local current_label = selected ~= "" and theme_label(selected) or (auto_city and ("Auto (" .. theme_label(auto_city_name) .. ")") or "Default")
   cecho(string.format("%s  Current: %s%s", theme.text, theme.text, current_label))
   cecho(" ")
   config_line_link("[auto]", "agnosticdb.ui.theme_set('auto')", "Use auto city theme", theme)
@@ -1195,15 +1323,36 @@ function agnosticdb.ui.show_config()
       if wrap and count > 0 and (count % wrap) == 0 then
         cecho("\n" .. theme.text .. pad)
       end
-      config_line_link("[" .. theme_display_name(name) .. "]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
+      config_line_link("[" .. theme_label(name) .. "]", string.format("agnosticdb.ui.theme_set(%q)", name), "Apply theme", theme)
       cecho(" ")
       count = count + 1
     end
     cecho("\n")
   end
 
+  local customs = custom_themes()
+  local custom_keys = {}
+  for key in pairs(customs) do
+    custom_keys[#custom_keys + 1] = key
+  end
+  table.sort(custom_keys, function(a, b)
+    return theme_label(a):lower() < theme_label(b):lower()
+  end)
+  if #custom_keys > 0 then
+    cecho(theme.text .. "  Custom themes: ")
+    for _, key in ipairs(custom_keys) do
+      config_line_link("[" .. theme_label(key) .. "]", string.format("agnosticdb.ui.theme_set(%q)", key), "Apply theme", theme)
+      cecho(" ")
+      config_line_link("[del]", string.format("agnosticdb.ui.theme_delete(%q)", key), "Delete custom theme", theme)
+      cecho(" ")
+    end
+    cecho("\n")
+  end
+
   cecho(theme.text .. "  Custom palette: ")
   config_line_link("[use]", "agnosticdb.ui.theme_set('custom')", "Apply custom theme", theme)
+  cecho(" ")
+  config_line_link("[save]", "agnosticdb.ui.theme_save_prompt()", "Save custom theme", theme)
   cecho("\n")
   for _, key in ipairs(theme_palette_keys()) do
     local value = conf.theme.custom[key] or ""
@@ -1266,6 +1415,8 @@ function agnosticdb.ui.show_help(include_status)
   line(section("Core"))
   entry("adb status", "system status overview")
   entry("adb theme <name>", "set UI theme (auto/custom/city)")
+  entry("adb theme save <name>", "save custom palette as theme")
+  entry("adb theme delete <name>", "delete custom theme")
   entry("adb theme list", "list available themes")
   entry("adb theme set <key> <color>", "set custom theme color")
   entry("adb theme preview", "preview built-in theme samples")
@@ -1273,6 +1424,8 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb config", "open configuration UI")
   entry("adb config set <key> <value>", "set config values")
   entry("adb config toggle <key>", "toggle config values")
+  entry("adb config export [path]", "export config to JSON")
+  entry("adb config import <path>", "import config from JSON")
   entry("adb politics", "show politics menu")
   line(separator())
   line(section("Highlights & Notes"))
@@ -1288,7 +1441,7 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb elord <name> <type>", "set elemental lord type (air/earth/fire/water/clear)")
   line(separator())
   line(section("Lookup & Updates"))
-  entry("adb whois <name> [short]", "show stored data (fetch if needed)")
+  entry("adb whois <name> [short|raw]", "show stored data (fetch if needed)")
   entry("adb fetch <name>", "fetch a single person (force refresh)")
   entry("adb refresh", "force refresh all online names")
   entry("adb quick", "fetch online list (new names only)")
@@ -1305,6 +1458,8 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb recent [n]", "recently updated people (default 20)")
   entry("adb list class|city|race <value>", "list people by class/city/race")
   entry("adb list enemy", "list people marked as enemies")
+  entry("adb list xprank <= <n>", "list people with XP rank <= n")
+  entry("adb find <text>", "find people by name substring")
   entry("adb comp <city>", "online composition by class for a city")
   entry("adb qcomp [city]", "online composition by class (no honors refresh)")
   line(separator())
@@ -1414,6 +1569,17 @@ function agnosticdb.ui.show_status()
   kv("Enabled", api_enabled and "on" or "off")
   kv("Last online list", last_list_label)
   kv("Backoff", backoff_label)
+  local prune_enabled = agnosticdb.conf and agnosticdb.conf.prune_dormant
+  local last_prune_at = agnosticdb.api and agnosticdb.api.last_prune_at or 0
+  local last_prune_count = agnosticdb.api and agnosticdb.api.last_prune_count or 0
+  local prune_label = "none"
+  if last_prune_at > 0 then
+    prune_label = string.format("%d (%s ago)", last_prune_count, format_duration(os.time() - last_prune_at))
+  end
+  kv("Prune dormant", prune_enabled and "on" or "off")
+  kv("Last prune", prune_label)
+  local quiet_mode = agnosticdb.conf and agnosticdb.conf.ui and agnosticdb.conf.ui.quiet_mode
+  kv("Quiet mode", quiet_mode and "on" or "off")
   line(separator())
   line(section("Queues"))
   if api_running and api_stats then
@@ -1577,6 +1743,42 @@ local function show_person_compact(person)
   echo_line(string.format("IFF: %s | Enemy: %s", iff, enemy))
 end
 
+local function format_raw_value(value)
+  if value == nil then return "(nil)" end
+  if type(value) == "string" and value == "" then return "(blank)" end
+  return tostring(value)
+end
+
+local function show_person_raw(person)
+  echo_title(string.format("Whois (raw): %s", person.name))
+  local fields = {
+    { "Name", person.name },
+    { "Class", person.class },
+    { "Specialization", person.specialization },
+    { "City", person.city },
+    { "House", person.house },
+    { "Race", person.race },
+    { "Army Rank", person.army_rank },
+    { "Elemental Lord", person.elemental_lord_type },
+    { "Enemy City", person.enemy_city },
+    { "Enemy House", person.enemy_house },
+    { "Title", person.title },
+    { "Notes", person.notes },
+    { "IFF", person.iff },
+    { "City Rank", person.city_rank },
+    { "XP Rank", person.xp_rank },
+    { "Level", person.level },
+    { "Immortal", person.immortal },
+    { "Dragon", person.dragon },
+    { "Last Checked", person.last_checked },
+    { "Last Updated", person.last_updated },
+    { "Source", person.source }
+  }
+  for _, entry in ipairs(fields) do
+    echo_kv(entry[1], format_raw_value(entry[2]))
+  end
+end
+
 function agnosticdb.ui.show_person(name, opts)
   local mode = nil
   if type(opts) == "string" then
@@ -1600,6 +1802,10 @@ function agnosticdb.ui.show_person(name, opts)
 
   if mode == "compact" then
     show_person_compact(person)
+    return
+  end
+  if mode == "raw" then
+    show_person_raw(person)
     return
   end
 
@@ -1814,6 +2020,47 @@ function agnosticdb.ui.db_reset()
   end
 
   echo_line("Database reset complete.")
+end
+
+local function config_error(err)
+  local msg = tostring(err or "unknown")
+  if msg == "json_unavailable" then return "JSON unavailable." end
+  if msg == "path_required" then return "Provide a JSON file path." end
+  if msg == "encode_failed" then return "Export encode failed." end
+  if msg == "decode_failed" then return "Import decode failed." end
+  if msg == "invalid_format" then return "Import file format not recognized." end
+  if msg and msg:match("^io_error:") then return msg:gsub("^io_error:", "File error: ") end
+  return msg
+end
+
+function agnosticdb.ui.config_export(path)
+  if not agnosticdb.config or not agnosticdb.config.export_settings then
+    echo_line("Config export unavailable (module missing).")
+    return
+  end
+  local info, err = agnosticdb.config.export_settings(path)
+  if not info then
+    echo_line(string.format("Config export failed: %s", config_error(err)))
+    return
+  end
+  echo_line(string.format("Config exported to %s.", info.path or "(unknown)"))
+end
+
+function agnosticdb.ui.config_import(path)
+  if not path or path == "" then
+    echo_line("Usage: adb config import <path>")
+    return
+  end
+  if not agnosticdb.config or not agnosticdb.config.import_settings then
+    echo_line("Config import unavailable (module missing).")
+    return
+  end
+  local info, err = agnosticdb.config.import_settings(path)
+  if not info then
+    echo_line(string.format("Config import failed: %s", config_error(err)))
+    return
+  end
+  echo_line(string.format("Config import complete (%s).", info.path or "(unknown)"))
 end
 
 local function export_error(err)
@@ -2355,7 +2602,7 @@ function agnosticdb.ui.honors_all()
 end
 
 local function list_help()
-  echo_line("Usage: adb list class|city|race <value> | adb list enemy")
+  echo_line("Usage: adb list class|city|race <value> | adb list enemy | adb list xprank <= <n>")
 end
 
 local function list_matches(value, candidate)
@@ -2399,6 +2646,18 @@ function agnosticdb.ui.list(filter, value)
         results[#results + 1] = row
       end
     end
+  elseif filter == "xprank" then
+    local limit = tonumber(value or "")
+    if limit == nil then
+      list_help()
+      return
+    end
+    for _, row in ipairs(rows) do
+      local xp = tonumber(row.xp_rank or -1) or -1
+      if xp >= 0 and xp <= limit then
+        results[#results + 1] = row
+      end
+    end
   else
     list_help()
     return
@@ -2410,15 +2669,71 @@ function agnosticdb.ui.list(filter, value)
 
   local label = filter
   if value and value ~= "" then
-    label = string.format("%s %s", filter, value)
+    if filter == "xprank" then
+      label = string.format("xprank <= %s", value)
+    else
+      label = string.format("%s %s", filter, value)
+    end
   end
   echo_title(string.format("List: %s", label))
   echo_kv("Total", tostring(#results))
   for _, row in ipairs(results) do
     local parts = {}
+    if filter == "xprank" then
+      if row.city and row.city ~= "" then parts[#parts + 1] = row.city end
+      if row.class and row.class ~= "" then parts[#parts + 1] = row.class end
+      local xp = tonumber(row.xp_rank or -1) or -1
+      parts[#parts + 1] = string.format("XP Rank %s", xp)
+    else
+      if row.city and row.city ~= "" then parts[#parts + 1] = row.city end
+      if row.class and row.class ~= "" then parts[#parts + 1] = row.class end
+      if row.race and row.race ~= "" then parts[#parts + 1] = row.race end
+    end
+    local suffix = ""
+    if #parts > 0 then
+      suffix = " (" .. table.concat(parts, ", ") .. ")"
+    end
+    echo_line(string.format("  %s%s", display_name(row.name), suffix))
+  end
+end
+
+function agnosticdb.ui.find(term)
+  local query = tostring(term or ""):gsub("^%s+", ""):gsub("%s+$", "")
+  if #query < 3 then
+    echo_line("Provide at least 3 characters to search.")
+    return
+  end
+
+  if not agnosticdb.db.ensure() then
+    echo_line("Find unavailable (DB not initialized).")
+    return
+  end
+
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  if not rows or #rows == 0 then
+    echo_line("Find: no people in DB.")
+    return
+  end
+
+  local lower = query:lower()
+  local results = {}
+  for _, row in ipairs(rows) do
+    local name = row.name or ""
+    if name ~= "" and name:lower():find(lower, 1, true) then
+      results[#results + 1] = row
+    end
+  end
+
+  table.sort(results, function(a, b)
+    return (a.name or ""):lower() < (b.name or ""):lower()
+  end)
+
+  echo_title(string.format("Find: %s", query))
+  echo_kv("Total", tostring(#results))
+  for _, row in ipairs(results) do
+    local parts = {}
     if row.city and row.city ~= "" then parts[#parts + 1] = row.city end
     if row.class and row.class ~= "" then parts[#parts + 1] = row.class end
-    if row.race and row.race ~= "" then parts[#parts + 1] = row.race end
     local suffix = ""
     if #parts > 0 then
       suffix = " (" .. table.concat(parts, ", ") .. ")"
@@ -2853,13 +3168,19 @@ function agnosticdb.ui.qwp(mode, filter)
       return a.size > b.size
     end)
 
+    if agnosticdb.ui and agnosticdb.ui.report_frame_open then
+      agnosticdb.ui.report_frame_open("Online List")
+    end
+    local first_city = true
     for _, city in ipairs(city_list) do
       table.sort(city.players, function(a, b)
         return a.name:lower() < b.name:lower()
       end)
 
       local color = city_color(city.name)
-      cecho(string.format("\n<%s>%s: <grey>(<white>%d<grey>)<reset> ", color, city.name, city.size))
+      local prefix = first_city and "" or "\n"
+      first_city = false
+      cecho(string.format("%s<%s>%s: <grey>(<white>%d<grey>)<reset> ", prefix, color, city.name, city.size))
 
       for _, player in ipairs(city.players) do
         local label = player.name
@@ -2871,6 +3192,9 @@ function agnosticdb.ui.qwp(mode, filter)
       end
     end
     cecho("\n")
+    if agnosticdb.ui and agnosticdb.ui.report_frame_close then
+      agnosticdb.ui.report_frame_close()
+    end
   end)
 end
 

@@ -40,6 +40,26 @@
               "isLua": "yes"
        },
        {
+              "name": "adb theme save",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+theme\\s+save\\s+(.+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.theme_save(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb theme delete",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+theme\\s+delete\\s+(.+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.theme_delete(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb theme set color",
               "isActive": "yes",
               "isFolder": "no",
@@ -54,7 +74,7 @@
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
-              "regex": "^adb\\s+theme\\s+(?!(?:list|preview)\\b)(?!set\\b)(\\w+)$",
+              "regex": "^adb\\s+theme\\s+(?!(?:list|preview|save|delete)\\b)(?!set\\b)(.+)$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.theme_set(matches[2]) end",
               "matchall": "no",
               "isLua": "yes"
@@ -174,8 +194,8 @@
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
-              "regex": "^adb\\s+whois\\s+(\\w+)(?:\\s+(short|compact|brief))?$",
-              "script": "if agnosticdb and agnosticdb.ui then local mode = matches[3] and \"compact\" or nil; agnosticdb.ui.show_person(matches[2], mode) end",
+              "regex": "^adb\\s+whois\\s+(\\w+)(?:\\s+(short|compact|brief|raw))?$",
+              "script": "if agnosticdb and agnosticdb.ui then local mode = nil; if matches[3] == \"raw\" then mode = \"raw\" elseif matches[3] then mode = \"compact\" end; agnosticdb.ui.show_person(matches[2], mode) end",
               "matchall": "no",
               "isLua": "yes"
        },
@@ -246,6 +266,26 @@
               "command": "",
               "regex": "^adb\\s+config\\s+toggle\\s+([%w%._]+)$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.config_toggle(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb config export",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+config\\s+export(?:\\s+(.+))?$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.config_export(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb config import",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+config\\s+import\\s+(.+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.config_import(matches[2]) end",
               "matchall": "no",
               "isLua": "yes"
        },
@@ -470,12 +510,32 @@
               "isLua": "yes"
        },
        {
+              "name": "adb find",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+find\\s+(.+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.find(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb list field",
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
               "regex": "^adb\\s+list\\s+(class|city|race)\\s+(.+)$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.list(matches[2], matches[3]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb list xprank",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+list\\s+xprank\\s+<=\\s*(\\d+)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.list(\"xprank\", matches[2]) end",
               "matchall": "no",
               "isLua": "yes"
        }

@@ -138,6 +138,10 @@ function agnosticdb.qwhom.finish()
     deleteLine()
   end
 
+  if agnosticdb.ui and agnosticdb.ui.report_frame_open then
+    agnosticdb.ui.report_frame_open("Qwhom")
+  end
+
   local data = agnosticdb.qwhom.data or {}
   local area_keys = sorted_keys(data)
   for _, area in ipairs(area_keys) do
@@ -164,6 +168,10 @@ function agnosticdb.qwhom.finish()
       return a:lower() < b:lower()
     end)
     cecho(string.format("<ansi_yellow>Dead:<reset> %s\n", table.concat(agnosticdb.qwhom.dead, ", ")))
+  end
+
+  if agnosticdb.ui and agnosticdb.ui.report_frame_close then
+    agnosticdb.ui.report_frame_close()
   end
 
   agnosticdb.qwhom.data = {}

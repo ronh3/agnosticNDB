@@ -6,7 +6,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - Achaea-only, API-first name database with local caching/backoff.
 - Honors capture for extra fields not provided by the API (race/ranks/army rank/title).
 - Highlights names anywhere in output based on politics/enemy status, with optional personal-enemy gating.
-- Config UI with clickable color/style controls + API/honors timing toggles.
+- Config UI with clickable color/style controls, quiet mode, and API/honors timing toggles.
 - QWP/QWHOM views plus composition reports (with and without honors refresh).
 - In-game list ingestion (citizens/hwho/cwho/enemies) + class tracking from combat lines.
 - Import/export for sharing or backup.
@@ -23,7 +23,9 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 ### Core
 - `adb`: show help.
 - `adb status`: system status overview.
-- `adb theme <name>`: set UI theme (auto/custom/city).
+- `adb theme <name>`: set UI theme (auto/custom/city or saved custom theme).
+- `adb theme save <name>`: save the current custom palette as a named theme.
+- `adb theme delete <name>`: delete a saved custom theme.
 - `adb theme list`: list available themes.
 - `adb theme set <key> <color>`: set custom theme palette keys (accent/border/text/muted).
 - `adb theme preview`: show built-in theme samples.
@@ -32,6 +34,8 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb config set <key> <value>`: set a config value.
 - `adb config toggle <key>`: toggle a config value.
   - Example: `adb config toggle api.announce_changes_only` (only announce when data changes)
+- `adb config export [path]`: export configuration to JSON.
+- `adb config import <path>`: import configuration from JSON.
 - `adb politics`: show politics menu (city relations + highlight toggle).
 
 ### Notes + IFF
@@ -44,7 +48,7 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb elord <name> <type>`: set elemental lord type (air/earth/fire/water/clear).
 
 ### Lookup + Updates
-- `adb whois <name> [short]`: show stored data (fetches if missing). Use `short` for compact output.
+- `adb whois <name> [short|raw]`: show stored data (fetches if missing). Use `short` for compact output or `raw` for full fields.
 - `adb fetch <name>`: fetch a person (force refresh).
 - `adb refresh`: force refresh all online names.
 - `adb quick`: fetch online list and only queue new names.
@@ -62,6 +66,8 @@ Standalone name database for Mudlet + Achaea. This is a clean-room rewrite inten
 - `adb recent [n]`: show most recently updated people (default 20).
 - `adb list class|city|race <value>`: list people by a field.
 - `adb list enemy`: list people marked as enemies.
+- `adb list xprank <= <n>`: list people with XP rank at or below a threshold.
+- `adb find <text>`: find people by name substring.
 
 ### Highlights
 - `adb highlights on|off`: toggle highlights.
@@ -111,10 +117,11 @@ These triggers ingest data when you run the corresponding in-game commands:
 - Enable `api.announce_changes_only` to suppress queue output if nothing changed.
 
 ## Themes
-agnosticDB supports built-in themes (one per city + Rogue) and custom palettes.
+agnosticDB supports built-in themes (cities + classes) and custom palettes.
 - Use `adb theme list` to view options.
 - Use `adb theme <city>` (e.g., `adb theme mhaldor`) or `adb theme auto`.
 - Use `adb theme set <key> <color>` to set custom palette keys, then `adb theme custom`.
+- Use `adb theme save <name>` to store the current custom palette as a named theme.
 Auto city themes only apply when no explicit theme/custom selection is set.
 
 ## Build
