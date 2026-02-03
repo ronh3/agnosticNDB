@@ -111,6 +111,28 @@ These triggers ingest data when you run the corresponding in-game commands:
 - Enemy city/house markers and IFF (ally/enemy/auto).
 - Notes, immortal/dragon flags, last checked time, last updated time, source.
 
+## Lua API: Getter Helpers
+Use these helpers to pull stored info for a person. Each returns `nil` if the value is missing or unknown.
+- `agnosticdb.getPerson(name)`: full person record (table) or `nil`.
+- `agnosticdb.getClass(name)`: class.
+- `agnosticdb.getSpecialization(name)`: specialization.
+- `agnosticdb.getCity(name)`: city.
+- `agnosticdb.getHouse(name)`: house.
+- `agnosticdb.getRace(name)`: race.
+- `agnosticdb.getCityColor(name)`: city highlight color (based on config, with rogues for none).
+- `agnosticdb.getElementalLordType(name)`: elemental lord type.
+- `agnosticdb.getLevel(name)`: level.
+- `agnosticdb.getTitle(name)`: title.
+- `agnosticdb.getXpRank(name)`: XP rank.
+- `agnosticdb.getCityRank(name)`: city rank.
+- `agnosticdb.getArmyRank(name)`: army rank.
+- `agnosticdb.getIff(name)`: IFF (ally/enemy/auto).
+- `agnosticdb.getEnemyCity(name)`: enemy city marker.
+- `agnosticdb.getEnemyHouse(name)`: enemy house marker.
+- `agnosticdb.getNotes(name)`: notes.
+- `agnosticdb.getLastChecked(name)`: last checked timestamp (epoch seconds).
+- `agnosticdb.getSource(name)`: last update source.
+
 ## Notes on Updates
 - `last_checked` tracks when a character was last queried.
 - `last_updated` tracks when their stored data actually changed (used by `adb recent`).
