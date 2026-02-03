@@ -1,0 +1,86 @@
+# Command Reference
+
+## Core
+- `adb`: show help.
+- `adb status`: system status overview.
+- `adb theme <name>`: set UI theme (auto/custom/city or saved custom theme).
+- `adb theme save <name>`: save the current custom palette as a named theme.
+- `adb theme delete <name>`: delete a saved custom theme.
+- `adb theme list`: list available themes.
+- `adb theme set <key> <color>`: set custom theme palette keys (accent/border/text/muted).
+- `adb theme preview`: preview built-in theme samples.
+- `adb queue cancel`: stop and clear the pending API queue.
+- `adb config`: open configuration UI (colors, toggles, timing).
+- `adb config set <key> <value>`: set a config value.
+- `adb config toggle <key>`: toggle a config value.
+  - Example: `adb config toggle api.announce_changes_only` (only announce when data changes)
+- `adb config export [path]`: export configuration to JSON.
+- `adb config import <path>`: import configuration from JSON.
+- `adb politics`: show politics menu (city relations + highlight toggle).
+
+## Notes + IFF
+- `adb note <name> <notes>`: set notes for a person.
+- `adb note <name>`: show notes.
+- `adb note clear <name>`: clear notes for one person.
+- `adb note clear all`: clear notes for everyone.
+- `adb iff <name> enemy|ally|auto`: set IFF for a person.
+- `adb ignore <name>`: toggle highlight ignore for a name.
+- `adb elord <name> <type>`: set elemental lord type (air/earth/fire/water/clear).
+
+## Lookup + Updates
+- `adb whois <name> [short|raw]`: show stored data (fetches if missing). Use `short` for compact output or `raw` for full fields.
+- `adb fetch <name>`: fetch a person (force refresh).
+- `adb refresh`: force refresh all online names.
+- `adb quick`: fetch online list and only queue new names.
+- `adb update`: refresh all known names.
+- `adb forget <name>`: remove a person from the database.
+
+## Honors
+- `adb honors <name>`: capture honors output and ingest fields.
+- `adb honors online`: queue honors for all online names (throttled; default 2s).
+- `adb honors online <city>`: queue honors for online names in a city.
+- `adb honors all`: queue honors for every name in the database.
+
+## Reports & Lists
+- `adb stats`: counts by class/city/race/spec/elemental/dragon.
+- `adb recent [n]`: show most recently updated people (default 20).
+- `adb list class|city|race <value>`: list people by a field.
+- `adb list enemy`: list people marked as enemies.
+- `adb list xprank <= <n>`: list people with XP rank at or below a threshold.
+- `adb find <text>`: find people by name substring.
+
+## Highlights
+- `adb highlights on|off`: toggle highlights.
+- `adb highlights reload`: rebuild highlight triggers.
+- `adb highlights clear`: remove all highlight triggers.
+
+## QWP (Online Lists)
+- `qwp [opts]`: online list grouped by city.
+  - Options: `c|class`, `r|race`, `rc|race+class`, `cr|class+race`, `a|army`, `rank <n>`.
+  - Examples: `qwp c`, `qwp rc`, `qwp a`, `qwp rank 3`, `qwp c rank 3`.
+- `qwhom [area]`: who list grouped by area/location (mapper required).
+
+## Composition / Enemies
+- `adb comp <city>`: composition for a city (honors refresh before report).
+- `adb qcomp [city]`: composition for a city (no honors refresh). With no city, lists all cities.
+- `adb enemies`: capture your personal enemy list from game output.
+- `adb enemy <city>`: enemy all online members of a city.
+
+## Maintenance + Testing
+- `adb dbcheck`: check database schema health.
+- `adb dbreset`: reset database (drops people table).
+- `adb export [path]`: export DB to JSON (default path in profile dir).
+- `adb import <path>`: import DB from JSON.
+- `adbtest`: run the self-test.
+
+## In-Game List Capture
+These triggers ingest data when you run the corresponding in-game commands:
+- City enemies list: lines starting with `Enemies of the City of <city>:` update `enemy_city`.
+- House enemies list: lines starting with `Enemies of the <house>:` update `enemy_house`.
+- Personal enemies list: `You have the following enemies:` updates IFF to `enemy`.
+- Enemy add/remove confirmations keep personal enemies in sync.
+- Active citizens list: lines starting with `The following are ACTIVE citizens of <city>:` update city for listed names.
+- CWHO table: header line `Citizen Rank CT Class` updates class for listed names.
+- HWHO table: header line `Member Rank HTell HNTell Probation Class` updates class for listed names.
+- Honors output: `HONORS for <name>` parses race/title/ranks/army rank/etc.
+- Class tracking: combat messages update class/spec/race/elemental lord type.
