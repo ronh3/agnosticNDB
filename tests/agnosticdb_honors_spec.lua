@@ -2,6 +2,7 @@ local helper = dofile(os.getenv("TESTS_DIRECTORY") .. "/support/agnosticdb_test_
 
 describe("agnosticdb honors", function()
   local output_stub
+  local run_queue_stub
   local outputs
 
   before_each(function()
@@ -14,7 +15,9 @@ describe("agnosticdb honors", function()
 
   after_each(function()
     if output_stub then output_stub:revert() end
+    if run_queue_stub then run_queue_stub:revert() end
     output_stub = nil
+    run_queue_stub = nil
   end)
 
   it("exposes the honors entry points", function()
@@ -54,5 +57,24 @@ describe("agnosticdb honors", function()
     assert.are.equal(5, tonumber(person.city_rank))
     assert.are.equal(123, tonumber(person.xp_rank))
     assert.is_true(table.concat(outputs, "\n"):find("Honors updated for Testperson.", 1, true) ~= nil)
+  end)
+
+  it("deduplicates names when starting an honors queue", function()
+    local ran_queue = 0
+    local on_done = function() end
+
+    run_queue_stub = stub(agnosticdb.honors, "run_queue", function()
+      ran_queue = ran_queue + 1
+    end)
+
+    agnosticdb.honors.queue_names({ "testperson", "TESTPERSON", "otherperson" }, on_done, { announce = true })
+
+    assert.is_true(agnosticdb.honors.queue_running)
+    assert.are.same({ "Testperson", "Otherperson" }, agnosticdb.honors.queue)
+    assert.are.equal(2, agnosticdb.honors.queue_stats.total)
+    assert.are.equal(0, agnosticdb.honors.queue_stats.processed)
+    assert.are.equal(on_done, agnosticdb.honors.queue_on_done)
+    assert.are.equal(1, ran_queue)
+    assert.is_true(table.concat(outputs, "\n"):find("Honors queue: 2 names.", 1, true) ~= nil)
   end)
 end)
