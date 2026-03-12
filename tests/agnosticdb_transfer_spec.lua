@@ -9,7 +9,7 @@ describe("agnosticdb transfer", function()
   end
 
   local function temp_json_path(label)
-    local path = string.format("%s/%s-%d-%d.json", getMudletHomeDir(), label, os.time(), math.random(1000, 999999))
+    local path = string.format("/tmp/%s-%d-%d.json", label, os.time(), math.random(1000, 999999))
     temp_paths[#temp_paths + 1] = path
     return path
   end
