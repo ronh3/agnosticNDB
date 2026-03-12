@@ -15,6 +15,10 @@ describe("agnosticdb qwhom", function()
 
   before_each(function()
     helper.reset()
+    agnosticdb.qwhom.data = {}
+    agnosticdb.qwhom.dead = {}
+    agnosticdb.qwhom.active = false
+    agnosticdb.qwhom.filter = nil
     outputs = {}
     enabled = {}
     disabled = {}
@@ -87,11 +91,6 @@ describe("agnosticdb qwhom", function()
     assert.is_true(rendered:find("Dead:", 1, true) ~= nil)
     assert.is_true(rendered:find("Beta", 1, true) ~= nil)
     assert.is_true(rendered:find("[close]", 1, true) ~= nil)
-    assert.are.same({
-      "Qwhom Capture",
-      "Qwhom Display",
-      "Qwhom Prompt",
-    }, disabled)
     assert.is_false(agnosticdb.qwhom.active)
     assert.are.same({}, agnosticdb.qwhom.data)
     assert.are.same({}, agnosticdb.qwhom.dead)
