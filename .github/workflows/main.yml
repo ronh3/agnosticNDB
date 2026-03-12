@@ -8,16 +8,8 @@ on:
 
 jobs:
   build:
-    name: test (${{ matrix.spec_name }})
     permissions: write-all
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - spec_path: tests/agnosticdb_db_spec.lua
-            spec_name: agnosticdb_db_spec.lua
-            upload_artifact: true
     env:
       MUDLET_RELEASE_TAG: ci-asset
       MUDLET_RELEASE_ASSET: Mudlet-4.20.1-linux-x64.AppImage.tar
@@ -120,49 +112,26 @@ jobs:
           #!/usr/bin/env bash
           set -euo pipefail
 
-          root_tests_dir="${TESTS_DIRECTORY:?TESTS_DIRECTORY must be set}"
-          spec_path="${SPEC_PATH:?SPEC_PATH must be set}"
-          spec_name="$(basename "$spec_path")"
-          support_dir="$root_tests_dir/support"
-          run_dir="/tmp/agnosticdb-single-spec"
-
-          rm -rf "$run_dir"
-          mkdir -p "$run_dir"
-          cp "$spec_path" "$run_dir/"
-          cp -R "$support_dir" "$run_dir/"
-
-          export TESTS_DIRECTORY="$run_dir"
-          rm -f /tmp/busted-tests-failed /tmp/mudlet.raw.log
+          set +e
+          /tmp/Mudlet.AppImage --profile "GithubTests" --mirror > /tmp/mudlet.raw.log 2>&1
+          status=$?
+          set -e
 
           python - <<'PY'
-from pathlib import Path
-import os
-import subprocess
+          from pathlib import Path
 
-spec_name = os.environ["SPEC_NAME"]
+          lines = Path("/tmp/mudlet.raw.log").read_text(errors="replace").splitlines()
+          i = 0
+          while i < len(lines):
+              line = lines[i]
+              if 'XMLimport::readUnknownElement(' in line and 'UNKNOWN Package Element name: "path".' in line:
+                  i += 4
+                  continue
+              print(line)
+              i += 1
+          PY
 
-with open("/tmp/mudlet.raw.log", "w", encoding="utf-8") as handle:
-    proc = subprocess.run(
-        ["/tmp/Mudlet.AppImage", "--profile", "GithubTests", "--mirror"],
-        stdout=handle,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-    )
-
-lines = Path("/tmp/mudlet.raw.log").read_text(errors="replace").splitlines()
-i = 0
-while i < len(lines):
-    line = lines[i]
-    if 'XMLimport::readUnknownElement(' in line and 'UNKNOWN Package Element name: "path".' in line:
-        i += 4
-        continue
-    print(line)
-    i += 1
-
-if proc.returncode != 0:
-    Path("/tmp/busted-tests-failed").write_text(f"{spec_name} (Mudlet exited with status {proc.returncode})\n")
-PY
+          exit "$status"
           EOF
           chmod +x /tmp/run-mudlet-tests.sh
 
@@ -173,17 +142,13 @@ PY
         env:
           AUTORUN_BUSTED_TESTS: "true"
           TESTS_DIRECTORY: ${{ github.workspace }}/tests
-          SPEC_PATH: ${{ github.workspace }}/${{ matrix.spec_path }}
-          SPEC_NAME: ${{ matrix.spec_name }}
           QUIT_MUDLET_AFTER_TESTS: "true"
           PRETEST_PACKAGE: ${{ steps.package_file.outputs.path }}
 
       - name: Check Busted result
         run: |
           if [ -e /tmp/busted-tests-failed ]; then
-            failed_spec=$(cat /tmp/busted-tests-failed)
-            echo "::error title=Lua busted tests failed::${failed_spec}"
-            echo "Lua tests failed in ${failed_spec}."
+            echo "Lua tests failed - see the Mudlet test step output above."
             echo ""
             echo "---- /tmp/busted-tests-failed ----"
             cat /tmp/busted-tests-failed || true
@@ -197,11 +162,10 @@ PY
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: mudlet-test-log-${{ matrix.spec_name }}
+          name: mudlet-test-log
           path: /tmp/mudlet.raw.log
 
       - name: Upload Artifact
-        if: ${{ matrix.upload_artifact }}
         uses: actions/upload-artifact@v4
         id: upload
         with:
