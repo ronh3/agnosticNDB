@@ -2,6 +2,7 @@ local helper = dofile(os.getenv("TESTS_DIRECTORY") .. "/support/agnosticdb_test_
 
 describe("agnosticdb transfer", function()
   local reload_stub
+  local reload_calls
   local temp_paths
 
   local function temp_json_path(label)
@@ -12,6 +13,7 @@ describe("agnosticdb transfer", function()
 
   before_each(function()
     helper.reset()
+    reload_calls = 0
     temp_paths = {}
   end)
 
@@ -74,7 +76,9 @@ describe("agnosticdb transfer", function()
     file:write(assert(yajl.to_string(payload)))
     file:close()
 
-    reload_stub = stub(agnosticdb.highlights, "reload", function() end)
+    reload_stub = stub(agnosticdb.highlights, "reload", function()
+      reload_calls = reload_calls + 1
+    end)
 
     local stats, err = agnosticdb.transfer.importData(path)
 
@@ -83,7 +87,7 @@ describe("agnosticdb transfer", function()
     assert.are.equal(path, stats.path)
     assert.are.equal(1, stats.imported)
     assert.are.equal(1, stats.skipped)
-    assert.stub(reload_stub).was.called(1)
+    assert.are.equal(1, reload_calls)
 
     local person = agnosticdb.db.get_person("Imported")
     assert.is_not_nil(person)

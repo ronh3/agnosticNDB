@@ -8,6 +8,7 @@ describe("agnosticdb ingestion", function()
   local prompt_stub
   local kill_stub
   local saved_isPrompt
+  local reload_calls
   local outputs
   local regex_callback
   local prompt_callback
@@ -17,6 +18,7 @@ describe("agnosticdb ingestion", function()
     outputs = {}
     regex_callback = nil
     prompt_callback = nil
+    reload_calls = 0
     saved_isPrompt = _G.isPrompt
     output_stub = stub(agnosticdb.ui, "emit_line", function(text)
       outputs[#outputs + 1] = tostring(text or "")
@@ -90,7 +92,9 @@ describe("agnosticdb ingestion", function()
   end)
 
   it("replaces the personal enemy list and clears stale entries", function()
-    reload_stub = stub(agnosticdb.highlights, "reload", function() end)
+    reload_stub = stub(agnosticdb.highlights, "reload", function()
+      reload_calls = reload_calls + 1
+    end)
     agnosticdb.db.upsert_person({ name = "Alpha", iff = "enemy" })
     agnosticdb.db.upsert_person({ name = "Beta", iff = "enemy" })
 
@@ -107,7 +111,7 @@ describe("agnosticdb ingestion", function()
     assert.are.equal("enemy", agnosticdb.db.get_person("Alpha").iff)
     assert.are.equal("auto", agnosticdb.db.get_person("Beta").iff)
     assert.are.equal("enemy", agnosticdb.db.get_person("Gamma").iff)
-    assert.stub(reload_stub).was.called(1)
+    assert.are.equal(1, reload_calls)
     assert.is_true(table.concat(outputs, "\n"):find("Personal enemies updated: 2 listed, 2 set, 1 cleared.", 1, true) ~= nil)
   end)
 end)

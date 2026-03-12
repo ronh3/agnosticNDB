@@ -149,6 +149,12 @@ jobs:
         run: |
           if [ -e /tmp/busted-tests-failed ]; then
             echo "Lua tests failed - see the Mudlet test step output above."
+            echo ""
+            echo "---- /tmp/busted-tests-failed ----"
+            cat /tmp/busted-tests-failed || true
+            echo ""
+            echo "---- tail /tmp/mudlet.raw.log ----"
+            tail -n 200 /tmp/mudlet.raw.log || true
             exit 1
           fi
 
