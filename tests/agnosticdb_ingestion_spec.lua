@@ -90,4 +90,25 @@ describe("agnosticdb ingestion", function()
     assert.are.equal("Ashtan", agnosticdb.db.get_person("Gamma").enemy_city)
     assert.is_true(table.concat(outputs, "\n"):find("City enemies updated for Ashtan: 2 listed, 2 set, 1 cleared.", 1, true) ~= nil)
   end)
+
+  it("replaces a captured house enemy list and clears stale entries", function()
+    agnosticdb.db.upsert_person({ name = "Alpha", enemy_house = "Scions" })
+    agnosticdb.db.upsert_person({ name = "Beta", enemy_house = "Scions" })
+
+    agnosticdb.enemies.capture = {
+      kind = "house",
+      org = "Scions",
+      names = {
+        Alpha = true,
+        Gamma = true,
+      },
+    }
+
+    agnosticdb.enemies.finish_capture()
+
+    assert.are.equal("Scions", agnosticdb.db.get_person("Alpha").enemy_house)
+    assert.are.equal("", agnosticdb.db.get_person("Beta").enemy_house)
+    assert.are.equal("Scions", agnosticdb.db.get_person("Gamma").enemy_house)
+    assert.is_true(table.concat(outputs, "\n"):find("House enemies updated for Scions: 2 listed, 2 set, 1 cleared.", 1, true) ~= nil)
+  end)
 end)

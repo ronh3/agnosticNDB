@@ -9,19 +9,13 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 - `agnosticdb_api_spec.lua`
   Confirms API list parsing, per-character fetch ingestion, and cache short-circuit behavior using stubbed HTTP responses.
 - `agnosticdb_honors_spec.lua`
-  Confirms the honors module entry points exist, that a direct honors capture updates core parsed fields such as class, city, house, and ranks, and that queue startup deduplicates names.
+  Confirms the honors module entry points exist, that a direct honors capture updates core parsed fields such as class, city, house, and ranks, that queue startup deduplicates names, and that queue cancellation clears state.
 - `agnosticdb_ingestion_spec.lua`
-  Confirms stable `finish_capture()` ingestion paths for citizens lists and personal enemy replacement.
+  Confirms stable `finish_capture()` ingestion paths for citizens lists plus personal, city, and house enemy replacement.
 - `agnosticdb_transfer_spec.lua`
-  Confirms import/export entry points with explicit handling for environments where JSON support is unavailable.
+  Confirms import/export entry points, including export metadata shape, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
   Confirms the help and status views render key sections without throwing.
-
-## Quarantined Specs
-
-These are currently parked as `.disabled` files because the first CI versions were not yet stable enough for the Mudlet-backed suite:
-
-Re-enable quarantined specs one file at a time, and only after the rewritten version passes CI.
 
 ## Design Rules
 
@@ -31,10 +25,6 @@ Re-enable quarantined specs one file at a time, and only after the rewritten ver
 - Avoid exact UI formatting assertions unless the output text is the contract being tested. Prefer checking for one or two anchor strings.
 - Be careful with Mudlet globals like triggers, prompt state, and profile paths. Stub only the globals a spec actually needs, and restore them fully in `after_each`.
 - When a spec starts failing in CI and the failure is not immediately diagnosable, quarantine it by renaming it to `.disabled` rather than keeping the whole suite red.
-
-## Reintroduction Order
-
-- Expand `agnosticdb_honors_spec.lua` last, since honors capture/queue flow is the most timing-sensitive.
 
 ## Future Additions
 

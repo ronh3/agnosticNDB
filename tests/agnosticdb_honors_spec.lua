@@ -77,4 +77,20 @@ describe("agnosticdb honors", function()
     assert.are.equal(1, ran_queue)
     assert.is_true(table.concat(outputs, "\n"):find("Honors queue: 2 names.", 1, true) ~= nil)
   end)
+
+  it("cancels honors queue state cleanly", function()
+    agnosticdb.honors.queue = { "Testperson", "Otherperson" }
+    agnosticdb.honors.queue_running = true
+    agnosticdb.honors.queue_stats = { total = 2, processed = 1 }
+    agnosticdb.honors.queue_on_done = function() end
+    agnosticdb.honors.queue_opts = { announce = true }
+
+    agnosticdb.honors.cancel_queue()
+
+    assert.are.same({}, agnosticdb.honors.queue)
+    assert.is_false(agnosticdb.honors.queue_running)
+    assert.is_nil(agnosticdb.honors.queue_stats)
+    assert.is_nil(agnosticdb.honors.queue_on_done)
+    assert.is_nil(agnosticdb.honors.queue_opts)
+  end)
 end)
