@@ -8,8 +8,31 @@ on:
 
 jobs:
   build:
+    name: test (${{ matrix.spec_name }})
     permissions: write-all
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - spec_path: tests/agnosticdb_db_spec.lua
+            spec_name: agnosticdb_db_spec.lua
+            upload_artifact: true
+          - spec_path: tests/agnosticdb_api_spec.lua
+            spec_name: agnosticdb_api_spec.lua
+            upload_artifact: false
+          - spec_path: tests/agnosticdb_ui_spec.lua
+            spec_name: agnosticdb_ui_spec.lua
+            upload_artifact: false
+          - spec_path: tests/agnosticdb_honors_spec.lua
+            spec_name: agnosticdb_honors_spec.lua
+            upload_artifact: false
+          - spec_path: tests/agnosticdb_transfer_spec.lua
+            spec_name: agnosticdb_transfer_spec.lua
+            upload_artifact: false
+          - spec_path: tests/agnosticdb_ingestion_spec.lua
+            spec_name: agnosticdb_ingestion_spec.lua
+            upload_artifact: false
     env:
       MUDLET_RELEASE_TAG: ci-asset
       MUDLET_RELEASE_ASSET: Mudlet-4.20.1-linux-x64.AppImage.tar
@@ -113,23 +136,36 @@ jobs:
           set -euo pipefail
 
           root_tests_dir="${TESTS_DIRECTORY:?TESTS_DIRECTORY must be set}"
+          spec_path="${SPEC_PATH:?SPEC_PATH must be set}"
+          spec_name="$(basename "$spec_path")"
           support_dir="$root_tests_dir/support"
-          work_root="/tmp/agnosticdb-spec-runs"
+          run_dir="/tmp/agnosticdb-single-spec"
 
-          rm -rf "$work_root"
-          mkdir -p "$work_root"
+          rm -rf "$run_dir"
+          mkdir -p "$run_dir"
+          cp "$spec_path" "$run_dir/"
+          cp -R "$support_dir" "$run_dir/"
+
+          export TESTS_DIRECTORY="$run_dir"
           rm -f /tmp/busted-tests-failed /tmp/mudlet.raw.log
 
-          filter_log() {
-            python - "$1" <<'PY'
+          python - <<'PY'
 from pathlib import Path
-import sys
+import os
+import subprocess
 
-path = Path(sys.argv[1])
-if not path.exists():
-    raise SystemExit(0)
+spec_name = os.environ["SPEC_NAME"]
 
-lines = path.read_text(errors="replace").splitlines()
+with open("/tmp/mudlet.raw.log", "w", encoding="utf-8") as handle:
+    proc = subprocess.run(
+        ["/tmp/Mudlet.AppImage", "--profile", "GithubTests", "--mirror"],
+        stdout=handle,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+
+lines = Path("/tmp/mudlet.raw.log").read_text(errors="replace").splitlines()
 i = 0
 while i < len(lines):
     line = lines[i]
@@ -138,49 +174,10 @@ while i < len(lines):
         continue
     print(line)
     i += 1
+
+if proc.returncode != 0:
+    Path("/tmp/busted-tests-failed").write_text(f"{spec_name} (Mudlet exited with status {proc.returncode})\n")
 PY
-          }
-
-          spec_failed=""
-          for spec in "$root_tests_dir"/*_spec.lua; do
-            spec_name="$(basename "$spec")"
-            spec_dir="$work_root/${spec_name%.lua}"
-            mkdir -p "$spec_dir"
-            cp "$spec" "$spec_dir/"
-            cp -R "$support_dir" "$spec_dir/"
-
-            export TESTS_DIRECTORY="$spec_dir"
-            spec_log="/tmp/${spec_name%.lua}.raw.log"
-            rm -f /tmp/busted-tests-failed "$spec_log"
-
-            echo "== Running $spec_name =="
-            set +e
-            /tmp/Mudlet.AppImage --profile "GithubTests" --mirror > "$spec_log" 2>&1
-            status=$?
-            set -e
-
-            filter_log "$spec_log"
-
-            if [ "$status" -ne 0 ]; then
-              spec_failed="$spec_name (Mudlet exited with status $status)"
-              cp "$spec_log" /tmp/mudlet.raw.log
-              break
-            fi
-
-            if [ -e /tmp/busted-tests-failed ]; then
-              spec_failed="$spec_name"
-              cp "$spec_log" /tmp/mudlet.raw.log
-              break
-            fi
-          done
-
-          if [ -n "$spec_failed" ]; then
-            printf '%s\n' "$spec_failed" > /tmp/busted-tests-failed
-          else
-            rm -f /tmp/busted-tests-failed
-          fi
-
-          exit 0
           EOF
           chmod +x /tmp/run-mudlet-tests.sh
 
@@ -191,6 +188,8 @@ PY
         env:
           AUTORUN_BUSTED_TESTS: "true"
           TESTS_DIRECTORY: ${{ github.workspace }}/tests
+          SPEC_PATH: ${{ github.workspace }}/${{ matrix.spec_path }}
+          SPEC_NAME: ${{ matrix.spec_name }}
           QUIT_MUDLET_AFTER_TESTS: "true"
           PRETEST_PACKAGE: ${{ steps.package_file.outputs.path }}
 
@@ -213,10 +212,11 @@ PY
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: mudlet-test-log
+          name: mudlet-test-log-${{ matrix.spec_name }}
           path: /tmp/mudlet.raw.log
 
       - name: Upload Artifact
+        if: ${{ matrix.upload_artifact }}
         uses: actions/upload-artifact@v4
         id: upload
         with:
