@@ -23,3 +23,10 @@ Guidance for Codex when working in this repository.
 - Commit and push changes unless the user asks otherwise.
 - Keep `README.md` and `agnosticdb.ui.show_help()` in sync when commands or features change.
 - Maintain the config UI look/feel (config theme + sectioned layout) for new menus.
+
+## Testing Guidance
+- GitHub Actions is the source of truth for behavioral tests in this repo; do not rely on host-side `busted` execution as a pass/fail signal.
+- Keep Mudlet specs focused on stable runtime contracts and avoid overfitting to exact output formatting or optional runtime capabilities.
+- If a capability is optional at runtime, such as JSON support, write specs to accept the module's documented fallback behavior.
+- Re-enable quarantined specs one at a time after a green CI run, not in batches.
+- If a new spec makes the suite red and the failure is not immediately diagnosable, quarantine that spec with a `.disabled` suffix and document why in `tests/README.md`.

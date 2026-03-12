@@ -54,3 +54,10 @@
 
 ## Future Work
 - Consider a lightweight wiki or `docs/` folder (install, workflows, troubleshooting, FAQ).
+
+## Test Strategy
+- Run behavioral coverage inside a real Mudlet instance in GitHub Actions.
+- Favor a small stable suite over a larger brittle suite that blocks releases.
+- Test public module behavior, persisted DB state, and documented fallback paths.
+- Treat optional runtime facilities, especially JSON support, as environment-dependent and test both available and unavailable paths where relevant.
+- Quarantine unstable specs instead of leaving the primary CI red; reintroduce them incrementally once they are proven in CI.
