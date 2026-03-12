@@ -112,26 +112,75 @@ jobs:
           #!/usr/bin/env bash
           set -euo pipefail
 
-          set +e
-          /tmp/Mudlet.AppImage --profile "GithubTests" --mirror > /tmp/mudlet.raw.log 2>&1
-          status=$?
-          set -e
+          root_tests_dir="${TESTS_DIRECTORY:?TESTS_DIRECTORY must be set}"
+          support_dir="$root_tests_dir/support"
+          work_root="/tmp/agnosticdb-spec-runs"
 
-          python - <<'PY'
-          from pathlib import Path
+          rm -rf "$work_root"
+          mkdir -p "$work_root"
+          rm -f /tmp/busted-tests-failed /tmp/mudlet.raw.log
 
-          lines = Path("/tmp/mudlet.raw.log").read_text(errors="replace").splitlines()
-          i = 0
-          while i < len(lines):
-              line = lines[i]
-              if 'XMLimport::readUnknownElement(' in line and 'UNKNOWN Package Element name: "path".' in line:
-                  i += 4
-                  continue
-              print(line)
-              i += 1
-          PY
+          filter_log() {
+            python - "$1" <<'PY'
+from pathlib import Path
+import sys
 
-          exit "$status"
+path = Path(sys.argv[1])
+if not path.exists():
+    raise SystemExit(0)
+
+lines = path.read_text(errors="replace").splitlines()
+i = 0
+while i < len(lines):
+    line = lines[i]
+    if 'XMLimport::readUnknownElement(' in line and 'UNKNOWN Package Element name: "path".' in line:
+        i += 4
+        continue
+    print(line)
+    i += 1
+PY
+          }
+
+          spec_failed=""
+          for spec in "$root_tests_dir"/*_spec.lua; do
+            spec_name="$(basename "$spec")"
+            spec_dir="$work_root/${spec_name%.lua}"
+            mkdir -p "$spec_dir"
+            cp "$spec" "$spec_dir/"
+            cp -R "$support_dir" "$spec_dir/"
+
+            export TESTS_DIRECTORY="$spec_dir"
+            spec_log="/tmp/${spec_name%.lua}.raw.log"
+            rm -f /tmp/busted-tests-failed "$spec_log"
+
+            echo "== Running $spec_name =="
+            set +e
+            /tmp/Mudlet.AppImage --profile "GithubTests" --mirror > "$spec_log" 2>&1
+            status=$?
+            set -e
+
+            filter_log "$spec_log"
+
+            if [ "$status" -ne 0 ]; then
+              spec_failed="$spec_name (Mudlet exited with status $status)"
+              cp "$spec_log" /tmp/mudlet.raw.log
+              break
+            fi
+
+            if [ -e /tmp/busted-tests-failed ]; then
+              spec_failed="$spec_name"
+              cp "$spec_log" /tmp/mudlet.raw.log
+              break
+            fi
+          done
+
+          if [ -n "$spec_failed" ]; then
+            printf '%s\n' "$spec_failed" > /tmp/busted-tests-failed
+          else
+            rm -f /tmp/busted-tests-failed
+          fi
+
+          exit 0
           EOF
           chmod +x /tmp/run-mudlet-tests.sh
 
@@ -148,7 +197,9 @@ jobs:
       - name: Check Busted result
         run: |
           if [ -e /tmp/busted-tests-failed ]; then
-            echo "Lua tests failed - see the Mudlet test step output above."
+            failed_spec=$(cat /tmp/busted-tests-failed)
+            echo "::error title=Lua busted tests failed::${failed_spec}"
+            echo "Lua tests failed in ${failed_spec}."
             echo ""
             echo "---- /tmp/busted-tests-failed ----"
             cat /tmp/busted-tests-failed || true
