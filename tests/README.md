@@ -9,7 +9,7 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 - `agnosticdb_api_spec.lua`
   Confirms API list parsing, per-character fetch ingestion, and cache short-circuit behavior using stubbed HTTP responses.
 - `agnosticdb_honors_spec.lua`
-  Confirms the honors module entry points exist and that a direct honors capture updates core parsed fields such as class, city, house, race, and ranks.
+  Confirms the honors module entry points exist and that a direct honors capture updates core parsed fields such as class, city, house, and ranks.
 - `agnosticdb_ingestion_spec.lua`
   Confirms stable `finish_capture()` ingestion paths for citizens lists and personal enemy replacement.
 - `agnosticdb_transfer_spec.lua`
