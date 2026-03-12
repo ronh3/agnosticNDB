@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - spec_path: tests/agnosticdb_transfer_spec.lua
-            spec_name: agnosticdb_transfer_spec.lua
+          - spec_path: tests/agnosticdb_honors_spec.lua
+            spec_name: agnosticdb_honors_spec.lua
             upload_artifact: true
     env:
       MUDLET_RELEASE_TAG: ci-asset
