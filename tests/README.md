@@ -14,6 +14,8 @@ These specs run inside a real Mudlet instance in GitHub Actions.
   Confirms the honors module entry points exist, that a direct honors capture updates core parsed fields such as class, city, house, and ranks, that queue startup deduplicates names, and that queue cancellation clears state.
 - `agnosticdb_ingestion_spec.lua`
   Confirms stable `finish_capture()` ingestion paths for citizens lists plus personal, city, and house enemy replacement.
+- `agnosticdb_qwhom_spec.lua`
+  Confirms qwhom startup wiring and grouped finish output using the stable no-mapper path.
 - `agnosticdb_transfer_spec.lua`
   Confirms import/export entry points, including export metadata shape, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
@@ -30,6 +32,5 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 
 ## Future Additions
 
-- qwp/qwhom rendering
 - queue progress, backoff, and cancel behavior
-- city/house enemy capture semantics
+- qwp rendering
