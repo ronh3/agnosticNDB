@@ -4,6 +4,9 @@ describe("agnosticdb transfer", function()
   local reload_stub
   local reload_calls
   local temp_paths
+  local function has_json_support()
+    return yajl and type(yajl.to_string) == "function" and type(yajl.to_value) == "function"
+  end
 
   local function temp_json_path(label)
     local path = string.format("%s/%s-%d-%d.json", getMudletHomeDir(), label, os.time(), math.random(1000, 999999))
@@ -41,6 +44,12 @@ describe("agnosticdb transfer", function()
     local path = temp_json_path("agnosticdb-export-spec")
     local result, err = agnosticdb.transfer.exportData(path)
 
+    if not has_json_support() then
+      assert.is_nil(result)
+      assert.are.equal("json_unavailable", err)
+      return
+    end
+
     assert.is_nil(err)
     assert.is_not_nil(result)
     assert.are.equal(path, result.path)
@@ -62,6 +71,13 @@ describe("agnosticdb transfer", function()
 
   it("imports keyed records and refreshes highlights", function()
     local path = temp_json_path("agnosticdb-import-spec")
+    if not has_json_support() then
+      local stats, err = agnosticdb.transfer.importData(path)
+      assert.is_nil(stats)
+      assert.are.equal("json_unavailable", err)
+      return
+    end
+
     local payload = {
       Imported = {
         city = "cyrene",
