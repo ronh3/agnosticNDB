@@ -8,6 +8,8 @@ These specs run inside a real Mudlet instance in GitHub Actions.
   Confirms DB upsert/get behavior, `last_updated` stability for unchanged writes, and derived enemy logic.
 - `agnosticdb_api_spec.lua`
   Confirms API list parsing, per-character fetch ingestion, and cache short-circuit behavior using stubbed HTTP responses.
+- `agnosticdb_config_spec.lua`
+  Confirms config import/export entry points, including JSON-capability fallback behavior and highlight reload on import.
 - `agnosticdb_honors_spec.lua`
   Confirms the honors module entry points exist, that a direct honors capture updates core parsed fields such as class, city, house, and ranks, that queue startup deduplicates names, and that queue cancellation clears state.
 - `agnosticdb_ingestion_spec.lua`
@@ -30,5 +32,4 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 
 - qwp/qwhom rendering
 - queue progress, backoff, and cancel behavior
-- config import/export and merge precedence
 - city/house enemy capture semantics
