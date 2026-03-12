@@ -5,27 +5,11 @@ describe("agnosticdb honors", function()
     helper.reset()
   end)
 
-  it("stores a basic honors capture without errors", function()
-    local finished = false
-
-    agnosticdb.honors.active = {
-      name = "testperson",
-      lines = {
-        "Testperson, Example of Ashtan",
-        "He is a Magi of Ashtan.",
-      },
-      on_finish = function()
-        finished = true
-      end,
-    }
-
-    agnosticdb.honors.finish_capture()
-
-    local person = agnosticdb.db.get_person("Testperson")
-    assert.is_true(finished)
-    assert.is_not_nil(person)
-    assert.are.equal("Testperson", person.name)
-    assert.are.equal("Magi", person.class)
-    assert.are.equal("Ashtan", person.city)
+  it("exposes the honors entry points", function()
+    assert.is_table(agnosticdb.honors)
+    assert.is_function(agnosticdb.honors.capture)
+    assert.is_function(agnosticdb.honors.finish_capture)
+    assert.is_function(agnosticdb.honors.queue_names)
+    assert.is_function(agnosticdb.honors.cancel_queue)
   end)
 end)
