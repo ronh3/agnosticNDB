@@ -8,6 +8,8 @@ These specs run inside a real Mudlet instance in GitHub Actions.
   Confirms DB upsert/get behavior, `last_updated` stability for unchanged writes, and derived enemy logic.
 - `agnosticdb_api_spec.lua`
   Confirms API list parsing, per-character fetch ingestion, and cache short-circuit behavior using stubbed HTTP responses.
+- `agnosticdb_honors_spec.lua`
+  Confirms the honors module is loaded and exposes its core entry points.
 - `agnosticdb_ingestion_spec.lua`
   Confirms stable `finish_capture()` ingestion paths for citizens lists and personal enemy replacement.
 - `agnosticdb_transfer_spec.lua`
@@ -18,8 +20,6 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 ## Quarantined Specs
 
 These are currently parked as `.disabled` files because the first CI versions were not yet stable enough for the Mudlet-backed suite:
-
-- `agnosticdb_honors_spec.lua.disabled`
 
 Re-enable quarantined specs one file at a time, and only after the rewritten version passes CI.
 
@@ -34,7 +34,7 @@ Re-enable quarantined specs one file at a time, and only after the rewritten ver
 
 ## Reintroduction Order
 
-- Reintroduce `agnosticdb_honors_spec.lua` last, since honors capture/queue flow is the most timing-sensitive.
+- Expand `agnosticdb_honors_spec.lua` last, since honors capture/queue flow is the most timing-sensitive.
 
 ## Future Additions
 
