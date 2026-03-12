@@ -2,14 +2,17 @@ local helper = dofile(os.getenv("TESTS_DIRECTORY") .. "/support/agnosticdb_test_
 
 describe("agnosticdb api", function()
   local saved_getHTTP
+  local saved_time
 
   before_each(function()
     helper.reset()
     saved_getHTTP = _G.getHTTP
+    saved_time = os.time
   end)
 
   after_each(function()
     _G.getHTTP = saved_getHTTP
+    os.time = saved_time
   end)
 
   it("parses the online character list", function()
@@ -75,5 +78,69 @@ describe("agnosticdb api", function()
     assert.are.equal(0, http_calls)
     assert.are.equal("cached", status)
     assert.are.equal("Cachedperson", person.name)
+  end)
+
+  it("estimates queue time from queue length, pacing, and backoff", function()
+    os.time = function()
+      return 100
+    end
+
+    agnosticdb.conf.api.min_interval_seconds = 3
+    agnosticdb.api.queue = { "One", "Two" }
+    agnosticdb.api.last_request_time = 98
+    agnosticdb.api.backoff_until = 105
+    agnosticdb.api.queue_stats = {
+      processed = 2,
+      started_at = 92,
+    }
+
+    assert.are.equal(18, agnosticdb.api.estimate_queue_seconds(1))
+  end)
+
+  it("cancels the pending queue and clears queue state", function()
+    agnosticdb.api.queue = { "One", "Two", "Three" }
+    agnosticdb.api.queued = { One = true, Two = true, Three = true }
+    agnosticdb.api.queue_running = true
+    agnosticdb.api.queue_stats = { total = 3 }
+    agnosticdb.api.on_queue_done = function() end
+
+    local pending = agnosticdb.api.cancel_queue()
+
+    assert.are.equal(3, pending)
+    assert.are.same({}, agnosticdb.api.queue)
+    assert.are.same({}, agnosticdb.api.queued)
+    assert.is_false(agnosticdb.api.queue_running)
+    assert.is_nil(agnosticdb.api.queue_stats)
+    assert.is_nil(agnosticdb.api.on_queue_done)
+  end)
+
+  it("fetches only missing online names with fetch_online_new", function()
+    agnosticdb.db.upsert_person({ name = "Knownone", city = "Ashtan" })
+
+    local fetch_list_stub = stub(agnosticdb.api, "fetch_list", function(on_done)
+      on_done({ "Knownone", "Newone", "Newtwo" }, "ok")
+    end)
+    local queue_stub = stub(agnosticdb.api, "queue_fetches", function(names, opts)
+      assert.are.same({ "Newone", "Newtwo" }, names)
+      assert.are.same({ force = true }, opts)
+      return 2
+    end)
+
+    local payload, status = nil, nil
+    agnosticdb.api.fetch_online_new(function(result, result_status)
+      payload = result
+      status = result_status
+    end)
+
+    fetch_list_stub:revert()
+    queue_stub:revert()
+
+    assert.are.equal("ok", status)
+    assert.are.same({ "Knownone", "Newone", "Newtwo" }, payload.names)
+    assert.are.same({ "Newone", "Newtwo" }, payload.missing)
+    assert.are.equal(2, payload.added)
+    assert.are.equal(2, payload.queued)
+    assert.are.equal("api_list", agnosticdb.db.get_person("Newone").source)
+    assert.are.equal("api_list", agnosticdb.db.get_person("Newtwo").source)
   end)
 end)
