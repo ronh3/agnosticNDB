@@ -10,6 +10,8 @@ These specs run inside a real Mudlet instance in GitHub Actions.
   Confirms API list parsing, per-character fetch ingestion, and cache short-circuit behavior using stubbed HTTP responses.
 - `agnosticdb_ingestion_spec.lua`
   Confirms stable `finish_capture()` ingestion paths for citizens lists and personal enemy replacement.
+- `agnosticdb_transfer_spec.lua`
+  Confirms import/export entry points with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
   Confirms the help and status views render key sections without throwing.
 
@@ -18,7 +20,6 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 These are currently parked as `.disabled` files because the first CI versions were not yet stable enough for the Mudlet-backed suite:
 
 - `agnosticdb_honors_spec.lua.disabled`
-- `agnosticdb_transfer_spec.lua.disabled`
 
 Re-enable quarantined specs one file at a time, and only after the rewritten version passes CI.
 
@@ -33,7 +34,6 @@ Re-enable quarantined specs one file at a time, and only after the rewritten ver
 
 ## Reintroduction Order
 
-- Reintroduce `agnosticdb_transfer_spec.lua` next, keeping JSON capability checks explicit.
 - Reintroduce `agnosticdb_honors_spec.lua` last, since honors capture/queue flow is the most timing-sensitive.
 
 ## Future Additions
