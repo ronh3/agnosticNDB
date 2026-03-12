@@ -10,24 +10,160 @@ jobs:
   build:
     permissions: write-all
     runs-on: ubuntu-latest
+    env:
+      MUDLET_RELEASE_TAG: ci-asset
+      MUDLET_RELEASE_ASSET: Mudlet-4.19.1-linux-x64.AppImage.tar
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read package version
-        id: pkgup
+      - name: Read package metadata
+        id: pkg
         run: |
           VERSION=$(jq -r '.version' mfile)
+          PACKAGE=$(jq -r '.package' mfile)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "package=$PACKAGE" >> "$GITHUB_OUTPUT"
 
       - name: Muddle
         uses: demonnic/build-with-muddler@main
+
+      - name: Detect package file for Mudlet tests
+        id: package_file
+        run: |
+          set -eu
+          PACKAGE="${{ steps.pkg.outputs.package }}"
+
+          for candidate in \
+            "build/${PACKAGE}.mpackage" \
+            "build/tmp/${PACKAGE}.xml" \
+            "build/${PACKAGE}.xml"
+          do
+            if [ -f "$candidate" ]; then
+              echo "path=$candidate" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "Unable to locate a Mudlet package artifact for tests."
+          find build -maxdepth 3 -type f | sort || true
+          exit 1
+
+      - name: Set up Lua
+        uses: leafo/gh-actions-lua@v8.0.0
+        with:
+          luaVersion: "5.1.5"
+
+      - name: Set up LuaRocks
+        uses: leafo/gh-actions-luarocks@v4.0.0
+
+      - name: Install test dependencies
+        run: |
+          luarocks install busted
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 libopengl0 libegl1
+
+      - name: Restore cached Mudlet AppImage
+        uses: actions/cache@v4
+        id: cache-mudlet
+        with:
+          path: /tmp/Mudlet.AppImage
+          key: mudlet-release-${{ env.MUDLET_RELEASE_TAG }}-${{ env.MUDLET_RELEASE_ASSET }}
+
+      - name: Download Mudlet AppImage
+        if: steps.cache-mudlet.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${MUDLET_RELEASE_TAG}"
+          asset_api_url=$(curl -fsSL \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "$release_api" \
+            | jq -r --arg name "${MUDLET_RELEASE_ASSET}" '.assets[] | select(.name == $name) | .url')
+          if [ -z "$asset_api_url" ] || [ "$asset_api_url" = "null" ]; then
+            echo "Failed to find release asset ${MUDLET_RELEASE_ASSET} on tag ${MUDLET_RELEASE_TAG}"
+            exit 1
+          fi
+          curl -L --fail --retry 5 --retry-delay 2 --retry-all-errors \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/octet-stream" \
+            "$asset_api_url" -o /tmp/Mudlet.tar
+          tar tf /tmp/Mudlet.tar >/dev/null
+          tar xf /tmp/Mudlet.tar -C /tmp
+          chmod +x /tmp/Mudlet.AppImage
+
+      - name: Install Mudlet test profile
+        run: |
+          git clone --depth 1 https://github.com/demonnic/test-in-mudlet.git /tmp/test-in-mudlet
+          mkdir -p "$HOME/.config/mudlet/profiles"
+          cp -r /tmp/test-in-mudlet/profiles/GithubTests "$HOME/.config/mudlet/profiles/"
+          profile_xml=$(find "$HOME/.config/mudlet/profiles/GithubTests/current" -name '*.xml' | head -n 1)
+          if [ -z "$profile_xml" ]; then
+            echo "Unable to locate GithubTests profile XML"
+            exit 1
+          fi
+          perl -0pi -e "s/options\\.verbose = false/options.verbose = true/" "$profile_xml"
+
+      - name: Prepare Mudlet test runner
+        run: |
+          cat >/tmp/run-mudlet-tests.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          set +e
+          /tmp/Mudlet.AppImage --profile "GithubTests" --mirror > /tmp/mudlet.raw.log 2>&1
+          status=$?
+          set -e
+
+          python - <<'PY'
+          from pathlib import Path
+
+          lines = Path("/tmp/mudlet.raw.log").read_text(errors="replace").splitlines()
+          i = 0
+          while i < len(lines):
+              line = lines[i]
+              if 'XMLimport::readUnknownElement(' in line and 'UNKNOWN Package Element name: "path".' in line:
+                  i += 4
+                  continue
+              print(line)
+              i += 1
+          PY
+
+          exit "$status"
+          EOF
+          chmod +x /tmp/run-mudlet-tests.sh
+
+      - name: Run Busted tests in Mudlet
+        uses: GabrielBB/xvfb-action@v1.6
+        with:
+          run: bash /tmp/run-mudlet-tests.sh
+        env:
+          AUTORUN_BUSTED_TESTS: "true"
+          TESTS_DIRECTORY: ${{ github.workspace }}/tests
+          QUIT_MUDLET_AFTER_TESTS: "true"
+          PRETEST_PACKAGE: ${{ steps.package_file.outputs.path }}
+
+      - name: Check Busted result
+        run: |
+          if [ -e /tmp/busted-tests-failed ]; then
+            echo "Lua tests failed - see the Mudlet test step output above."
+            exit 1
+          fi
+
+      - name: Upload Mudlet test log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mudlet-test-log
+          path: /tmp/mudlet.raw.log
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         id: upload
         with:
-          name: agnosticDB-${{ steps.pkgup.outputs.version }}
+          name: ${{ steps.pkg.outputs.package }}-${{ steps.pkg.outputs.version }}
           path: build/tmp/
 
       - name: Post Artifact

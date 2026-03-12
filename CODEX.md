@@ -10,6 +10,7 @@ Guidance for Codex when working in this repository.
 ## Build System (Muddler)
 - Work only in `src/` JSON + Lua files; never edit built artifacts.
 - `mfile` version drives `@VERSION@`/`@PKGNAME@` replacements in code.
+- Keep `mfile.title` synced manually to `agnosticDB-<version> (Achaea Name Database)` whenever `mfile.version` changes.
 - Each object folder needs a manifest JSON: `scripts.json`, `aliases.json`, `triggers.json`, etc.
 
 ## Workflow Reminders
