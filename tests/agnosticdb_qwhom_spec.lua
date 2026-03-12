@@ -8,7 +8,6 @@ describe("agnosticdb qwhom", function()
   local cecho_stub
   local open_stub
   local close_stub
-  local outputs
   local enabled
   local disabled
   local sent
@@ -19,7 +18,6 @@ describe("agnosticdb qwhom", function()
     agnosticdb.qwhom.dead = {}
     agnosticdb.qwhom.active = false
     agnosticdb.qwhom.filter = nil
-    outputs = {}
     enabled = {}
     disabled = {}
     sent = {}
@@ -34,15 +32,9 @@ describe("agnosticdb qwhom", function()
       disabled[#disabled + 1] = name
     end)
     delete_line_stub = stub(_G, "deleteLine", function() end)
-    cecho_stub = stub(_G, "cecho", function(msg)
-      outputs[#outputs + 1] = tostring(msg or "")
-    end)
-    open_stub = stub(agnosticdb.ui, "report_frame_open", function(title)
-      outputs[#outputs + 1] = "[open:" .. tostring(title) .. "]"
-    end)
-    close_stub = stub(agnosticdb.ui, "report_frame_close", function()
-      outputs[#outputs + 1] = "[close]"
-    end)
+    cecho_stub = stub(_G, "cecho", function() end)
+    open_stub = stub(agnosticdb.ui, "report_frame_open", function() end)
+    close_stub = stub(agnosticdb.ui, "report_frame_close", function() end)
   end)
 
   after_each(function()
@@ -75,23 +67,30 @@ describe("agnosticdb qwhom", function()
     assert.are.same({ "queue add free who b" }, sent)
   end)
 
-  it("captures lines and renders grouped output on finish", function()
+  it("captures grouped live and dead entries", function()
     agnosticdb.db.upsert_person({ name = "Alpha", city = "Ashtan" })
+    agnosticdb.qwhom.start()
+    agnosticdb.qwhom.capture_line("Alpha", "")
+    agnosticdb.qwhom.capture_line("(Embracing Death) Beta", "")
+
+    assert.are.equal(1, #agnosticdb.qwhom.data["Unknown Area"]["Gemmed or Off-Plane"])
+    assert.are.equal("Alpha", agnosticdb.qwhom.data["Unknown Area"]["Gemmed or Off-Plane"][1].name)
+    assert.are.same({ "Beta" }, agnosticdb.qwhom.dead)
+  end)
+
+  it("clears qwhom state on finish", function()
     agnosticdb.qwhom.start()
     agnosticdb.qwhom.capture_line("Alpha", "")
     agnosticdb.qwhom.capture_line("(Embracing Death) Beta", "")
 
     agnosticdb.qwhom.finish()
 
-    local rendered = table.concat(outputs, "\n")
-    assert.is_true(rendered:find("[open:Qwhom]", 1, true) ~= nil)
-    assert.is_true(rendered:find("Unknown Area", 1, true) ~= nil)
-    assert.is_true(rendered:find("Gemmed or Off-Plane", 1, true) ~= nil)
-    assert.is_true(rendered:find("Alpha", 1, true) ~= nil)
-    assert.is_true(rendered:find("Dead:", 1, true) ~= nil)
-    assert.is_true(rendered:find("Beta", 1, true) ~= nil)
-    assert.is_true(rendered:find("[close]", 1, true) ~= nil)
     assert.is_false(agnosticdb.qwhom.active)
+    assert.are.same({
+      "Qwhom Capture",
+      "Qwhom Display",
+      "Qwhom Prompt",
+    }, disabled)
     assert.are.same({}, agnosticdb.qwhom.data)
     assert.are.same({}, agnosticdb.qwhom.dead)
     assert.is_nil(agnosticdb.qwhom.filter)

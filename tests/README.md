@@ -15,7 +15,7 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 - `agnosticdb_ingestion_spec.lua`
   Confirms stable `finish_capture()` ingestion paths for citizens lists plus personal, city, and house enemy replacement.
 - `agnosticdb_qwhom_spec.lua`
-  Confirms qwhom startup wiring and grouped finish output using the stable no-mapper path.
+  Confirms qwhom startup wiring, live/dead capture grouping, and finish-state cleanup using the stable no-mapper path.
 - `agnosticdb_transfer_spec.lua`
   Confirms import/export entry points, including export metadata shape, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
