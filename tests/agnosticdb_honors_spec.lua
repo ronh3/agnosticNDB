@@ -33,6 +33,12 @@ describe("agnosticdb honors", function()
       lines = {
         "Testperson, Example of Ashtan",
         "He is a Magi of Ashtan.",
+        "He is a member of the House of Scions.",
+        "He is ranked 5 in the city and ranked 123 overall.",
+        "He serves as (7) in the army of Ashtan.",
+        "He is an Immortal.",
+        "He is a mighty Dragon.",
+        "He is a (male rajamala).",
       },
       on_finish = function()
         finished = true
@@ -48,6 +54,13 @@ describe("agnosticdb honors", function()
     assert.are.equal("Testperson, Example of Ashtan", person.title)
     assert.are.equal("Magi", person.class)
     assert.are.equal("Ashtan", person.city)
+    assert.are.equal("Scions", person.house)
+    assert.are.equal("Rajamala", person.race)
+    assert.are.equal(5, tonumber(person.city_rank))
+    assert.are.equal(123, tonumber(person.xp_rank))
+    assert.are.equal(7, tonumber(person.army_rank))
+    assert.are.equal(1, tonumber(person.immortal))
+    assert.are.equal(1, tonumber(person.dragon))
     assert.is_true(table.concat(outputs, "\n"):find("Honors updated for Testperson.", 1, true) ~= nil)
   end)
 end)
