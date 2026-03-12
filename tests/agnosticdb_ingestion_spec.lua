@@ -69,4 +69,25 @@ describe("agnosticdb ingestion", function()
     assert.are.equal(1, reload_calls)
     assert.is_true(table.concat(outputs, "\n"):find("Personal enemies updated: 2 listed, 2 set, 1 cleared.", 1, true) ~= nil)
   end)
+
+  it("replaces a captured city enemy list and clears stale entries", function()
+    agnosticdb.db.upsert_person({ name = "Alpha", enemy_city = "Ashtan" })
+    agnosticdb.db.upsert_person({ name = "Beta", enemy_city = "Ashtan" })
+
+    agnosticdb.enemies.capture = {
+      kind = "city",
+      org = "Ashtan",
+      names = {
+        Alpha = true,
+        Gamma = true,
+      },
+    }
+
+    agnosticdb.enemies.finish_capture()
+
+    assert.are.equal("Ashtan", agnosticdb.db.get_person("Alpha").enemy_city)
+    assert.are.equal("", agnosticdb.db.get_person("Beta").enemy_city)
+    assert.are.equal("Ashtan", agnosticdb.db.get_person("Gamma").enemy_city)
+    assert.is_true(table.concat(outputs, "\n"):find("City enemies updated for Ashtan: 2 listed, 2 set, 1 cleared.", 1, true) ~= nil)
+  end)
 end)
