@@ -35,9 +35,9 @@ jobs:
           PACKAGE="${{ steps.pkg.outputs.package }}"
 
           for candidate in \
-            "build/${PACKAGE}.mpackage" \
             "build/tmp/${PACKAGE}.xml" \
-            "build/${PACKAGE}.xml"
+            "build/${PACKAGE}.xml" \
+            "build/${PACKAGE}.mpackage"
           do
             if [ -f "$candidate" ]; then
               echo "path=$candidate" >> "$GITHUB_OUTPUT"
