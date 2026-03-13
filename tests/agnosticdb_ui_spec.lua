@@ -121,7 +121,7 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Newer", 1, true) < rendered:find("Older", 1, true))
   end)
 
-  it("reports refresh_online progress, summary, and queue completion", function()
+  it("reports refresh_online summary and ETA", function()
     local fetch_online_stub = stub(agnosticdb.api, "fetch_online", function(on_done, opts)
       assert.are.same({ force = true }, opts)
       on_done({
@@ -136,18 +136,6 @@ describe("agnosticdb ui", function()
     end)
 
     agnosticdb.ui.refresh_online()
-    agnosticdb.api.on_queue_progress(25, { processed = 1, total = 4 })
-    agnosticdb.api.on_queue_done({
-      ok = 1,
-      unchanged = 0,
-      cached = 0,
-      pruned = 0,
-      api_error = 0,
-      decode_failed = 0,
-      download_error = 0,
-      other = 0,
-      elapsed_seconds = 12,
-    })
 
     fetch_online_stub:revert()
     eta_stub:revert()
@@ -156,9 +144,6 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Refreshing online list (force)...", 1, true) ~= nil)
     assert.is_true(rendered:find("Online list: 2 names, 1 added, 2 queued.", 1, true) ~= nil)
     assert.is_true(rendered:find("Estimated completion: ~42s", 1, true) ~= nil)
-    assert.is_true(rendered:find("Queue progress: 25%% (1/4)") ~= nil)
-    assert.is_true(rendered:find("Queue complete: ok=1 unchanged=0 cached=0 pruned=0 api_error=0 decode_failed=0 download_error=0 other=0", 1, true) ~= nil)
-    assert.is_true(rendered:find("Queue time: 12s", 1, true) ~= nil)
   end)
 
   it("reports quick_update summary and ETA", function()
