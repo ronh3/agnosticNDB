@@ -250,6 +250,8 @@ function agnosticdb.db.upsert_person(fields)
   local normalized = normalize_name(fields.name)
   if not normalized then return end
 
+  local caller_supplied_last_updated = fields.last_updated ~= nil
+
   local record = {}
   for k, v in pairs(fields) do
     record[k] = v
@@ -325,7 +327,7 @@ function agnosticdb.db.upsert_person(fields)
   end
 
   local changed = record_changed()
-  if record.last_updated == nil then
+  if not caller_supplied_last_updated then
     if changed then
       record.last_updated = os.time()
     else
