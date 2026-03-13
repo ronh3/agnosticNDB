@@ -218,4 +218,62 @@ describe("agnosticdb ui", function()
     local rendered = table.concat(outputs, "")
     assert.is_true(rendered:find("Import failed: Import decode failed.", 1, true) ~= nil)
   end)
+
+  it("reports note save and display", function()
+    agnosticdb.ui.set_note("Alpha", "Test note")
+    agnosticdb.ui.show_note("Alpha")
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Notes saved for Alpha.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Notes: Alpha", 1, true) ~= nil)
+    assert.is_true(rendered:find("Test note", 1, true) ~= nil)
+  end)
+
+  it("reports note clearing counts", function()
+    agnosticdb.ui.set_note("Alpha", "Test note")
+    agnosticdb.ui.clear_note("Alpha")
+    agnosticdb.ui.clear_all_notes()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Notes cleared for Alpha.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Notes cleared for 0 people.", 1, true) ~= nil)
+  end)
+
+  it("toggles the highlight ignore list and reloads highlights", function()
+    local reloads = 0
+    local reload_stub = stub(agnosticdb.highlights, "reload", function()
+      reloads = reloads + 1
+    end)
+
+    agnosticdb.ui.toggle_ignore("Alpha")
+    agnosticdb.ui.toggle_ignore("Alpha")
+
+    reload_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Alpha added to highlight ignore list.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Alpha removed from highlight ignore list.", 1, true) ~= nil)
+    assert.are.equal(2, reloads)
+  end)
+
+  it("reports fetch usage and ETA", function()
+    local eta_stub = stub(agnosticdb.api, "estimate_queue_seconds", function(extra)
+      assert.are.equal(0, extra)
+      return 5
+    end)
+    local fetch_stub = stub(agnosticdb.ui, "fetch_and_show", function(name)
+      assert.are.equal("Alpha", name)
+    end)
+
+    agnosticdb.ui.fetch("")
+    agnosticdb.ui.fetch("Alpha")
+
+    fetch_stub:revert()
+    eta_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Usage: adb fetch <name>", 1, true) ~= nil)
+    assert.is_true(rendered:find("Tip: adb refresh (force online list), adb quick (new online only).", 1, true) ~= nil)
+    assert.is_true(rendered:find("Estimated completion: ~5s", 1, true) ~= nil)
+  end)
 end)
