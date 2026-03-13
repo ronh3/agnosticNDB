@@ -7,15 +7,15 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 - `agnosticdb_db_spec.lua`
   Confirms DB upsert/get behavior, merge semantics for omitted versus explicit values, `last_updated` stability for unchanged writes, and derived enemy logic.
 - `agnosticdb_api_spec.lua`
-  Confirms API list parsing, backoff gating, per-character fetch ingestion, cache short-circuit behavior, queue ETA math, queue cancellation, queue progress milestones, and missing-only online refresh behavior using stubbed HTTP responses.
+  Confirms API list parsing, backoff gating, per-character fetch ingestion, cache short-circuit behavior, queue ETA math, queue cancellation, queue progress milestones, update-all queueing, and missing-only online refresh behavior using stubbed HTTP responses.
 - `agnosticdb_config_spec.lua`
   Confirms config import/export entry points, including JSON-capability fallback behavior and highlight reload on import.
 - `agnosticdb_honors_spec.lua`
-  Confirms the honors module entry points exist, that direct honors captures update parsed fields such as class, city, house, race, ranks, and immortal/dragon flags, that queue startup deduplicates names, and that queue cancellation clears state.
+  Confirms the honors module entry points exist, that direct honors captures update parsed fields such as class, city, house, race, ranks, dragon-style data, and immortal/dragon flags, that queue startup deduplicates names, and that queue cancellation clears state.
 - `agnosticdb_ingestion_spec.lua`
   Confirms stable `finish_capture()` ingestion paths for citizens lists, including source-preservation behavior, plus personal, city, and house enemy replacement.
 - `agnosticdb_transfer_spec.lua`
-  Confirms import/export entry points, export metadata shape, and import merge behavior, with explicit handling for environments where JSON support is unavailable.
+  Confirms import/export entry points, export metadata shape, and import merge/clearing behavior, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
   Provides thin UI integration coverage for status, qwp command wiring, queue cancellation, recent updates, online refresh/update wrappers, ignore toggling, IFF, and elemental-lord actions.
 

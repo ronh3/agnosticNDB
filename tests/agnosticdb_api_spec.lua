@@ -199,4 +199,28 @@ describe("agnosticdb api", function()
     assert.are.equal(1, agnosticdb.api.queue_stats.ok)
     assert.is_false(agnosticdb.api.queue_running)
   end)
+
+  it("queues updates for all known database names", function()
+    agnosticdb.db.upsert_person({ name = "Alpha", city = "Ashtan" })
+    agnosticdb.db.upsert_person({ name = "Beta", city = "Cyrene" })
+
+    local queue_stub = stub(agnosticdb.api, "queue_fetches", function(names, opts)
+      table.sort(names)
+      assert.are.same({ "Alpha", "Beta" }, names)
+      assert.are.same({ force = true }, opts)
+      return 2
+    end)
+
+    local payload, status
+    agnosticdb.api.update_all(function(result, result_status)
+      payload = result
+      status = result_status
+    end)
+
+    queue_stub:revert()
+
+    assert.are.equal("ok", status)
+    assert.are.equal(2, payload.count)
+    assert.are.equal(2, payload.queued)
+  end)
 end)

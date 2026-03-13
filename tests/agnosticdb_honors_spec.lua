@@ -84,6 +84,27 @@ describe("agnosticdb honors", function()
     assert.are.equal("Cyrene", person.city)
   end)
 
+  it("parses dragon-style honors lines into stored fields", function()
+    agnosticdb.honors.active = {
+      name = "drakos",
+      lines = {
+        "Drakos, the Ancient (male dragon)",
+        "He is also a red dragon.",
+        "He is ranked 77th in Achaea.",
+      },
+    }
+
+    agnosticdb.honors.finish_capture()
+
+    local person = agnosticdb.db.get_person("Drakos")
+    assert.is_not_nil(person)
+    assert.are.equal("Dragon", person.race)
+    assert.are.equal("Red Dragon", person.class)
+    assert.are.equal(77, tonumber(person.xp_rank))
+    assert.are.equal(1, tonumber(person.dragon))
+    assert.are.equal("Drakos, the Ancient (male dragon)", person.title)
+  end)
+
   it("deduplicates names when starting an honors queue", function()
     local ran_queue = 0
     local on_done = function() end
