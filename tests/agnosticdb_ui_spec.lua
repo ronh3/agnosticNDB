@@ -120,4 +120,68 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("honors", 1, true) ~= nil)
     assert.is_true(rendered:find("Newer", 1, true) < rendered:find("Older", 1, true))
   end)
+
+  it("reports refresh_online progress, summary, and queue completion", function()
+    local fetch_online_stub = stub(agnosticdb.api, "fetch_online", function(on_done, opts)
+      assert.are.same({ force = true }, opts)
+      on_done({
+        names = { "Alpha", "Beta" },
+        added = 1,
+        queued = 2,
+      }, "ok")
+    end)
+    local eta_stub = stub(agnosticdb.api, "estimate_queue_seconds", function(extra)
+      assert.are.equal(0, extra)
+      return 42
+    end)
+
+    agnosticdb.ui.refresh_online()
+    agnosticdb.api.on_queue_progress(25, { processed = 1, total = 4 })
+    agnosticdb.api.on_queue_done({
+      ok = 1,
+      unchanged = 0,
+      cached = 0,
+      pruned = 0,
+      api_error = 0,
+      decode_failed = 0,
+      download_error = 0,
+      other = 0,
+      elapsed_seconds = 12,
+    })
+
+    fetch_online_stub:revert()
+    eta_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Refreshing online list (force)...", 1, true) ~= nil)
+    assert.is_true(rendered:find("Online list: 2 names, 1 added, 2 queued.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Estimated completion: ~42s", 1, true) ~= nil)
+    assert.is_true(rendered:find("Queue progress: 25%% (1/4)") ~= nil)
+    assert.is_true(rendered:find("Queue complete: ok=1 unchanged=0 cached=0 pruned=0 api_error=0 decode_failed=0 download_error=0 other=0", 1, true) ~= nil)
+    assert.is_true(rendered:find("Queue time: 12s", 1, true) ~= nil)
+  end)
+
+  it("reports quick_update summary and ETA", function()
+    local quick_stub = stub(agnosticdb.api, "fetch_online_new", function(on_done)
+      on_done({
+        names = { "Alpha", "Beta", "Gamma" },
+        added = 2,
+        queued = 2,
+      }, "ok")
+    end)
+    local eta_stub = stub(agnosticdb.api, "estimate_queue_seconds", function(extra)
+      assert.are.equal(0, extra)
+      return 7
+    end)
+
+    agnosticdb.ui.quick_update()
+
+    quick_stub:revert()
+    eta_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Fetching online list (new names only)...", 1, true) ~= nil)
+    assert.is_true(rendered:find("Online list: 3 names, 2 new, 2 queued.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Estimated completion: ~7s", 1, true) ~= nil)
+  end)
 end)
