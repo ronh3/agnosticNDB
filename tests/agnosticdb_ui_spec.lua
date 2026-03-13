@@ -76,4 +76,48 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Alpha (MAG)", 1, true) ~= nil)
     assert.is_true(rendered:find("Beta (MNK)", 1, true) ~= nil)
   end)
+
+  it("reports api queue cancellation and pending count", function()
+    agnosticdb.api.queue = { "Alpha", "Beta" }
+    local cancel_stub = stub(agnosticdb.api, "cancel_queue", function()
+      agnosticdb.api.queue = {}
+      return 2
+    end)
+
+    agnosticdb.ui.api_queue_cancel()
+
+    cancel_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("API queue canceled. Cleared 2 pending item(s).", 1, true) ~= nil)
+    assert.is_true(rendered:find("Any in-flight requests will still complete.", 1, true) ~= nil)
+  end)
+
+  it("renders recent updates ordered by newest first", function()
+    agnosticdb.db.upsert_person({
+      name = "Older",
+      class = "Monk",
+      city = "Cyrene",
+      source = "api",
+      last_updated = 100,
+    })
+    agnosticdb.db.upsert_person({
+      name = "Newer",
+      class = "Magi",
+      city = "Ashtan",
+      source = "honors",
+      last_updated = 200,
+    })
+
+    agnosticdb.ui.show_recent(2)
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Recent Updates (showing 2 of 2)", 1, true) ~= nil)
+    assert.is_true(rendered:find("Newer", 1, true) ~= nil)
+    assert.is_true(rendered:find("Older", 1, true) ~= nil)
+    assert.is_true(rendered:find("Magi", 1, true) ~= nil)
+    assert.is_true(rendered:find("Cyrene", 1, true) ~= nil)
+    assert.is_true(rendered:find("honors", 1, true) ~= nil)
+    assert.is_true(rendered:find("Newer", 1, true) < rendered:find("Older", 1, true))
+  end)
 end)
