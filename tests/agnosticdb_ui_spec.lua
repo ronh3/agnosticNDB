@@ -276,4 +276,32 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Tip: adb refresh (force online list), adb quick (new online only).", 1, true) ~= nil)
     assert.is_true(rendered:find("Estimated completion: ~5s", 1, true) ~= nil)
   end)
+
+  it("reports iff updates", function()
+    agnosticdb.ui.set_iff("Alpha", "friend")
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("IFF for Alpha set to friend.", 1, true) ~= nil)
+  end)
+
+  it("validates elemental lord input", function()
+    agnosticdb.ui.set_elemental_lord("", "air")
+    agnosticdb.ui.set_elemental_lord("Alpha", "")
+    agnosticdb.ui.set_elemental_lord("Alpha", "steam")
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Provide a name.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Provide a type: air|earth|fire|water|clear.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Elemental type must be air, earth, fire, water, or clear.", 1, true) ~= nil)
+  end)
+
+  it("sets and clears elemental lord type", function()
+    agnosticdb.ui.set_elemental_lord("Alpha", "fire")
+    agnosticdb.ui.set_elemental_lord("Alpha", "clear")
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Elemental lord type for Alpha set to Fire.", 1, true) ~= nil)
+    assert.is_true(rendered:find("Elemental lord type cleared for Alpha.", 1, true) ~= nil)
+    assert.are.equal("", agnosticdb.db.get_person("Alpha").elemental_lord_type)
+  end)
 end)
