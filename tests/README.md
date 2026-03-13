@@ -7,7 +7,7 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 - `agnosticdb_db_spec.lua`
   Confirms DB upsert/get behavior, `last_updated` stability for unchanged writes, and derived enemy logic.
 - `agnosticdb_api_spec.lua`
-  Confirms API list parsing, per-character fetch ingestion, cache short-circuit behavior, queue ETA math, queue cancellation, and missing-only online refresh behavior using stubbed HTTP responses.
+  Confirms API list parsing, per-character fetch ingestion, cache short-circuit behavior, queue ETA math, queue cancellation, queue progress milestones, and missing-only online refresh behavior using stubbed HTTP responses.
 - `agnosticdb_config_spec.lua`
   Confirms config import/export entry points, including JSON-capability fallback behavior and highlight reload on import.
 - `agnosticdb_honors_spec.lua`
@@ -35,5 +35,4 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 
 ## Future Additions
 
-- queue progress threshold callbacks
 - qwhom reintroduction from a smaller stable seam

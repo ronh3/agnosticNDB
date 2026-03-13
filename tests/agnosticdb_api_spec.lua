@@ -143,4 +143,37 @@ describe("agnosticdb api", function()
     assert.are.equal("api_list", agnosticdb.db.get_person("Newone").source)
     assert.are.equal("api_list", agnosticdb.db.get_person("Newtwo").source)
   end)
+
+  it("reports queue progress milestones as queued fetches complete", function()
+    local milestones = {}
+    agnosticdb.api.on_queue_progress = function(percent, stats)
+      milestones[#milestones + 1] = {
+        percent = percent,
+        processed = stats.processed,
+        total = stats.total,
+      }
+    end
+
+    _G.getHTTP = function(url)
+      assert.are.equal("https://api.achaea.com/characters/Progressor.json", url)
+      return [[{"name":"Progressor","fullname":"Progressor, Example","city":"cyrene","class":"bard","house":"carnifex","xp_rank":55,"level":80}]], 200
+    end
+
+    local person, status
+    agnosticdb.api.fetch("Progressor", function(result, result_status)
+      person = result
+      status = result_status
+    end, { force = true })
+
+    assert.are.equal("ok", status)
+    assert.are.equal("Progressor", person.name)
+    assert.are.same({
+      { percent = 25, processed = 1, total = 1 },
+      { percent = 50, processed = 1, total = 1 },
+      { percent = 75, processed = 1, total = 1 },
+    }, milestones)
+    assert.are.equal(1, agnosticdb.api.queue_stats.processed)
+    assert.are.equal(1, agnosticdb.api.queue_stats.ok)
+    assert.is_false(agnosticdb.api.queue_running)
+  end)
 end)
