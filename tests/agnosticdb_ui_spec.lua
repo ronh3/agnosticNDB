@@ -40,4 +40,40 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("1", 1, true) ~= nil)
     assert.is_true(rendered:find("API queue", 1, true) ~= nil)
   end)
+
+  it("shows qwp usage for help input", function()
+    agnosticdb.ui.qwp_command("help")
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Usage: qwp [options]", 1, true) ~= nil)
+    assert.is_true(rendered:find("Options: c|class, r|race, rc|race+class, cr|class+race, a|army, rank <n>", 1, true) ~= nil)
+  end)
+
+  it("validates qwp rank input", function()
+    agnosticdb.ui.qwp_command("rank")
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("qwp rank <n>: missing numeric rank.", 1, true) ~= nil)
+  end)
+
+  it("renders qwp grouped online list with class suffixes", function()
+    agnosticdb.db.upsert_person({ name = "Alpha", class = "Magi", city = "Ashtan" })
+    agnosticdb.db.upsert_person({ name = "Beta", class = "Monk", city = "Cyrene" })
+
+    local fetch_list_stub = stub(agnosticdb.api, "fetch_list", function(on_done)
+      on_done({ "Beta", "Alpha" }, "ok")
+    end)
+
+    agnosticdb.ui.qwp_command("class")
+
+    fetch_list_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Building online list...", 1, true) ~= nil)
+    assert.is_true(rendered:find("Online List", 1, true) ~= nil)
+    assert.is_true(rendered:find("Ashtan", 1, true) ~= nil)
+    assert.is_true(rendered:find("Cyrene", 1, true) ~= nil)
+    assert.is_true(rendered:find("Alpha (MAG)", 1, true) ~= nil)
+    assert.is_true(rendered:find("Beta (MNK)", 1, true) ~= nil)
+  end)
 end)

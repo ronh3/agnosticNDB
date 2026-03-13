@@ -17,7 +17,7 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 - `agnosticdb_transfer_spec.lua`
   Confirms import/export entry points, including export metadata shape, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
-  Confirms the help and status views render key sections without throwing.
+  Confirms the help and status views render key sections without throwing, and that `qwp` help, validation, and grouped class-mode rendering work with stubbed online data.
 
 ## Quarantined
 
@@ -36,5 +36,4 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 ## Future Additions
 
 - queue progress threshold callbacks
-- qwp rendering
 - qwhom reintroduction from a smaller stable seam
