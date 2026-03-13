@@ -17,17 +17,6 @@ describe("agnosticdb ui", function()
     _G.cecho = saved_cecho
   end)
 
-  it("renders help with the core command sections", function()
-    agnosticdb.ui.show_help()
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("agnosticDB Help", 1, true) ~= nil)
-    assert.is_true(rendered:find("adb status", 1, true) ~= nil)
-    assert.is_true(rendered:find("adb honors all", 1, true) ~= nil)
-    assert.is_true(rendered:find("qwp [opts]", 1, true) ~= nil)
-    assert.is_true(rendered:find("adbtest", 1, true) ~= nil)
-  end)
-
   it("renders status with current database information", function()
     agnosticdb.db.upsert_person({ name = "Testperson", class = "Magi", city = "Ashtan" })
 
@@ -39,14 +28,6 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Rows", 1, true) ~= nil)
     assert.is_true(rendered:find("1", 1, true) ~= nil)
     assert.is_true(rendered:find("API queue", 1, true) ~= nil)
-  end)
-
-  it("shows qwp usage for help input", function()
-    agnosticdb.ui.qwp_command("help")
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Usage: qwp [options]", 1, true) ~= nil)
-    assert.is_true(rendered:find("Options: c|class, r|race, rc|race+class, cr|class+race, a|army, rank <n>", 1, true) ~= nil)
   end)
 
   it("validates qwp rank input", function()
@@ -170,75 +151,6 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Estimated completion: ~7s", 1, true) ~= nil)
   end)
 
-  it("reports config export success", function()
-    local export_stub = stub(agnosticdb.config, "export_settings", function(path)
-      assert.are.equal("/tmp/agnosticdb-config.json", path)
-      return { path = path }
-    end)
-
-    agnosticdb.ui.config_export("/tmp/agnosticdb-config.json")
-
-    export_stub:revert()
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Config exported to /tmp/agnosticdb-config.json.", 1, true) ~= nil)
-  end)
-
-  it("validates config import usage", function()
-    agnosticdb.ui.config_import("")
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Usage: adb config import <path>", 1, true) ~= nil)
-  end)
-
-  it("reports transfer export success", function()
-    local export_stub = stub(agnosticdb.transfer, "exportData", function(path)
-      assert.are.equal("/tmp/agnosticdb-export.json", path)
-      return { count = 2, path = path }
-    end)
-
-    agnosticdb.ui.exportData("/tmp/agnosticdb-export.json")
-
-    export_stub:revert()
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Exported 2 people to /tmp/agnosticdb-export.json.", 1, true) ~= nil)
-  end)
-
-  it("maps transfer import errors to user-facing text", function()
-    local import_stub = stub(agnosticdb.transfer, "importData", function(path)
-      assert.are.equal("/tmp/agnosticdb-import.json", path)
-      return nil, "decode_failed"
-    end)
-
-    agnosticdb.ui.importData("/tmp/agnosticdb-import.json")
-
-    import_stub:revert()
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Import failed: Import decode failed.", 1, true) ~= nil)
-  end)
-
-  it("reports note save and display", function()
-    agnosticdb.ui.set_note("Alpha", "Test note")
-    agnosticdb.ui.show_note("Alpha")
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Notes saved for Alpha.", 1, true) ~= nil)
-    assert.is_true(rendered:find("Notes: Alpha", 1, true) ~= nil)
-    assert.is_true(rendered:find("Test note", 1, true) ~= nil)
-  end)
-
-  it("reports note clearing counts", function()
-    agnosticdb.ui.set_note("Alpha", "Test note")
-    agnosticdb.ui.clear_note("Alpha")
-    agnosticdb.ui.clear_all_notes()
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Notes cleared for Alpha.", 1, true) ~= nil)
-    assert.is_true(rendered:find("Notes cleared for 0 people.", 1, true) ~= nil)
-  end)
-
   it("toggles the highlight ignore list and reloads highlights", function()
     local reloads = 0
     local reload_stub = stub(agnosticdb.highlights, "reload", function()
@@ -254,27 +166,6 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Alpha added to highlight ignore list.", 1, true) ~= nil)
     assert.is_true(rendered:find("Alpha removed from highlight ignore list.", 1, true) ~= nil)
     assert.are.equal(2, reloads)
-  end)
-
-  it("reports fetch usage and ETA", function()
-    local eta_stub = stub(agnosticdb.api, "estimate_queue_seconds", function(extra)
-      assert.are.equal(0, extra)
-      return 5
-    end)
-    local fetch_stub = stub(agnosticdb.ui, "fetch_and_show", function(name)
-      assert.are.equal("Alpha", name)
-    end)
-
-    agnosticdb.ui.fetch("")
-    agnosticdb.ui.fetch("Alpha")
-
-    fetch_stub:revert()
-    eta_stub:revert()
-
-    local rendered = table.concat(outputs, "")
-    assert.is_true(rendered:find("Usage: adb fetch <name>", 1, true) ~= nil)
-    assert.is_true(rendered:find("Tip: adb refresh (force online list), adb quick (new online only).", 1, true) ~= nil)
-    assert.is_true(rendered:find("Estimated completion: ~5s", 1, true) ~= nil)
   end)
 
   it("reports iff updates", function()

@@ -59,6 +59,31 @@ describe("agnosticdb honors", function()
     assert.is_true(table.concat(outputs, "\n"):find("Honors updated for Testperson.", 1, true) ~= nil)
   end)
 
+  it("extracts race, army rank, immortal, and dragon flags from honors", function()
+    agnosticdb.honors.active = {
+      name = "fieldperson",
+      lines = {
+        "Fieldperson, the Eternal (male atavian)",
+        "He is a Bard of Cyrene.",
+        "He is a member of the House of Scions.",
+        "He is (12) in the army of Cyrene.",
+        "He is an Immortal.",
+        "He is also a red dragon.",
+      },
+    }
+
+    agnosticdb.honors.finish_capture()
+
+    local person = agnosticdb.db.get_person("Fieldperson")
+    assert.is_not_nil(person)
+    assert.are.equal("Atavian", person.race)
+    assert.are.equal(12, tonumber(person.army_rank))
+    assert.are.equal(1, tonumber(person.immortal))
+    assert.are.equal(1, tonumber(person.dragon))
+    assert.are.equal("Bard", person.class)
+    assert.are.equal("Cyrene", person.city)
+  end)
+
   it("deduplicates names when starting an honors queue", function()
     local ran_queue = 0
     local on_done = function() end

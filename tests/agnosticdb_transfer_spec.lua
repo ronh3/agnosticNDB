@@ -85,4 +85,38 @@ describe("agnosticdb transfer", function()
     assert.is_true(type(person.city) == "string" and person.city ~= "")
     assert.is_true(type(person.class) == "string" and person.class ~= "")
   end)
+
+  it("merges imported fields onto existing people without dropping unspecified data", function()
+    local path = temp_json_path("agnosticdb-import-merge-spec")
+    if not has_json_support() then
+      local stats, err = agnosticdb.transfer.importData(path)
+      assert.is_nil(stats)
+      assert.are.equal("json_unavailable", err)
+      return
+    end
+
+    agnosticdb.db.upsert_person({
+      name = "Merged",
+      class = "Magi",
+      city = "Ashtan",
+      notes = "keep me",
+      iff = "ally",
+      source = "manual",
+    })
+
+    local file = assert(io.open(path, "w"))
+    file:write('{"people":[{"name":"Merged","class":"Bard","source":"import"}]}')
+    file:close()
+
+    local stats, err = agnosticdb.transfer.importData(path)
+
+    assert.is_nil(err)
+    assert.are.equal(1, stats.imported)
+    local person = agnosticdb.db.get_person("Merged")
+    assert.are.equal("Bard", person.class)
+    assert.are.equal("Ashtan", person.city)
+    assert.are.equal("keep me", person.notes)
+    assert.are.equal("ally", person.iff)
+    assert.are.equal("import", person.source)
+  end)
 end)

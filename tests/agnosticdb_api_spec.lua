@@ -31,6 +31,29 @@ describe("agnosticdb api", function()
     assert.are.same({"Testone", "Testtwo"}, names)
   end)
 
+  it("returns backoff without requesting the online list when backoff is active", function()
+    local http_calls = 0
+    _G.getHTTP = function()
+      http_calls = http_calls + 1
+      return nil, "should_not_be_called"
+    end
+
+    os.time = function()
+      return 100
+    end
+    agnosticdb.api.backoff_until = 120
+
+    local names, status
+    agnosticdb.api.fetch_list(function(result, result_status)
+      names = result
+      status = result_status
+    end)
+
+    assert.is_nil(names)
+    assert.are.equal("backoff", status)
+    assert.are.equal(0, http_calls)
+  end)
+
   it("fetches and stores a character record from the API", function()
     local http_calls = 0
     _G.getHTTP = function(url)

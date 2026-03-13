@@ -52,4 +52,53 @@ describe("agnosticdb db", function()
 
     assert.is_false(agnosticdb.iff.is_enemy("Enemycandidate"))
   end)
+
+  it("preserves unspecified fields while updating changed values", function()
+    local _, original = agnosticdb.db.upsert_person({
+      name = "Mergeperson",
+      class = "Magi",
+      city = "Ashtan",
+      notes = "keep me",
+      iff = "ally",
+      source = "manual",
+      last_updated = 100,
+      last_checked = 50,
+    })
+
+    local changed, merged = agnosticdb.db.upsert_person({
+      name = "Mergeperson",
+      class = "Bard",
+      source = "api",
+    })
+
+    assert.is_true(changed)
+    assert.are.equal("Bard", merged.class)
+    assert.are.equal("Ashtan", merged.city)
+    assert.are.equal("keep me", merged.notes)
+    assert.are.equal("ally", merged.iff)
+    assert.are.equal("api", merged.source)
+    assert.is_true(tonumber(merged.last_updated) > tonumber(original.last_updated))
+    assert.are.equal(tonumber(original.last_checked), tonumber(merged.last_checked))
+  end)
+
+  it("allows explicit default-like values to clear stored fields", function()
+    agnosticdb.db.upsert_person({
+      name = "Clearperson",
+      notes = "remove me",
+      city_rank = 9,
+      elemental_lord_type = "Fire",
+    })
+
+    local changed, cleared = agnosticdb.db.upsert_person({
+      name = "Clearperson",
+      notes = "",
+      city_rank = -1,
+      elemental_lord_type = "",
+    })
+
+    assert.is_true(changed)
+    assert.are.equal("", cleared.notes)
+    assert.are.equal(-1, tonumber(cleared.city_rank))
+    assert.are.equal("", cleared.elemental_lord_type)
+  end)
 end)

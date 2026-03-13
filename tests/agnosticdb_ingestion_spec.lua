@@ -45,6 +45,28 @@ describe("agnosticdb ingestion", function()
     assert.is_true(table.concat(outputs, "\n"):find("Citizens list updated for Ashtan: 2 listed, 2 set.", 1, true) ~= nil)
   end)
 
+  it("preserves an existing non-empty source when applying citizens data", function()
+    agnosticdb.db.upsert_person({
+      name = "Alpha",
+      city = "Cyrene",
+      source = "api",
+    })
+
+    agnosticdb.lists.capture = {
+      kind = "citizens_list",
+      city = "Ashtan",
+      names = {
+        Alpha = true,
+      },
+    }
+
+    agnosticdb.lists.finish_capture()
+
+    local alpha = agnosticdb.db.get_person("Alpha")
+    assert.are.equal("Ashtan", alpha.city)
+    assert.are.equal("api", alpha.source)
+  end)
+
   it("replaces the personal enemy list and clears stale entries", function()
     reload_stub = stub(agnosticdb.highlights, "reload", function()
       reload_calls = reload_calls + 1
