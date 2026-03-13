@@ -169,4 +169,53 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Online list: 3 names, 2 new, 2 queued.", 1, true) ~= nil)
     assert.is_true(rendered:find("Estimated completion: ~7s", 1, true) ~= nil)
   end)
+
+  it("reports config export success", function()
+    local export_stub = stub(agnosticdb.config, "export_settings", function(path)
+      assert.are.equal("/tmp/agnosticdb-config.json", path)
+      return { path = path }
+    end)
+
+    agnosticdb.ui.config_export("/tmp/agnosticdb-config.json")
+
+    export_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Config exported to /tmp/agnosticdb-config.json.", 1, true) ~= nil)
+  end)
+
+  it("validates config import usage", function()
+    agnosticdb.ui.config_import("")
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Usage: adb config import <path>", 1, true) ~= nil)
+  end)
+
+  it("reports transfer export success", function()
+    local export_stub = stub(agnosticdb.transfer, "exportData", function(path)
+      assert.are.equal("/tmp/agnosticdb-export.json", path)
+      return { count = 2, path = path }
+    end)
+
+    agnosticdb.ui.exportData("/tmp/agnosticdb-export.json")
+
+    export_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Exported 2 people to /tmp/agnosticdb-export.json.", 1, true) ~= nil)
+  end)
+
+  it("maps transfer import errors to user-facing text", function()
+    local import_stub = stub(agnosticdb.transfer, "importData", function(path)
+      assert.are.equal("/tmp/agnosticdb-import.json", path)
+      return nil, "decode_failed"
+    end)
+
+    agnosticdb.ui.importData("/tmp/agnosticdb-import.json")
+
+    import_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    assert.is_true(rendered:find("Import failed: Import decode failed.", 1, true) ~= nil)
+  end)
 end)
