@@ -54,7 +54,7 @@ describe("agnosticdb transfer", function()
     local payload = file:read("*a")
     file:close()
 
-    assert.is_true(payload:find('"version":1', 1, true) ~= nil)
+    assert.is_true(payload:find('"version":2', 1, true) ~= nil)
     assert.is_true(payload:find('"exported_at":', 1, true) ~= nil)
     assert.is_true(payload:find('"name":"Exporter"', 1, true) ~= nil)
     assert.is_true(payload:find('"class":"Magi"', 1, true) ~= nil)
