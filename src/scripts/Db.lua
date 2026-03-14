@@ -775,6 +775,8 @@ function agnosticdb.db.upsert_person(fields, opts)
     local normalized_race = normalize_race(fields.race)
     if normalized_race ~= "" or fields.race == "" then
       record.race = normalized_race
+    elseif derived_form_from_race == "" then
+      record.race = ""
     end
   else
     record.race = type(record.race) == "string" and record.race or ""
