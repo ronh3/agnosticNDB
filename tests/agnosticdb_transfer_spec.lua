@@ -27,8 +27,11 @@ describe("agnosticdb transfer", function()
     agnosticdb.db.upsert_person({
       name = "Exporter",
       class = "Magi",
+      specialization = "Pyromancy",
       city = "Ashtan",
       notes = "hello",
+      current_form = "Elemental",
+      elemental_type = "Fire",
       iff = "auto",
       source = "api",
     })
@@ -56,6 +59,9 @@ describe("agnosticdb transfer", function()
     assert.is_true(payload:find('"name":"Exporter"', 1, true) ~= nil)
     assert.is_true(payload:find('"class":"Magi"', 1, true) ~= nil)
     assert.is_true(payload:find('"city":"Ashtan"', 1, true) ~= nil)
+    assert.is_true(payload:find('"current_form":"Elemental"', 1, true) ~= nil)
+    assert.is_true(payload:find('"elemental_type":"Fire"', 1, true) ~= nil)
+    assert.is_true(payload:find('"class_specs"', 1, true) ~= nil)
   end)
 
   it("imports keyed records", function()
@@ -133,12 +139,13 @@ describe("agnosticdb transfer", function()
       name = "Cleared",
       notes = "remove me",
       city_rank = 8,
-      elemental_lord_type = "Fire",
+      current_form = "Elemental",
+      elemental_type = "Fire",
       source = "manual",
     })
 
     local file = assert(io.open(path, "w"))
-    file:write('{"people":[{"name":"Cleared","notes":"","city_rank":-1,"elemental_lord_type":"","source":"import"}]}')
+    file:write('{"people":[{"name":"Cleared","notes":"","city_rank":-1,"current_form":"","elemental_type":"","source":"import"}]}')
     file:close()
 
     local stats, err = agnosticdb.transfer.importData(path)
@@ -148,7 +155,8 @@ describe("agnosticdb transfer", function()
     local person = agnosticdb.db.get_person("Cleared")
     assert.are.equal("", person.notes)
     assert.are.equal(-1, tonumber(person.city_rank))
-    assert.are.equal("", person.elemental_lord_type)
+    assert.are.equal("", person.current_form)
+    assert.are.equal("", person.elemental_type)
     assert.are.equal("import", person.source)
   end)
 end)

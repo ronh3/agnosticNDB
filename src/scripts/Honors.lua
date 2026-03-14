@@ -120,13 +120,6 @@ local function find_class(line)
       return class
     end
   end
-  local color = line:match("(%a+)%s+Dragon")
-  if color then
-    return titlecase_words(color) .. " Dragon"
-  end
-  if lower:find("%f[%a]dragon%f[%A]") then
-    return "Dragon"
-  end
   return nil
 end
 
@@ -168,32 +161,19 @@ local function find_house(line)
   return nil
 end
 
-local function find_race(line)
+local function find_race_observation(line)
   if type(line) ~= "string" then return nil end
   local inner = line:match("%(([^)]+)%)")
   if not inner then return nil end
   local trimmed = inner:gsub("^%s+", ""):gsub("%s+$", "")
   if trimmed == "" then return nil end
 
-  local lower = trimmed:lower()
-  if lower:find("^male%s+") then
-    trimmed = trimmed:sub(6)
-  elseif lower:find("^female%s+") then
-    trimmed = trimmed:sub(8)
-  end
-
-  local race = trimmed:gsub("^%s+", ""):gsub("%s+$", "")
-  if race == "" then return nil end
-
-  local race_lower = race:lower()
-  if race_lower:find("%f[%a]elemental%f[%A]") then
-    return "Elemental"
-  end
-  if race_lower:find("%f[%a]dragon%f[%A]") then
-    return "Dragon"
-  end
-
-  return titlecase_words(race)
+  local race = agnosticdb.db and agnosticdb.db.normalize_race and agnosticdb.db.normalize_race(trimmed) or titlecase_words(trimmed)
+  local current_form = agnosticdb.db and agnosticdb.db.detect_current_form and agnosticdb.db.detect_current_form(trimmed) or ""
+  return {
+    race = race ~= "" and race or nil,
+    current_form = current_form,
+  }
 end
 
 local function find_title(name, line)
@@ -260,14 +240,26 @@ local function parse_lines(name, lines)
       record.class = record.class or find_class(text)
       record.city = record.city or find_city(text)
       record.house = record.house or find_house(text)
-      record.race = record.race or find_race(text)
+      local race_observation = find_race_observation(text)
+      if race_observation then
+        if not record.race and race_observation.race then
+          record.race = race_observation.race
+        end
+        if race_observation.current_form ~= "" then
+          record.current_form = race_observation.current_form
+        elseif race_observation.race then
+          record.current_form = ""
+        end
+      end
 
       local lower = text:lower()
       if lower:find("%f[%a]immortal%f[%A]") then
         record.immortal = 1
       end
       if lower:find("%f[%a]dragon%f[%A]") then
-        record.dragon = 1
+        record.current_form = "Dragon"
+      elseif lower:find("%f[%a]elemental%f[%A]") then
+        record.current_form = "Elemental"
       end
 
       local city_rank, xp_rank = parse_ranks(text)

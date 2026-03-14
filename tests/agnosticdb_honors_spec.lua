@@ -59,7 +59,7 @@ describe("agnosticdb honors", function()
     assert.is_true(table.concat(outputs, "\n"):find("Honors updated for Testperson.", 1, true) ~= nil)
   end)
 
-  it("extracts race, army rank, immortal, and dragon flags from honors", function()
+  it("extracts race, army rank, immortal, and current form from honors", function()
     agnosticdb.honors.active = {
       name = "fieldperson",
       lines = {
@@ -79,7 +79,7 @@ describe("agnosticdb honors", function()
     assert.are.equal("Atavian", person.race)
     assert.are.equal(12, tonumber(person.army_rank))
     assert.are.equal(1, tonumber(person.immortal))
-    assert.are.equal(1, tonumber(person.dragon))
+    assert.are.equal("Dragon", person.current_form)
     assert.are.equal("Bard", person.class)
     assert.are.equal("Cyrene", person.city)
   end)
@@ -98,10 +98,10 @@ describe("agnosticdb honors", function()
 
     local person = agnosticdb.db.get_person("Drakos")
     assert.is_not_nil(person)
-    assert.are.equal("Dragon", person.race)
-    assert.are.equal("Dragon", person.class)
+    assert.are.equal("", person.race)
+    assert.are.equal("", person.class)
     assert.are.equal(77, tonumber(person.xp_rank))
-    assert.are.equal(1, tonumber(person.dragon))
+    assert.are.equal("Dragon", person.current_form)
     assert.are.equal("Drakos, the Ancient (male dragon)", person.title)
   end)
 

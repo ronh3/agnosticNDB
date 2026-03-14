@@ -15,17 +15,6 @@ local function report_db_error(err)
   cecho(db_prefix() .. "Delete the agnosticdb database in your Mudlet profile and reload.\n")
 end
 
-local function normalize_name(name)
-  if type(name) ~= "string" then return nil end
-  if #name == 0 then return nil end
-  return name:sub(1, 1):upper() .. name:sub(2):lower()
-end
-
-local function db_conn()
-  if not db or not db.__conn then return nil end
-  return db.__conn[agnosticdb.db.name:lower()]
-end
-
 local function safe_call(fn, ...)
   local ok, result = pcall(fn, ...)
   if not ok then
@@ -35,10 +24,164 @@ local function safe_call(fn, ...)
   return result
 end
 
-local function column_exists(column)
+local function trim(value)
+  if type(value) ~= "string" then return "" end
+  return value:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local function titlecase_words(value)
+  if type(value) ~= "string" then return "" end
+  if value == "" then return "" end
+  return value:gsub("(%a)([%w']*)", function(a, b)
+    return a:upper() .. b:lower()
+  end)
+end
+
+local reserved_names = {
+  all = true,
+  online = true,
+}
+
+local function is_valid_person_name(name)
+  if type(name) ~= "string" then return false end
+  local value = trim(name)
+  if value == "" then return false end
+  local lower = value:lower()
+  if reserved_names[lower] then return false end
+  return value:match("^[A-Za-z][A-Za-z'%-]*$") ~= nil
+end
+
+local function normalize_name(name)
+  if not is_valid_person_name(name) then return nil end
+  local value = trim(name)
+  return value:sub(1, 1):upper() .. value:sub(2):lower()
+end
+
+local base_races = {
+  atavian = "Atavian",
+  dwarf = "Dwarf",
+  fayad = "Fayad",
+  grook = "Grook",
+  horkval = "Horkval",
+  human = "Human",
+  mhun = "Mhun",
+  rajamala = "Rajamala",
+  satyr = "Satyr",
+  siren = "Siren",
+  ["tash'la"] = "Tash'la",
+  ["tsol'aa"] = "Tsol'aa",
+  troll = "Troll",
+  xoran = "Xoran",
+}
+
+local function canonical_base_race(value)
+  if type(value) ~= "string" then return "" end
+  local key = trim(value):lower()
+  if key == "" then return "" end
+  return base_races[key] or titlecase_words(key)
+end
+
+local function detect_current_form(value)
+  if type(value) ~= "string" then return "" end
+  local lower = trim(value):lower()
+  if lower == "" then return "" end
+  if lower:find("%f[%a]dragon%f[%A]") then
+    return "Dragon"
+  end
+  if lower:find("%f[%a]elemental%f[%A]") then
+    return "Elemental"
+  end
+  return ""
+end
+
+local function normalize_current_form(value)
+  if type(value) ~= "string" then return "" end
+  local lower = trim(value):lower()
+  if lower == "dragon" then return "Dragon" end
+  if lower == "elemental" then return "Elemental" end
+  return ""
+end
+
+local function normalize_elemental_type(value)
+  if value == nil then return nil end
+  if type(value) ~= "string" then return "" end
+  local lower = trim(value):lower()
+  if lower == "" or lower == "none" or lower == "clear" or lower == "reset" then
+    return ""
+  end
+  local map = {
+    air = "Air",
+    earth = "Earth",
+    fire = "Fire",
+    water = "Water",
+  }
+  return map[lower] or ""
+end
+
+local function normalize_race(value)
+  if value == nil then return nil end
+  if type(value) ~= "string" then return "" end
+
+  local lower = trim(value):lower()
+  if lower == "" then return "" end
+
+  lower = lower:gsub("[%.,;:!]+$", "")
+  lower = lower:gsub("^non%-binary%s+", "")
+  lower = lower:gsub("^male%s+", "")
+  lower = lower:gsub("^female%s+", "")
+  lower = lower:gsub("^chaos%s+lord%s+", "")
+  lower = lower:gsub("^chaos%s+lady%s+", "")
+  lower = lower:gsub("^chaos%s+noble%s+", "")
+
+  local resembling = lower:match("resembling%s+an?%s+([%a'%-]+)")
+  if resembling then
+    return canonical_base_race(resembling)
+  end
+
+  for race_key, race_name in pairs(base_races) do
+    local pattern = race_key:gsub("([^%w])", "%%%1")
+    if lower:find(pattern .. "$") then
+      return race_name
+    end
+  end
+
+  if detect_current_form(lower) ~= "" then
+    return ""
+  end
+
+  return canonical_base_race(lower)
+end
+
+local function normalize_class(value)
+  if value == nil then return nil end
+  if type(value) ~= "string" then return "" end
+  local trimmed = trim(value)
+  if trimmed == "" then return "" end
+  return titlecase_words(trimmed)
+end
+
+local function db_conn()
+  if not db or not db.__conn then return nil end
+  return db.__conn[agnosticdb.db.name:lower()]
+end
+
+local function table_exists(name)
   local conn = db_conn()
   if not conn then return false end
-  local cursor = conn:execute("PRAGMA table_info(people)")
+  local cursor = conn:execute(string.format(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='%s'",
+    tostring(name)
+  ))
+  if not cursor then return false end
+  local row = cursor:fetch({}, "a")
+  if cursor.close then cursor:close() end
+  return row and row.name == name
+end
+
+local function column_exists(table_name, column)
+  local conn = db_conn()
+  if not conn then return false end
+  local cursor = conn:execute(string.format("PRAGMA table_info(%s)", tostring(table_name)))
   if not cursor then return false end
   local row = cursor:fetch({}, "a")
   while row do
@@ -52,35 +195,33 @@ local function column_exists(column)
   return false
 end
 
-local function add_column_if_missing(row, column, sql)
+local function add_column_if_missing(table_name, row, column, sql)
   if row and row[column] ~= nil then return end
-  if column_exists(column) then return end
+  if column_exists(table_name, column) then return end
   local conn = db_conn()
   if not conn then return end
   conn:execute(sql)
-  conn:commit()
+  if conn.commit then conn:commit() end
 end
 
-function agnosticdb.db.ensure()
-  if agnosticdb.db.disabled then return false end
-  if agnosticdb.db.people then return true end
-  if agnosticdb.db.init then
-    agnosticdb.db.init()
-  end
-  return agnosticdb.db.people ~= nil and not agnosticdb.db.disabled
-end
-
-local function table_exists()
+local function ensure_class_specs_table()
+  if table_exists("class_specs") then return end
   local conn = db_conn()
-  if not conn then return false end
-  local cursor = conn:execute("SELECT name FROM sqlite_master WHERE type='table' AND name='people'")
-  if not cursor then return false end
-  local row = cursor:fetch({}, "a")
-  if cursor.close then cursor:close() end
-  return row and row.name == "people"
+  if not conn then return end
+  conn:execute([[
+    CREATE TABLE IF NOT EXISTS class_specs (
+      name TEXT NOT NULL,
+      class TEXT NOT NULL,
+      specialization TEXT NULL DEFAULT "",
+      last_updated INTEGER NULL DEFAULT 0,
+      source TEXT NULL DEFAULT "",
+      UNIQUE(name, class) ON CONFLICT REPLACE
+    )
+  ]])
+  if conn.commit then conn:commit() end
 end
 
-local function required_columns()
+local function required_people_columns()
   return {
     "name",
     "class",
@@ -90,6 +231,8 @@ local function required_columns()
     "race",
     "army_rank",
     "elemental_lord_type",
+    "current_form",
+    "elemental_type",
     "enemy_city",
     "enemy_house",
     "title",
@@ -106,10 +249,169 @@ local function required_columns()
   }
 end
 
+local function required_class_specs_columns()
+  return {
+    "name",
+    "class",
+    "specialization",
+    "last_updated",
+    "source",
+  }
+end
+
 function agnosticdb.db.safe_fetch(tbl, clause)
   if agnosticdb.db.disabled then return nil end
   if not db or not tbl then return nil end
   return safe_call(db.fetch, db, tbl, clause)
+end
+
+function agnosticdb.db.ensure()
+  if agnosticdb.db.disabled then return false end
+  if agnosticdb.db.people and agnosticdb.db.class_specs then return true end
+  if agnosticdb.db.init then
+    agnosticdb.db.init()
+  end
+  return agnosticdb.db.people ~= nil and agnosticdb.db.class_specs ~= nil and not agnosticdb.db.disabled
+end
+
+local function people_field_defaults()
+  return {
+    class = "",
+    specialization = "",
+    city = "",
+    house = "",
+    race = "",
+    army_rank = -1,
+    elemental_lord_type = "",
+    current_form = "",
+    elemental_type = "",
+    enemy_city = "",
+    enemy_house = "",
+    title = "",
+    notes = "",
+    iff = "auto",
+    city_rank = -1,
+    xp_rank = -1,
+    level = -1,
+    immortal = 0,
+    dragon = 0,
+    source = "",
+  }
+end
+
+local function numeric_people_fields()
+  return {
+    army_rank = true,
+    city_rank = true,
+    xp_rank = true,
+    level = true,
+    immortal = true,
+    dragon = true,
+  }
+end
+
+local function merge_unique_raw(table_handle, record)
+  if not table_handle or not record then return nil end
+  return safe_call(db.merge_unique, db, table_handle, { record })
+end
+
+local function delete_raw(table_handle, clause)
+  if not table_handle or not clause then return nil end
+  return safe_call(db.delete, db, table_handle, clause)
+end
+
+local function delete_person_row_by_name(name)
+  if type(name) ~= "string" or name == "" then return end
+  delete_raw(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, name))
+  delete_raw(agnosticdb.db.class_specs, db:eq(agnosticdb.db.class_specs.name, name))
+end
+
+local function get_class_spec_row(name, class)
+  if not agnosticdb.db.ensure() then return nil end
+  local normalized = normalize_name(name)
+  local normalized_class = normalize_class(class)
+  if not normalized or not normalized_class or normalized_class == "" then return nil end
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs, db:eq(agnosticdb.db.class_specs.name, normalized)) or {}
+  for _, row in ipairs(rows) do
+    if row.class == normalized_class then
+      return row
+    end
+  end
+  return nil
+end
+
+local function migrate_legacy_rows()
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  if not rows then return end
+
+  for _, row in ipairs(rows) do
+    local name = row.name
+    if not is_valid_person_name(name) then
+      delete_person_row_by_name(name)
+    else
+      local normalized_name = normalize_name(name)
+      local normalized_class = normalize_class(row.class) or ""
+      local normalized_race = normalize_race(row.race)
+      local current_form = normalize_current_form(row.current_form)
+      local elemental_type = normalize_elemental_type(row.elemental_type)
+
+      if current_form == "" then
+        current_form = detect_current_form(row.race)
+      end
+      if current_form == "" and tonumber(row.dragon or 0) == 1 then
+        current_form = "Dragon"
+      end
+      if current_form == "" and type(row.elemental_lord_type) == "string" and row.elemental_lord_type ~= "" then
+        current_form = "Elemental"
+      end
+
+      if elemental_type == nil or elemental_type == "" then
+        elemental_type = normalize_elemental_type(row.elemental_lord_type) or ""
+      end
+
+      if normalized_class:find(" Dragon$") or normalized_class == "Dragon" or normalized_class == "Elemental" then
+        normalized_class = ""
+      end
+
+      if type(row.specialization) == "string" and row.specialization ~= "" and normalized_class ~= "" then
+        local spec_record = {
+          name = normalized_name,
+          class = normalized_class,
+          specialization = row.specialization,
+          last_updated = tonumber(row.last_updated or 0) or os.time(),
+          source = row.source or "",
+        }
+        merge_unique_raw(agnosticdb.db.class_specs, spec_record)
+      end
+
+      local updated = {
+        name = normalized_name,
+        class = normalized_class,
+        specialization = "",
+        city = row.city or "",
+        house = row.house or "",
+        race = normalized_race,
+        army_rank = tonumber(row.army_rank or -1) or -1,
+        elemental_lord_type = "",
+        current_form = current_form,
+        elemental_type = elemental_type or "",
+        enemy_city = row.enemy_city or "",
+        enemy_house = row.enemy_house or "",
+        title = row.title or "",
+        notes = row.notes or "",
+        iff = row.iff or "auto",
+        city_rank = tonumber(row.city_rank or -1) or -1,
+        xp_rank = tonumber(row.xp_rank or -1) or -1,
+        level = tonumber(row.level or -1) or -1,
+        immortal = tonumber(row.immortal or 0) or 0,
+        dragon = 0,
+        last_checked = tonumber(row.last_checked or 0) or 0,
+        last_updated = tonumber(row.last_updated or 0) or 0,
+        source = row.source or "",
+      }
+      merge_unique_raw(agnosticdb.db.people, updated)
+    end
+  end
 end
 
 function agnosticdb.db.check()
@@ -117,34 +419,47 @@ function agnosticdb.db.check()
   agnosticdb.db.error_reported = false
 
   if not db then
-    return false, {"Mudlet DB API unavailable."}
+    return false, { "Mudlet DB API unavailable." }
   end
 
   if not agnosticdb.db.ensure() then
-    return false, {"Failed to initialize agnosticdb database."}
+    return false, { "Failed to initialize agnosticdb database." }
   end
 
-  if not table_exists() then
-    return false, {"Missing people table.", "Run adb dbreset or delete the DB file."}
+  if not table_exists("people") then
+    return false, { "Missing people table.", "Run adb dbreset or delete the DB file." }
+  end
+  if not table_exists("class_specs") then
+    return false, { "Missing class_specs table.", "Run adb dbreset or delete the DB file." }
   end
 
   local missing = {}
-  for _, column in ipairs(required_columns()) do
-    if not column_exists(column) then
-      missing[#missing + 1] = column
+  for _, column in ipairs(required_people_columns()) do
+    if not column_exists("people", column) then
+      missing[#missing + 1] = "people." .. column
+    end
+  end
+  for _, column in ipairs(required_class_specs_columns()) do
+    if not column_exists("class_specs", column) then
+      missing[#missing + 1] = "class_specs." .. column
     end
   end
 
   if #missing > 0 then
-    return false, {"Missing columns: " .. table.concat(missing, ", "), "Run adb dbreset to rebuild schema."}
+    return false, { "Missing columns: " .. table.concat(missing, ", "), "Run adb dbreset to rebuild schema." }
   end
 
   local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
   if agnosticdb.db.disabled then
-    return false, {"Database query failed. Run adb dbreset or delete the DB file."}
+    return false, { "Database query failed. Run adb dbreset or delete the DB file." }
   end
 
-  return true, {"Schema OK.", string.format("Rows: %d", rows and #rows or 0)}
+  local specs = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs)
+  return true, {
+    "Schema OK.",
+    string.format("People rows: %d", rows and #rows or 0),
+    string.format("Class spec rows: %d", specs and #specs or 0),
+  }
 end
 
 function agnosticdb.db.reset()
@@ -160,7 +475,11 @@ function agnosticdb.db.reset()
     return false, "DB connection unavailable."
   end
 
-  local ok, err = pcall(conn.execute, conn, "DROP TABLE IF EXISTS people")
+  local ok, err = pcall(conn.execute, conn, "DROP TABLE IF EXISTS class_specs")
+  if not ok then
+    return false, err
+  end
+  ok, err = pcall(conn.execute, conn, "DROP TABLE IF EXISTS people")
   if not ok then
     return false, err
   end
@@ -168,8 +487,9 @@ function agnosticdb.db.reset()
 
   agnosticdb.db.handle = nil
   agnosticdb.db.people = nil
+  agnosticdb.db.class_specs = nil
   agnosticdb.db.init()
-  if not agnosticdb.db.people then
+  if not agnosticdb.db.people or not agnosticdb.db.class_specs then
     return false, "DB re-init failed."
   end
 
@@ -193,11 +513,13 @@ function agnosticdb.db.init()
       race = "",
       army_rank = -1,
       elemental_lord_type = "",
+      current_form = "",
+      elemental_type = "",
       enemy_city = "",
       enemy_house = "",
       title = "",
       notes = "",
-      iff = "auto", -- enemy/ally/auto
+      iff = "auto",
       city_rank = -1,
       xp_rank = -1,
       level = -1,
@@ -207,33 +529,59 @@ function agnosticdb.db.init()
       last_updated = 0,
       source = "",
 
-      _unique = {"name"},
+      _unique = { "name" },
+      _violations = "REPLACE"
+    },
+    class_specs = {
+      name = "",
+      class = "",
+      specialization = "",
+      last_updated = 0,
+      source = "",
+
+      _unique = { "name", "class" },
       _violations = "REPLACE"
     }
   }
 
   agnosticdb.db.handle = safe_call(db.create, db, "agnosticdb", agnosticdb.db.schema)
   if not agnosticdb.db.handle then return end
-  agnosticdb.db.people = agnosticdb.db.handle.people
 
-  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
-  local sample = rows and rows[1] or nil
-  add_column_if_missing(sample, "notes", [[ALTER TABLE people ADD COLUMN "notes" TEXT NULL DEFAULT ""]])
-  add_column_if_missing(sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
-  add_column_if_missing(sample, "specialization", [[ALTER TABLE people ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
-  add_column_if_missing(sample, "race", [[ALTER TABLE people ADD COLUMN "race" TEXT NULL DEFAULT ""]])
-  add_column_if_missing(sample, "army_rank", [[ALTER TABLE people ADD COLUMN "army_rank" INTEGER NULL DEFAULT -1]])
-  add_column_if_missing(sample, "elemental_lord_type", [[ALTER TABLE people ADD COLUMN "elemental_lord_type" TEXT NULL DEFAULT ""]])
-  add_column_if_missing(sample, "enemy_city", [[ALTER TABLE people ADD COLUMN "enemy_city" TEXT NULL DEFAULT ""]])
-  add_column_if_missing(sample, "enemy_house", [[ALTER TABLE people ADD COLUMN "enemy_house" TEXT NULL DEFAULT ""]])
-  add_column_if_missing(sample, "city_rank", [[ALTER TABLE people ADD COLUMN "city_rank" INTEGER NULL DEFAULT -1]])
-  add_column_if_missing(sample, "xp_rank", [[ALTER TABLE people ADD COLUMN "xp_rank" INTEGER NULL DEFAULT -1]])
-  add_column_if_missing(sample, "level", [[ALTER TABLE people ADD COLUMN "level" INTEGER NULL DEFAULT -1]])
-  add_column_if_missing(sample, "immortal", [[ALTER TABLE people ADD COLUMN "immortal" INTEGER NULL DEFAULT 0]])
-  add_column_if_missing(sample, "dragon", [[ALTER TABLE people ADD COLUMN "dragon" INTEGER NULL DEFAULT 0]])
-  add_column_if_missing(sample, "last_checked", [[ALTER TABLE people ADD COLUMN "last_checked" INTEGER NULL DEFAULT 0]])
-  add_column_if_missing(sample, "last_updated", [[ALTER TABLE people ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
-  add_column_if_missing(sample, "source", [[ALTER TABLE people ADD COLUMN "source" TEXT NULL DEFAULT ""]])
+  ensure_class_specs_table()
+  agnosticdb.db.handle = safe_call(db.create, db, "agnosticdb", agnosticdb.db.schema)
+  if not agnosticdb.db.handle then return end
+
+  agnosticdb.db.people = agnosticdb.db.handle.people
+  agnosticdb.db.class_specs = agnosticdb.db.handle.class_specs
+
+  local people_rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  local people_sample = people_rows and people_rows[1] or nil
+  add_column_if_missing("people", people_sample, "notes", [[ALTER TABLE people ADD COLUMN "notes" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
+  add_column_if_missing("people", people_sample, "specialization", [[ALTER TABLE people ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "race", [[ALTER TABLE people ADD COLUMN "race" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "army_rank", [[ALTER TABLE people ADD COLUMN "army_rank" INTEGER NULL DEFAULT -1]])
+  add_column_if_missing("people", people_sample, "elemental_lord_type", [[ALTER TABLE people ADD COLUMN "elemental_lord_type" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "current_form", [[ALTER TABLE people ADD COLUMN "current_form" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "elemental_type", [[ALTER TABLE people ADD COLUMN "elemental_type" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "enemy_city", [[ALTER TABLE people ADD COLUMN "enemy_city" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "enemy_house", [[ALTER TABLE people ADD COLUMN "enemy_house" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("people", people_sample, "city_rank", [[ALTER TABLE people ADD COLUMN "city_rank" INTEGER NULL DEFAULT -1]])
+  add_column_if_missing("people", people_sample, "xp_rank", [[ALTER TABLE people ADD COLUMN "xp_rank" INTEGER NULL DEFAULT -1]])
+  add_column_if_missing("people", people_sample, "level", [[ALTER TABLE people ADD COLUMN "level" INTEGER NULL DEFAULT -1]])
+  add_column_if_missing("people", people_sample, "immortal", [[ALTER TABLE people ADD COLUMN "immortal" INTEGER NULL DEFAULT 0]])
+  add_column_if_missing("people", people_sample, "dragon", [[ALTER TABLE people ADD COLUMN "dragon" INTEGER NULL DEFAULT 0]])
+  add_column_if_missing("people", people_sample, "last_checked", [[ALTER TABLE people ADD COLUMN "last_checked" INTEGER NULL DEFAULT 0]])
+  add_column_if_missing("people", people_sample, "last_updated", [[ALTER TABLE people ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
+  add_column_if_missing("people", people_sample, "source", [[ALTER TABLE people ADD COLUMN "source" TEXT NULL DEFAULT ""]])
+
+  local spec_rows = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs)
+  local spec_sample = spec_rows and spec_rows[1] or nil
+  add_column_if_missing("class_specs", spec_sample, "specialization", [[ALTER TABLE class_specs ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("class_specs", spec_sample, "last_updated", [[ALTER TABLE class_specs ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
+  add_column_if_missing("class_specs", spec_sample, "source", [[ALTER TABLE class_specs ADD COLUMN "source" TEXT NULL DEFAULT ""]])
+
+  migrate_legacy_rows()
 end
 
 function agnosticdb.db.get_person(name)
@@ -244,21 +592,92 @@ function agnosticdb.db.get_person(name)
   return rows and rows[1] or nil
 end
 
-function agnosticdb.db.upsert_person(fields)
+function agnosticdb.db.get_class_specs(name)
+  if not agnosticdb.db.ensure() then return {} end
+  local normalized = normalize_name(name)
+  if not normalized then return {} end
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs, db:eq(agnosticdb.db.class_specs.name, normalized)) or {}
+  table.sort(rows, function(a, b)
+    local left = tostring(a.class or "")
+    local right = tostring(b.class or "")
+    return left:lower() < right:lower()
+  end)
+  return rows
+end
+
+function agnosticdb.db.get_class_spec(name, class)
+  local row = get_class_spec_row(name, class)
+  if not row then return nil end
+  if row.specialization == "" then return nil end
+  return row.specialization
+end
+
+function agnosticdb.db.set_class_spec(name, class, specialization, source, last_updated)
+  if not agnosticdb.db.ensure() then return nil end
+  local normalized_name = normalize_name(name)
+  local normalized_class = normalize_class(class)
+  if not normalized_name or not normalized_class or normalized_class == "" then return nil end
+
+  local record = {
+    name = normalized_name,
+    class = normalized_class,
+    specialization = type(specialization) == "string" and trim(specialization) or "",
+    last_updated = tonumber(last_updated or os.time()) or os.time(),
+    source = type(source) == "string" and source or "",
+  }
+  merge_unique_raw(agnosticdb.db.class_specs, record)
+  return agnosticdb.db.get_class_spec(normalized_name, normalized_class)
+end
+
+function agnosticdb.db.clear_class_spec(name, class)
+  if not agnosticdb.db.ensure() then return end
+  local normalized_name = normalize_name(name)
+  local normalized_class = normalize_class(class)
+  if not normalized_name or not normalized_class or normalized_class == "" then return end
+  local conn = db_conn()
+  if not conn then return end
+  local safe_name = normalized_name:gsub("'", "''")
+  local safe_class = normalized_class:gsub("'", "''")
+  conn:execute(string.format(
+    "DELETE FROM class_specs WHERE name = '%s' AND class = '%s'",
+    safe_name,
+    safe_class
+  ))
+  if conn.commit then conn:commit() end
+end
+
+function agnosticdb.db.get_current_specialization(name_or_person)
+  local person = name_or_person
+  if type(name_or_person) == "string" then
+    person = agnosticdb.db.get_person(name_or_person)
+  end
+  if type(person) ~= "table" then return nil end
+  if type(person.class) ~= "string" or person.class == "" then return nil end
+  return agnosticdb.db.get_class_spec(person.name, person.class)
+end
+
+function agnosticdb.db.upsert_person(fields, opts)
   if not agnosticdb.db.ensure() or type(fields) ~= "table" then return end
+  opts = opts or {}
 
   local normalized = normalize_name(fields.name)
   if not normalized then return end
 
   local caller_supplied_last_updated = fields.last_updated ~= nil
+  local caller_supplied_last_checked = fields.last_checked ~= nil
+  local caller_supplied_race = fields.race ~= nil
+  local caller_supplied_current_form = fields.current_form ~= nil
+  local caller_supplied_elemental_type = fields.elemental_type ~= nil
 
+  local existing = agnosticdb.db.get_person(normalized)
   local record = {}
   for k, v in pairs(fields) do
-    record[k] = v
+    if k:sub(1, 1) ~= "_" then
+      record[k] = v
+    end
   end
   record.name = normalized
 
-  local existing = agnosticdb.db.get_person(normalized)
   if existing then
     for k, v in pairs(existing) do
       if record[k] == nil then
@@ -267,45 +686,65 @@ function agnosticdb.db.upsert_person(fields)
     end
   end
 
+  record.class = normalize_class(record.class) or ""
+  record.city = type(record.city) == "string" and record.city or ""
+  record.house = type(record.house) == "string" and record.house or ""
+  record.title = type(record.title) == "string" and record.title or ""
+  record.notes = type(record.notes) == "string" and record.notes or ""
+  record.iff = type(record.iff) == "string" and record.iff or "auto"
+  record.enemy_city = type(record.enemy_city) == "string" and record.enemy_city or ""
+  record.enemy_house = type(record.enemy_house) == "string" and record.enemy_house or ""
+  record.source = type(record.source) == "string" and record.source or ""
+
+  local derived_form_from_race = caller_supplied_race and detect_current_form(fields.race) or ""
+  if caller_supplied_race then
+    local normalized_race = normalize_race(fields.race)
+    if normalized_race ~= "" or fields.race == "" then
+      record.race = normalized_race
+    end
+  else
+    record.race = type(record.race) == "string" and record.race or ""
+  end
+
+  if caller_supplied_current_form then
+    record.current_form = normalize_current_form(fields.current_form)
+  elseif derived_form_from_race ~= "" then
+    record.current_form = derived_form_from_race
+  else
+    record.current_form = normalize_current_form(record.current_form)
+  end
+
+  if caller_supplied_elemental_type then
+    record.elemental_type = normalize_elemental_type(fields.elemental_type) or ""
+  else
+    record.elemental_type = normalize_elemental_type(record.elemental_type) or ""
+  end
+
+  record.specialization = ""
+  record.elemental_lord_type = ""
+  record.dragon = 0
+
   local function normalize_numeric(value, default)
     local num = tonumber(value)
     if num == nil then return default end
     return num
   end
 
+  record.army_rank = normalize_numeric(record.army_rank, -1)
+  record.city_rank = normalize_numeric(record.city_rank, -1)
+  record.xp_rank = normalize_numeric(record.xp_rank, -1)
+  record.level = normalize_numeric(record.level, -1)
+  record.immortal = normalize_numeric(record.immortal, 0)
+  record.last_checked = normalize_numeric(record.last_checked, 0)
+  record.last_updated = normalize_numeric(record.last_updated, 0)
+
+  local field_defaults = people_field_defaults()
+  local numeric_fields = numeric_people_fields()
+
   local function normalize_string(value, default)
     if value == nil then return default end
     return tostring(value)
   end
-
-  local field_defaults = {
-    class = "",
-    specialization = "",
-    city = "",
-    house = "",
-    race = "",
-    army_rank = -1,
-    elemental_lord_type = "",
-    enemy_city = "",
-    enemy_house = "",
-    title = "",
-    notes = "",
-    iff = "auto",
-    city_rank = -1,
-    xp_rank = -1,
-    level = -1,
-    immortal = 0,
-    dragon = 0,
-    source = ""
-  }
-  local numeric_fields = {
-    army_rank = true,
-    city_rank = true,
-    xp_rank = true,
-    level = true,
-    immortal = true,
-    dragon = true
-  }
 
   local function record_changed()
     if not existing then return true end
@@ -335,26 +774,45 @@ function agnosticdb.db.upsert_person(fields)
     end
   end
 
-  if not record.last_checked then
+  if not caller_supplied_last_checked and (record.last_checked == 0 or record.last_checked == nil) then
     record.last_checked = os.time()
   end
 
-  safe_call(db.merge_unique, db, agnosticdb.db.people, {record})
+  merge_unique_raw(agnosticdb.db.people, record)
+
+  if type(fields.class_spec) == "table" then
+    agnosticdb.db.set_class_spec(
+      normalized,
+      fields.class_spec.class or record.class,
+      fields.class_spec.specialization,
+      fields.class_spec.source or record.source,
+      fields.class_spec.last_updated or record.last_updated
+    )
+  end
+
+  if type(fields.specialization) == "string" and fields.specialization ~= "" and record.class ~= "" then
+    agnosticdb.db.set_class_spec(normalized, record.class, fields.specialization, record.source, record.last_updated)
+  end
 
   local updated = agnosticdb.db.get_person(normalized)
-  if agnosticdb.highlights and agnosticdb.highlights.update then
+  if updated and not opts.skip_highlight and agnosticdb.highlights and agnosticdb.highlights.update then
     agnosticdb.highlights.update(updated)
   end
   return changed, updated
 end
 
 agnosticdb.db.normalize_name = normalize_name
+agnosticdb.db.normalize_class = normalize_class
+agnosticdb.db.normalize_race = normalize_race
+agnosticdb.db.normalize_current_form = normalize_current_form
+agnosticdb.db.normalize_elemental_type = normalize_elemental_type
+agnosticdb.db.detect_current_form = detect_current_form
 
 function agnosticdb.db.delete_person(name)
   if not agnosticdb.db.ensure() then return end
   local normalized = normalize_name(name)
   if not normalized then return end
-  safe_call(db.delete, db, agnosticdb.db.people, db:eq(agnosticdb.db.people.name, normalized))
+  delete_person_row_by_name(normalized)
   if agnosticdb.highlights and agnosticdb.highlights.remove then
     agnosticdb.highlights.remove(normalized)
   end
@@ -382,7 +840,7 @@ function agnosticdb.getClass(name)
 end
 
 function agnosticdb.getSpecialization(name)
-  return get_field(name, "specialization")
+  return agnosticdb.db.get_current_specialization(name)
 end
 
 function agnosticdb.getCity(name)
@@ -395,6 +853,10 @@ end
 
 function agnosticdb.getRace(name)
   return get_field(name, "race")
+end
+
+function agnosticdb.getCurrentForm(name)
+  return get_field(name, "current_form")
 end
 
 function agnosticdb.getCityColor(name)
@@ -413,8 +875,12 @@ function agnosticdb.getCityColor(name)
   return nil
 end
 
+function agnosticdb.getElementalType(name)
+  return get_field(name, "elemental_type")
+end
+
 function agnosticdb.getElementalLordType(name)
-  return get_field(name, "elemental_lord_type")
+  return agnosticdb.getElementalType(name)
 end
 
 function agnosticdb.getLevel(name)

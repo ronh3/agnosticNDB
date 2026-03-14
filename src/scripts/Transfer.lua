@@ -52,12 +52,14 @@ end
 local function serialize_person(row)
   if not row or type(row.name) ~= "string" or row.name == "" then return nil end
   local record = { name = row.name }
+  local class_specs = agnosticdb.db and agnosticdb.db.get_class_specs and agnosticdb.db.get_class_specs(row.name) or {}
 
   set_if(record, "class", row.class, "")
-  set_if(record, "specialization", row.specialization, "")
   set_if(record, "city", row.city, "")
   set_if(record, "house", row.house, "")
   set_if(record, "race", row.race, "")
+  set_if(record, "current_form", row.current_form, "")
+  set_if(record, "elemental_type", row.elemental_type, "")
   set_if(record, "title", row.title, "")
   set_if(record, "notes", row.notes, "")
   set_if(record, "iff", row.iff, "auto")
@@ -67,12 +69,21 @@ local function serialize_person(row)
   set_if(record, "xp_rank", row.xp_rank, -1)
   set_if(record, "army_rank", row.army_rank, -1)
   set_if(record, "level", row.level, -1)
-  set_if(record, "elemental_lord_type", row.elemental_lord_type, "")
   set_if(record, "immortal", row.immortal, 0)
-  set_if(record, "dragon", row.dragon, 0)
   set_if(record, "last_checked", row.last_checked, 0)
   set_if(record, "last_updated", row.last_updated, 0)
   set_if(record, "source", row.source, "")
+  if class_specs and #class_specs > 0 then
+    record.class_specs = {}
+    for _, spec in ipairs(class_specs) do
+      record.class_specs[#record.class_specs + 1] = {
+        class = spec.class,
+        specialization = spec.specialization,
+        last_updated = tonumber(spec.last_updated or 0) or 0,
+        source = spec.source or "",
+      }
+    end
+  end
 
   return record
 end
@@ -91,7 +102,7 @@ function agnosticdb.transfer.exportData(path)
   end
 
   local payload = {
-    version = 1,
+    version = 2,
     exported_at = os.time(),
     people = {}
   }
@@ -168,8 +179,37 @@ function agnosticdb.transfer.importData(path)
       stats.skipped = stats.skipped + 1
       return
     end
-    record.name = name
-    agnosticdb.db.upsert_person(record)
+    local copy = {}
+    for key, value in pairs(record) do
+      copy[key] = value
+    end
+    copy.name = name
+    if copy.elemental_type == nil and copy.elemental_lord_type ~= nil then
+      copy.elemental_type = copy.elemental_lord_type
+    end
+    if copy.current_form == nil and type(copy.race) == "string" then
+      local detected = agnosticdb.db.detect_current_form and agnosticdb.db.detect_current_form(copy.race) or ""
+      if detected ~= "" then
+        copy.current_form = detected
+      end
+    end
+
+    local class_specs = copy.class_specs
+    copy.class_specs = nil
+    agnosticdb.db.upsert_person(copy)
+    if type(class_specs) == "table" then
+      for _, spec in ipairs(class_specs) do
+        if type(spec) == "table" then
+          agnosticdb.db.set_class_spec(
+            name,
+            spec.class,
+            spec.specialization or "",
+            spec.source or copy.source or "import",
+            spec.last_updated or copy.last_updated or os.time()
+          )
+        end
+      end
+    end
     stats.imported = stats.imported + 1
   end
 

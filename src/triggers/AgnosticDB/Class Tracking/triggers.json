@@ -933,7 +933,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], '2H') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], '2H', {'Runewarden', 'Infernal', 'Paladin'}) end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "DwC",
@@ -961,7 +961,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwC') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwC', {'Runewarden', 'Infernal', 'Paladin'}) end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "SnB",
@@ -989,7 +989,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'SnB') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'SnB', {'Runewarden', 'Infernal', 'Paladin'}) end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "DwB",
@@ -1009,7 +1009,7 @@
                             "type": "regex"
                      }
               ],
-              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwB') end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
+              "script": "if agnosticdb and agnosticdb.class_tracking then agnosticdb.class_tracking.set_specialization(matches[2], 'DwB', {'Runewarden', 'Infernal', 'Paladin'}) end; if agnosticdb and agnosticdb.api and agnosticdb.api.fetch then agnosticdb.api.fetch(matches[2]) end"
        },
        {
               "name": "Airlord",

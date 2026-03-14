@@ -1,22 +1,24 @@
 # Data Schema
 
 ## Data Stored Per Person
-- Name, class, specialization, city, house, race.
-- Title, city rank, XP rank, level, army rank, elemental lord type.
+- Name, current class, city, house, normalized base race.
+- Current form (`Dragon` / `Elemental` / blank), remembered elemental type, and title.
 - Enemy city/house markers and IFF (ally/enemy/auto).
-- Notes, immortal/dragon flags, last checked time, last updated time, source.
+- Notes, immortal flag, last checked time, last updated time, source.
+- Per-class specializations in the separate `class_specs` table.
 
 ## Field Defaults
-The Mudlet DB table is `people`. Defaults indicate "unknown" unless otherwise noted.
+The Mudlet DB tables are `people` and `class_specs`. Defaults indicate "unknown" unless otherwise noted.
 
 | Field | Type | Unknown / Default |
 | --- | --- | --- |
 | `name` | string | required |
 | `class` | string | `""` |
-| `specialization` | string | `""` |
 | `city` | string | `""` |
 | `house` | string | `""` |
 | `race` | string | `""` |
+| `current_form` | string | `""` (`Dragon` / `Elemental`) |
+| `elemental_type` | string | `""` (`Air` / `Earth` / `Fire` / `Water`) |
 | `title` | string | `""` |
 | `notes` | string | `""` |
 | `iff` | string | `"auto"` (`"enemy"`/`"ally"`/`"auto"`) |
@@ -26,14 +28,24 @@ The Mudlet DB table is `people`. Defaults indicate "unknown" unless otherwise no
 | `xp_rank` | integer | `-1` |
 | `army_rank` | integer | `-1` |
 | `level` | integer | `-1` |
-| `elemental_lord_type` | string | `""` |
 | `immortal` | integer | `0` or `1` |
-| `dragon` | integer | `0` or `1` |
 | `last_checked` | integer | `0` (epoch seconds) |
 | `last_updated` | integer | `0` (epoch seconds) |
 | `source` | string | `""` (examples: `api`, `api_list`, `citizens_list`) |
 
+## `class_specs`
+
+| Field | Type | Unknown / Default |
+| --- | --- | --- |
+| `name` | string | required |
+| `class` | string | required |
+| `specialization` | string | `""` |
+| `last_updated` | integer | `0` |
+| `source` | string | `""` |
+
 ## Notes on Updates
 - `last_checked` tracks when a character was last queried.
 - `last_updated` tracks when their stored data actually changed (used by `adb recent`).
+- `race` is normalized to the base race only. Transformed states are tracked in `current_form`.
+- `elemental_type` is remembered separately so a known subtype can survive reverting out of elemental form.
 - Enable `api.announce_changes_only` to suppress queue output if nothing changed.

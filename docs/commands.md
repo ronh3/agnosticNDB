@@ -25,7 +25,7 @@
 - `adb note clear all`: clear notes for everyone.
 - `adb iff <name> enemy|ally|auto`: set IFF for a person.
 - `adb ignore <name>`: toggle highlight ignore for a name.
-- `adb elord <name> <type>`: set elemental lord type (air/earth/fire/water/clear).
+- `adb elord <name> <type>`: set elemental type/current elemental form (air/earth/fire/water/clear).
 
 ## Lookup + Updates
 - `adb whois <name> [short|raw]`: show stored data (fetches if missing). Use `short` for compact output or `raw` for full fields.
@@ -42,7 +42,7 @@
 - `adb honors all`: queue honors for every name in the database.
 
 ## Reports & Lists
-- `adb stats`: counts by class/city/race/spec/elemental/dragon.
+- `adb stats`: counts by class/city/race/spec/known elemental type/current form.
 - `adb recent [n]`: show most recently updated people (default 20).
 - `adb list class|city|race <value>`: list people by a field.
 - `adb list enemy`: list people marked as enemies.
@@ -68,7 +68,7 @@
 
 ## Maintenance + Testing
 - `adb dbcheck`: check database schema health.
-- `adb dbreset`: reset database (drops people table).
+- `adb dbreset`: reset database (drops people + class_specs tables).
 - `adb export [path]`: export DB to JSON (default path in profile dir).
 - `adb import <path>`: import DB from JSON.
 - `adbtest`: run the self-test.
@@ -82,5 +82,5 @@ These triggers ingest data when you run the corresponding in-game commands:
 - Active citizens list: lines starting with `The following are ACTIVE citizens of <city>:` update city for listed names.
 - CWHO table: header line `Citizen Rank CT Class` updates class for listed names.
 - HWHO table: header line `Member Rank HTell HNTell Probation Class` updates class for listed names.
-- Honors output: `HONORS for <name>` parses race/title/ranks/army rank/etc.
-- Class tracking: combat messages update class/spec/race/elemental lord type.
+- Honors output: `HONORS for <name>` parses base race/current form/title/ranks/army rank/etc.
+- Class tracking: combat messages update class/spec/current form/elemental type.

@@ -4,12 +4,14 @@
 Use these helpers to pull stored info for a person. Each returns `nil` if the value is missing or unknown.
 - `agnosticdb.getPerson(name)`: full person record (table) or `nil`.
 - `agnosticdb.getClass(name)`: class.
-- `agnosticdb.getSpecialization(name)`: specialization.
+- `agnosticdb.getSpecialization(name)`: specialization for the currently stored class, if any.
 - `agnosticdb.getCity(name)`: city.
 - `agnosticdb.getHouse(name)`: house.
-- `agnosticdb.getRace(name)`: race.
+- `agnosticdb.getRace(name)`: normalized base race.
+- `agnosticdb.getCurrentForm(name)`: currently believed transformed form (`Dragon` / `Elemental`) if known.
 - `agnosticdb.getCityColor(name)`: city highlight color (based on config, with rogues for none).
-- `agnosticdb.getElementalLordType(name)`: elemental lord type.
+- `agnosticdb.getElementalType(name)`: remembered elemental subtype.
+- `agnosticdb.getElementalLordType(name)`: legacy alias for `getElementalType(name)`.
 - `agnosticdb.getLevel(name)`: level.
 - `agnosticdb.getTitle(name)`: title.
 - `agnosticdb.getXpRank(name)`: XP rank.
@@ -28,8 +30,12 @@ Use these helpers to pull stored info for a person. Each returns `nil` if the va
 - `agnosticdb.db.ensure()`: initialize/verify DB access (returns boolean).
 - `agnosticdb.db.init()`: initialize the DB and schema.
 - `agnosticdb.db.check()`: schema health check.
-- `agnosticdb.db.reset()`: drop/recreate `people`.
+- `agnosticdb.db.reset()`: drop/recreate `people` and `class_specs`.
 - `agnosticdb.db.get_person(name)`: fetch a row.
+- `agnosticdb.db.get_class_specs(name)`: fetch stored class specializations for a person.
+- `agnosticdb.db.get_class_spec(name, class)`: fetch a specialization for a specific class.
+- `agnosticdb.db.get_current_specialization(name_or_person)`: specialization for the currently stored class.
+- `agnosticdb.db.set_class_spec(name, class, specialization, source, last_updated)`: insert/update a class specialization.
 - `agnosticdb.db.upsert_person(fields)`: insert/update a row.
 - `agnosticdb.db.delete_person(name)`: remove a row.
 - `agnosticdb.db.normalize_name(name)`: normalize capitalization.

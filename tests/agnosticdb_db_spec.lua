@@ -19,6 +19,7 @@ describe("agnosticdb db", function()
     local changed, person = agnosticdb.db.upsert_person({
       name = "testperson",
       class = "Magi",
+      specialization = "Pyromancy",
       city = "Ashtan",
       notes = "hello",
     })
@@ -28,6 +29,7 @@ describe("agnosticdb db", function()
     assert.are.equal("Magi", person.class)
     assert.are.equal("Ashtan", person.city)
     assert.are.equal("hello", person.notes)
+    assert.are.equal("Pyromancy", agnosticdb.db.get_current_specialization("Testperson"))
     assert.is_true((tonumber(person.last_updated) or 0) > 0)
 
     local first_updated = tonumber(person.last_updated)
@@ -86,19 +88,31 @@ describe("agnosticdb db", function()
       name = "Clearperson",
       notes = "remove me",
       city_rank = 9,
-      elemental_lord_type = "Fire",
+      current_form = "Elemental",
+      elemental_type = "Fire",
     })
 
     local changed, cleared = agnosticdb.db.upsert_person({
       name = "Clearperson",
       notes = "",
       city_rank = -1,
-      elemental_lord_type = "",
+      current_form = "",
+      elemental_type = "",
     })
 
     assert.is_true(changed)
     assert.are.equal("", cleared.notes)
     assert.are.equal(-1, tonumber(cleared.city_rank))
-    assert.are.equal("", cleared.elemental_lord_type)
+    assert.are.equal("", cleared.current_form)
+    assert.are.equal("", cleared.elemental_type)
+  end)
+
+  it("stores class specializations against the active class only", function()
+    agnosticdb.db.upsert_person({ name = "Knight", class = "Runewarden", specialization = "2H" })
+    agnosticdb.db.upsert_person({ name = "Knight", class = "Magi" })
+
+    assert.are.equal("2H", agnosticdb.db.get_class_spec("Knight", "Runewarden"))
+    assert.is_nil(agnosticdb.db.get_class_spec("Knight", "Magi"))
+    assert.is_nil(agnosticdb.db.get_current_specialization("Knight"))
   end)
 end)

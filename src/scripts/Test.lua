@@ -60,9 +60,9 @@ function agnosticdb.test.run()
   end
 
   local test_name = "Testperson"
-  agnosticdb.db.upsert_person({ name = test_name, class = "magi", city = "Ashtan", notes = "hello" })
+  agnosticdb.db.upsert_person({ name = test_name, class = "Magi", city = "Ashtan", notes = "hello" })
   local person = agnosticdb.db.get_person(test_name)
-  if person and person.name == "Testperson" and person.class == "magi" then
+  if person and person.name == "Testperson" and person.class == "Magi" then
     pass("DB upsert/get person")
   else
     fail("DB upsert/get person")

@@ -1466,7 +1466,7 @@ function agnosticdb.ui.show_help(include_status)
   entry("adb note clear <name>", "clear notes for a person")
   entry("adb note clear all", "clear notes for everyone")
   entry("adb iff <name> enemy|ally|auto", "set friend/foe status")
-  entry("adb elord <name> <type>", "set elemental lord type (air/earth/fire/water/clear)")
+  entry("adb elord <name> <type>", "set elemental type/current elemental form (air/earth/fire/water/clear)")
   line(separator())
   line(section("Lookup & Updates"))
   entry("adb whois <name> [short|raw]", "show stored data (fetch if needed)")
@@ -1745,14 +1745,37 @@ local function format_rank(value)
   return tostring(value)
 end
 
+local function person_specialization(person)
+  if type(person) ~= "table" then return nil end
+  if not agnosticdb.db or not agnosticdb.db.get_current_specialization then return nil end
+  return agnosticdb.db.get_current_specialization(person)
+end
+
+local function person_form_label(person)
+  if type(person) ~= "table" then return nil end
+  local form = person.current_form or ""
+  if form == "Elemental" then
+    if person.elemental_type and person.elemental_type ~= "" then
+      return string.format("%s Elemental", person.elemental_type)
+    end
+    return "Elemental"
+  end
+  if form == "Dragon" then
+    return "Dragon"
+  end
+  return nil
+end
+
 local function show_person_compact(person)
   local class = format_value(person.class, "(unknown)")
-  if person.specialization and person.specialization ~= "" then
-    class = string.format("%s (%s)", class, person.specialization)
+  local specialization = person_specialization(person)
+  if specialization and specialization ~= "" then
+    class = string.format("%s (%s)", class, specialization)
   end
   local race = format_value(person.race, "-")
-  if person.elemental_lord_type and person.elemental_lord_type ~= "" then
-    race = string.format("%s (%s)", race, person.elemental_lord_type)
+  local form_label = person_form_label(person)
+  if form_label then
+    race = string.format("%s | Current: %s", race, form_label)
   end
   local city = format_value(person.city, "(unknown)")
   local house = format_value(person.house, "-")
@@ -1782,15 +1805,23 @@ end
 
 local function show_person_raw(person)
   echo_title(string.format("Whois (raw): %s", person.name))
+  local specs = agnosticdb.db and agnosticdb.db.get_class_specs and agnosticdb.db.get_class_specs(person.name) or {}
+  local spec_parts = {}
+  for _, spec in ipairs(specs) do
+    if spec.specialization and spec.specialization ~= "" then
+      spec_parts[#spec_parts + 1] = string.format("%s=%s", spec.class or "?", spec.specialization)
+    end
+  end
   local fields = {
     { "Name", person.name },
     { "Class", person.class },
-    { "Specialization", person.specialization },
+    { "Class Specs", #spec_parts > 0 and table.concat(spec_parts, ", ") or "" },
     { "City", person.city },
     { "House", person.house },
     { "Race", person.race },
+    { "Current Form", person.current_form },
     { "Army Rank", person.army_rank },
-    { "Elemental Lord", person.elemental_lord_type },
+    { "Elemental Type", person.elemental_type },
     { "Enemy City", person.enemy_city },
     { "Enemy House", person.enemy_house },
     { "Title", person.title },
@@ -1800,7 +1831,6 @@ local function show_person_raw(person)
     { "XP Rank", person.xp_rank },
     { "Level", person.level },
     { "Immortal", person.immortal },
-    { "Dragon", person.dragon },
     { "Last Checked", person.last_checked },
     { "Last Updated", person.last_updated },
     { "Source", person.source }
@@ -1842,14 +1872,19 @@ function agnosticdb.ui.show_person(name, opts)
 
   echo_title(string.format("Whois: %s", person.name))
   echo_kv("Class", person.class ~= "" and person.class or "(unknown)")
-  if person.specialization and person.specialization ~= "" then
-    echo_kv("Specialization", person.specialization)
+  local specialization = person_specialization(person)
+  if specialization and specialization ~= "" then
+    echo_kv("Specialization", specialization)
   end
   if person.race and person.race ~= "" then
     echo_kv("Race", person.race)
   end
-  if person.elemental_lord_type and person.elemental_lord_type ~= "" then
-    echo_kv("Elemental Lord", person.elemental_lord_type)
+  local form_label = person_form_label(person)
+  if form_label then
+    echo_kv("Current Form", form_label)
+  end
+  if person.elemental_type and person.elemental_type ~= "" then
+    echo_kv("Elemental Type", person.elemental_type)
   end
   echo_kv("City", person.city ~= "" and person.city or "(unknown)")
   echo_kv("House", person.house ~= "" and person.house or "(unknown)")
@@ -1936,11 +1971,15 @@ function agnosticdb.ui.set_elemental_lord(name, element)
     return
   end
 
-  agnosticdb.db.upsert_person({ name = name, elemental_lord_type = normalized })
+  agnosticdb.db.upsert_person({
+    name = name,
+    current_form = normalized == "" and "" or "Elemental",
+    elemental_type = normalized,
+  })
   if normalized == "" then
-    echo_line(string.format("Elemental lord type cleared for %s.", display_name(name)))
+    echo_line(string.format("Elemental type cleared for %s.", display_name(name)))
   else
-    echo_line(string.format("Elemental lord type for %s set to %s.", display_name(name), normalized))
+    echo_line(string.format("Elemental type for %s set to %s.", display_name(name), normalized))
   end
 end
 
@@ -2197,13 +2236,8 @@ local function build_comp_by_class(names, target_city)
   for _, name in ipairs(names) do
     local person = agnosticdb.db.get_person(name)
     if person and city_matches(comp_city_label(person.city or ""), target_city) then
-      local race = person.race or ""
       local class
-      if race == "Dragon" or race == "Elemental" then
-        class = race
-      else
-        class = person.class ~= "" and person.class or "(unknown)"
-      end
+      class = person_form_label(person) or (person.class ~= "" and person.class or "(unknown)")
       by_class[class] = by_class[class] or {}
       table.insert(by_class[class], {
         name = person.name or name,
@@ -2939,14 +2973,15 @@ function agnosticdb.ui.stats()
   local by_race = {}
   local by_spec = {}
   local by_elemental = {}
-  local by_dragon_color = {}
+  local by_form = {}
 
   for _, row in ipairs(rows) do
     local class = row.class or ""
     local city = row.city or ""
     local race = row.race or ""
-    local spec = row.specialization or ""
-    local elord = row.elemental_lord_type or ""
+    local spec = person_specialization(row) or ""
+    local elemental_type = row.elemental_type or ""
+    local form = row.current_form or ""
     if class == "" then class = "(unknown)" end
     if city == "" or city == "(none)" then city = "Rogue" end
     if race == "" then race = "(unknown)" end
@@ -2959,19 +2994,13 @@ function agnosticdb.ui.stats()
       by_spec[label] = (by_spec[label] or 0) + 1
     end
 
-    if elord ~= "" then
-      by_elemental[elord] = (by_elemental[elord] or 0) + 1
+    if elemental_type ~= "" then
+      by_elemental[elemental_type] = (by_elemental[elemental_type] or 0) + 1
     end
 
-    if race == "Dragon" then
-      local color = ""
-      if type(row.class) == "string" and row.class ~= "" then
-        color = row.class:match("^(.+) Dragon$") or ""
-      end
-      if color == "" then
-        color = "(unknown)"
-      end
-      by_dragon_color[color] = (by_dragon_color[color] or 0) + 1
+    if form ~= "" then
+      local label = person_form_label(row) or form
+      by_form[label] = (by_form[label] or 0) + 1
     end
   end
 
@@ -2981,8 +3010,8 @@ function agnosticdb.ui.stats()
   print_stats_section("By city", by_city)
   print_stats_section("By race", by_race)
   print_stats_section("Specializations", by_spec)
-  print_stats_section("Elemental lords", by_elemental)
-  print_stats_section("Dragon colors", by_dragon_color)
+  print_stats_section("Known elemental types", by_elemental)
+  print_stats_section("Current forms", by_form)
 end
 
 local function class_abbrev_map()
@@ -3036,14 +3065,14 @@ local function qwp_suffix(person, mode)
   local race = person.race or ""
   local race_text = race_label(race)
   local class_text = class_abbrev(person.class)
-  local elemental_or_dragon = race == "Elemental" or race == "Dragon"
+  local form_label = person_form_label(person)
 
   if mode == "army" then
     return army_rank_label(person.army_rank)
   end
   if mode == "class" then
-    if elemental_or_dragon then
-      return race_text
+    if form_label then
+      return form_label
     end
     return class_text
   end
