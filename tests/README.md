@@ -5,7 +5,7 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 ## Active Coverage
 
 - `agnosticdb_db_spec.lua`
-  Confirms DB upsert/get behavior, per-class specialization storage, merge semantics for omitted versus explicit values, `last_updated` stability for unchanged writes, and derived enemy logic.
+  Confirms DB upsert/get behavior, per-class specialization storage, merge semantics for omitted versus explicit values, `last_updated` stability for unchanged writes, numeric-race cleanup, and derived enemy logic.
 - `agnosticdb_api_spec.lua`
   Confirms API list parsing, backoff gating, per-character fetch ingestion, cache short-circuit behavior, queue ETA math, queue cancellation, queue progress milestones, update-all queueing, and missing-only online refresh behavior using stubbed HTTP responses.
 - `agnosticdb_config_spec.lua`

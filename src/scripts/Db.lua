@@ -124,6 +124,7 @@ local function normalize_race(value)
 
   local lower = trim(value):lower()
   if lower == "" then return "" end
+  if lower:match("^%d+$") then return "" end
 
   lower = lower:gsub("[%.,;:!]+$", "")
   lower = lower:gsub("^non%-binary%s+", "")
@@ -310,11 +311,6 @@ local function numeric_people_fields()
   }
 end
 
-local function merge_unique_raw(table_handle, record)
-  if not table_handle or not record then return nil end
-  return safe_call(db.merge_unique, db, table_handle, { record })
-end
-
 local function sql_quote(value)
   if value == nil then return "''" end
   return "'" .. tostring(value):gsub("'", "''") .. "'"
@@ -336,16 +332,64 @@ local function upsert_class_spec_record(record)
   return true
 end
 
-local function delete_raw(table_handle, clause)
-  if not table_handle or not clause then return nil end
-  return safe_call(db.delete, db, table_handle, clause)
+local function sql_number(value, default)
+  local num = tonumber(value)
+  if num == nil then
+    num = default or 0
+  end
+  return tostring(num)
+end
+
+local function upsert_people_record(record)
+  local conn = db_conn()
+  if not conn or type(record) ~= "table" then return nil end
+  local sql = string.format([[
+    INSERT OR REPLACE INTO people (
+      name, class, specialization, city, house, race, army_rank,
+      elemental_lord_type, current_form, elemental_type, enemy_city, enemy_house,
+      title, notes, iff, city_rank, xp_rank, level, immortal, dragon,
+      last_checked, last_updated, source
+    ) VALUES (
+      %s, %s, %s, %s, %s, %s, %s,
+      %s, %s, %s, %s, %s,
+      %s, %s, %s, %s, %s, %s, %s, %s,
+      %s, %s, %s
+    )
+  ]],
+    sql_quote(record.name),
+    sql_quote(record.class or ""),
+    sql_quote(record.specialization or ""),
+    sql_quote(record.city or ""),
+    sql_quote(record.house or ""),
+    sql_quote(record.race or ""),
+    sql_number(record.army_rank, -1),
+    sql_quote(record.elemental_lord_type or ""),
+    sql_quote(record.current_form or ""),
+    sql_quote(record.elemental_type or ""),
+    sql_quote(record.enemy_city or ""),
+    sql_quote(record.enemy_house or ""),
+    sql_quote(record.title or ""),
+    sql_quote(record.notes or ""),
+    sql_quote(record.iff or "auto"),
+    sql_number(record.city_rank, -1),
+    sql_number(record.xp_rank, -1),
+    sql_number(record.level, -1),
+    sql_number(record.immortal, 0),
+    sql_number(record.dragon, 0),
+    sql_number(record.last_checked, 0),
+    sql_number(record.last_updated, 0),
+    sql_quote(record.source or "")
+  )
+  conn:execute(sql)
+  if conn.commit then conn:commit() end
+  return true
 end
 
 local function delete_person_row_by_name(name)
   if type(name) ~= "string" or name == "" then return end
-  delete_raw(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, name))
   local conn = db_conn()
   if not conn then return end
+  conn:execute(string.format("DELETE FROM people WHERE name = %s", sql_quote(name)))
   conn:execute(string.format("DELETE FROM class_specs WHERE name = %s", sql_quote(name)))
   if conn.commit then conn:commit() end
 end
@@ -451,7 +495,7 @@ local function migrate_legacy_rows()
         last_updated = tonumber(row.last_updated or 0) or 0,
         source = row.source or "",
       }
-      merge_unique_raw(agnosticdb.db.people, updated)
+      upsert_people_record(updated)
     end
   end
 end
@@ -808,7 +852,7 @@ function agnosticdb.db.upsert_person(fields, opts)
     record.last_checked = os.time()
   end
 
-  merge_unique_raw(agnosticdb.db.people, record)
+  upsert_people_record(record)
 
   if type(fields.class_spec) == "table" then
     agnosticdb.db.set_class_spec(

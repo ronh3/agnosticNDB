@@ -115,4 +115,23 @@ describe("agnosticdb db", function()
     assert.is_nil(agnosticdb.db.get_class_spec("Knight", "Magi"))
     assert.is_nil(agnosticdb.db.get_current_specialization("Knight"))
   end)
+
+  it("does not keep numeric junk values in race fields", function()
+    local changed, person = agnosticdb.db.upsert_person({
+      name = "Rankrace",
+      class = "Runewarden",
+      race = "1",
+      army_rank = 1,
+      city = "Cyrene",
+      source = "manual",
+    })
+
+    assert.is_true(changed)
+    assert.are.equal("", person.race)
+    assert.are.equal(1, tonumber(person.army_rank))
+
+    local fetched = agnosticdb.db.get_person("Rankrace")
+    assert.are.equal("", fetched.race)
+    assert.are.equal(1, tonumber(fetched.army_rank))
+  end)
 end)
