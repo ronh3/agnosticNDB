@@ -148,34 +148,20 @@ jobs:
       - name: Check Busted result
         run: |
           if [ -e /tmp/busted-tests-failed ]; then
-            python - <<'PY'
-            from pathlib import Path
-
-            lines = Path("/tmp/mudlet.raw.log").read_text(errors="replace").splitlines()
-            with Path("/tmp/mudlet.filtered.log").open("w", encoding="utf-8") as out:
-                i = 0
-                while i < len(lines):
-                    line = lines[i]
-                    if 'XMLimport::readUnknownElement(' in line and 'UNKNOWN Package Element name: "path".' in line:
-                        i += 4
-                        continue
-                    out.write(line + "\n")
-                    i += 1
-            PY
             echo "Lua tests failed - see the Mudlet test step output above."
             echo ""
             echo "---- /tmp/busted-tests-failed ----"
             cat /tmp/busted-tests-failed || true
             echo ""
-            echo "---- tail /tmp/mudlet.filtered.log ----"
-            tail -n 120 /tmp/mudlet.filtered.log || true
+            echo "---- failure summary from /tmp/mudlet.raw.log ----"
+            grep -nE 'Failure ->|Error ->|stack traceback|Expected objects|attempt to index' /tmp/mudlet.raw.log || true
             summary=$(
               {
                 echo "/tmp/busted-tests-failed:"
                 cat /tmp/busted-tests-failed 2>/dev/null || true
                 echo ""
-                echo "tail /tmp/mudlet.filtered.log:"
-                tail -n 40 /tmp/mudlet.filtered.log 2>/dev/null || true
+                echo "failure summary from /tmp/mudlet.raw.log:"
+                grep -nE 'Failure ->|Error ->|stack traceback|Expected objects|attempt to index' /tmp/mudlet.raw.log 2>/dev/null || true
               } | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g'
             )
             echo "::error::$summary"
