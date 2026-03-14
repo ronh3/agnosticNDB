@@ -267,7 +267,7 @@ end
 
 function agnosticdb.db.ensure()
   if agnosticdb.db.disabled then return false end
-  if agnosticdb.db.people and agnosticdb.db.class_specs then return true end
+  if agnosticdb.db.people and agnosticdb.db.class_specs ~= nil then return true end
   if agnosticdb.db.init then
     agnosticdb.db.init()
   end
@@ -344,7 +344,25 @@ end
 local function delete_person_row_by_name(name)
   if type(name) ~= "string" or name == "" then return end
   delete_raw(agnosticdb.db.people, db:eq(agnosticdb.db.people.name, name))
-  delete_raw(agnosticdb.db.class_specs, db:eq(agnosticdb.db.class_specs.name, name))
+  local conn = db_conn()
+  if not conn then return end
+  conn:execute(string.format("DELETE FROM class_specs WHERE name = %s", sql_quote(name)))
+  if conn.commit then conn:commit() end
+end
+
+local function fetch_sql_rows(sql)
+  local conn = db_conn()
+  if not conn then return {} end
+  local cursor = conn:execute(sql)
+  if not cursor then return {} end
+  local rows = {}
+  local row = cursor:fetch({}, "a")
+  while row do
+    rows[#rows + 1] = row
+    row = cursor:fetch({}, "a")
+  end
+  if cursor.close then cursor:close() end
+  return rows
 end
 
 local function get_class_spec_row(name, class)
@@ -352,7 +370,10 @@ local function get_class_spec_row(name, class)
   local normalized = normalize_name(name)
   local normalized_class = normalize_class(class)
   if not normalized or not normalized_class or normalized_class == "" then return nil end
-  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs, db:eq(agnosticdb.db.class_specs.name, normalized)) or {}
+  local rows = fetch_sql_rows(string.format(
+    "SELECT name, class, specialization, last_updated, source FROM class_specs WHERE name = %s",
+    sql_quote(normalized)
+  ))
   for _, row in ipairs(rows) do
     if row.class == normalized_class then
       return row
@@ -475,7 +496,7 @@ function agnosticdb.db.check()
     return false, { "Database query failed. Run adb dbreset or delete the DB file." }
   end
 
-  local specs = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs)
+  local specs = fetch_sql_rows("SELECT name, class FROM class_specs")
   return true, {
     "Schema OK.",
     string.format("People rows: %d", rows and #rows or 0),
@@ -552,16 +573,6 @@ function agnosticdb.db.init()
 
       _unique = { "name" },
       _violations = "REPLACE"
-    },
-    class_specs = {
-      name = "",
-      class = "",
-      specialization = "",
-      last_updated = 0,
-      source = "",
-
-      _unique = { "name", "class" },
-      _violations = "REPLACE"
     }
   }
 
@@ -569,11 +580,8 @@ function agnosticdb.db.init()
   if not agnosticdb.db.handle then return end
 
   ensure_class_specs_table()
-  agnosticdb.db.handle = safe_call(db.create, db, "agnosticdb", agnosticdb.db.schema)
-  if not agnosticdb.db.handle then return end
-
   agnosticdb.db.people = agnosticdb.db.handle.people
-  agnosticdb.db.class_specs = agnosticdb.db.handle.class_specs
+  agnosticdb.db.class_specs = true
 
   local people_rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
   local people_sample = people_rows and people_rows[1] or nil
@@ -596,11 +604,9 @@ function agnosticdb.db.init()
   add_column_if_missing("people", people_sample, "last_updated", [[ALTER TABLE people ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
   add_column_if_missing("people", people_sample, "source", [[ALTER TABLE people ADD COLUMN "source" TEXT NULL DEFAULT ""]])
 
-  local spec_rows = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs)
-  local spec_sample = spec_rows and spec_rows[1] or nil
-  add_column_if_missing("class_specs", spec_sample, "specialization", [[ALTER TABLE class_specs ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
-  add_column_if_missing("class_specs", spec_sample, "last_updated", [[ALTER TABLE class_specs ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
-  add_column_if_missing("class_specs", spec_sample, "source", [[ALTER TABLE class_specs ADD COLUMN "source" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("class_specs", nil, "specialization", [[ALTER TABLE class_specs ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
+  add_column_if_missing("class_specs", nil, "last_updated", [[ALTER TABLE class_specs ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
+  add_column_if_missing("class_specs", nil, "source", [[ALTER TABLE class_specs ADD COLUMN "source" TEXT NULL DEFAULT ""]])
 
   migrate_legacy_rows()
 end
@@ -617,7 +623,10 @@ function agnosticdb.db.get_class_specs(name)
   if not agnosticdb.db.ensure() then return {} end
   local normalized = normalize_name(name)
   if not normalized then return {} end
-  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.class_specs, db:eq(agnosticdb.db.class_specs.name, normalized)) or {}
+  local rows = fetch_sql_rows(string.format(
+    "SELECT name, class, specialization, last_updated, source FROM class_specs WHERE name = %s",
+    sql_quote(normalized)
+  ))
   table.sort(rows, function(a, b)
     local left = tostring(a.class or "")
     local right = tostring(b.class or "")
