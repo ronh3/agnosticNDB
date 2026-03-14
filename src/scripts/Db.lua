@@ -315,6 +315,27 @@ local function merge_unique_raw(table_handle, record)
   return safe_call(db.merge_unique, db, table_handle, { record })
 end
 
+local function sql_quote(value)
+  if value == nil then return "''" end
+  return "'" .. tostring(value):gsub("'", "''") .. "'"
+end
+
+local function upsert_class_spec_record(record)
+  local conn = db_conn()
+  if not conn or type(record) ~= "table" then return nil end
+  local sql = string.format(
+    "INSERT OR REPLACE INTO class_specs (name, class, specialization, last_updated, source) VALUES (%s, %s, %s, %d, %s)",
+    sql_quote(record.name),
+    sql_quote(record.class),
+    sql_quote(record.specialization or ""),
+    tonumber(record.last_updated or 0) or 0,
+    sql_quote(record.source or "")
+  )
+  conn:execute(sql)
+  if conn.commit then conn:commit() end
+  return true
+end
+
 local function delete_raw(table_handle, clause)
   if not table_handle or not clause then return nil end
   return safe_call(db.delete, db, table_handle, clause)
@@ -381,7 +402,7 @@ local function migrate_legacy_rows()
           last_updated = tonumber(row.last_updated or 0) or os.time(),
           source = row.source or "",
         }
-        merge_unique_raw(agnosticdb.db.class_specs, spec_record)
+        upsert_class_spec_record(spec_record)
       end
 
       local updated = {
@@ -625,7 +646,7 @@ function agnosticdb.db.set_class_spec(name, class, specialization, source, last_
     last_updated = tonumber(last_updated or os.time()) or os.time(),
     source = type(source) == "string" and source or "",
   }
-  merge_unique_raw(agnosticdb.db.class_specs, record)
+  upsert_class_spec_record(record)
   return agnosticdb.db.get_class_spec(normalized_name, normalized_class)
 end
 
