@@ -155,6 +155,16 @@ jobs:
             echo ""
             echo "---- tail /tmp/mudlet.raw.log ----"
             tail -n 200 /tmp/mudlet.raw.log || true
+            summary=$(
+              {
+                echo "/tmp/busted-tests-failed:"
+                cat /tmp/busted-tests-failed 2>/dev/null || true
+                echo ""
+                echo "tail /tmp/mudlet.raw.log:"
+                tail -n 80 /tmp/mudlet.raw.log 2>/dev/null || true
+              } | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g'
+            )
+            echo "::error::$summary"
             exit 1
           fi
 
