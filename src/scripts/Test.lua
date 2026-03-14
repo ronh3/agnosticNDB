@@ -52,11 +52,45 @@ local function warn(msg)
   echo_line("WARN: " .. msg)
 end
 
+local fixture_names = {
+  "Testperson",
+  "Noteperson",
+  "NotePerson",
+  "Enemycandidate",
+  "EnemyCandidate",
+}
+
+local function cleanup_fixtures()
+  if agnosticdb.db and agnosticdb.db.delete_person then
+    for _, name in ipairs(fixture_names) do
+      pcall(agnosticdb.db.delete_person, name)
+    end
+  end
+  if agnosticdb.highlights and agnosticdb.highlights.unignore then
+    pcall(agnosticdb.highlights.unignore, "IgnoreMe")
+  end
+end
+
 function agnosticdb.test.run()
   echo_line("Running agnosticDB self-test...")
 
   if agnosticdb.db and agnosticdb.db.init then
     agnosticdb.db.init()
+  end
+
+  cleanup_fixtures()
+
+  local prior_ashtan_relation = nil
+  if agnosticdb.politics and agnosticdb.politics.get_city_relation then
+    prior_ashtan_relation = agnosticdb.politics.get_city_relation("Ashtan")
+  end
+
+  local function finish()
+    if prior_ashtan_relation and agnosticdb.politics and agnosticdb.politics.set_city_relation then
+      pcall(agnosticdb.politics.set_city_relation, "Ashtan", prior_ashtan_relation)
+    end
+    cleanup_fixtures()
+    echo_line("Self-test complete.")
   end
 
   local test_name = "Testperson"
@@ -107,19 +141,18 @@ function agnosticdb.test.run()
 
   if type(getHTTP) ~= "function" then
     warn("getHTTP not available; skipping API list fetch")
-    echo_line("Self-test complete.")
+    finish()
     return
   end
 
   agnosticdb.api.fetch_list(function(names, status)
     if status ~= "ok" or type(names) ~= "table" then
       warn("API list fetch failed: " .. tostring(status))
-      echo_line("Self-test complete.")
+      finish()
       return
     end
 
-    local count = agnosticdb.api.seed_names(names, "api_list")
-    pass(string.format("API list fetched (%d names, %d added)", #names, count))
-    echo_line("Self-test complete.")
+    pass(string.format("API list fetched (%d names)", #names))
+    finish()
   end)
 end
