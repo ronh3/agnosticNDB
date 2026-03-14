@@ -28,9 +28,18 @@ local function highlight_ignore()
   return agnosticdb.conf.highlight_ignore
 end
 
+local function escape_lua_pattern(text)
+  return (tostring(text or ""):gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
+end
+
+local function escape_regex(text)
+  return (tostring(text or ""):gsub("([\\^%$%(%)%%%.%[%]%*%+%-%?])", "\\%1"))
+end
+
 local function apply_style(name, style)
   if not line or not name then return end
-  local pattern = "%f[%a]" .. name .. "%f[%A]"
+  local escaped_name = escape_lua_pattern(name)
+  local pattern = "%f[%a']" .. escaped_name .. "%f[^%a']"
   local start_pos = 1
   local occurrence = 0
 
@@ -49,7 +58,7 @@ local function apply_style(name, style)
     if style.color then fg(style.color) end
     if style.bold then setBold(true) end
     if style.underline then setUnderline(true) end
-    if style.italicize then setItalics(true) end
+      if style.italicize then setItalics(true) end
     resetFormat()
 
     start_pos = e + 1
@@ -116,7 +125,7 @@ function agnosticdb.highlights.reload()
     if name and not ignored[name] then
       local style = style_for(person)
       if style then
-        local id = tempTrigger(name, function()
+        local id = tempRegexTrigger("(?<![A-Za-z'])" .. escape_regex(name) .. "(?![A-Za-z'])", function()
           apply_style(name, style)
         end)
         agnosticdb.highlights.ids[name] = id
@@ -159,7 +168,7 @@ function agnosticdb.highlights.update(person)
   if not style then return end
 
   agnosticdb.highlights.ids = agnosticdb.highlights.ids or {}
-  local id = tempTrigger(normalized, function()
+  local id = tempRegexTrigger("(?<![A-Za-z'])" .. escape_regex(normalized) .. "(?![A-Za-z'])", function()
     apply_style(normalized, style)
   end)
   agnosticdb.highlights.ids[normalized] = id

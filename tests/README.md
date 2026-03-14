@@ -12,6 +12,8 @@ These specs run inside a real Mudlet instance in GitHub Actions.
   Confirms config import/export entry points, including JSON-capability fallback behavior and highlight reload on import.
 - `agnosticdb_honors_spec.lua`
   Confirms the honors module entry points exist, that direct honors captures update parsed fields such as class, city, house, normalized race, current form, and ranks, and that queue startup deduplicates names and queue cancellation clears state.
+- `agnosticdb_highlights_spec.lua`
+  Confirms generated highlight triggers use whole-name regex boundaries so names do not fire inside contractions or larger words.
 - `agnosticdb_ingestion_spec.lua`
   Confirms stable `finish_capture()` ingestion paths for citizens lists, including source-preservation behavior, plus personal, city, and house enemy replacement.
 - `agnosticdb_transfer_spec.lua`
