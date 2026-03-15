@@ -3,11 +3,13 @@ local helper = dofile(os.getenv("TESTS_DIRECTORY") .. "/support/agnosticdb_test_
 describe("agnosticdb ui", function()
   local outputs
   local saved_cecho
+  local saved_getWindowWrap
 
   before_each(function()
     helper.reset()
     outputs = {}
     saved_cecho = _G.cecho
+    saved_getWindowWrap = _G.getWindowWrap
     _G.cecho = function(msg)
       outputs[#outputs + 1] = tostring(msg or "")
     end
@@ -15,6 +17,7 @@ describe("agnosticdb ui", function()
 
   after_each(function()
     _G.cecho = saved_cecho
+    _G.getWindowWrap = saved_getWindowWrap
   end)
 
   it("renders status with current database information", function()
@@ -56,6 +59,33 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("Cyrene", 1, true) ~= nil)
     assert.is_true(rendered:find("Alpha (MAG)", 1, true) ~= nil)
     assert.is_true(rendered:find("Beta (MNK)", 1, true) ~= nil)
+  end)
+
+  it("wraps qwp rows to the current Mudlet window width", function()
+    _G.getWindowWrap = function()
+      return 34
+    end
+
+    agnosticdb.db.upsert_person({ name = "Alpha", class = "Magi", city = "Ashtan" })
+    agnosticdb.db.upsert_person({ name = "Beta", class = "Monk", city = "Ashtan" })
+    agnosticdb.db.upsert_person({ name = "Gamma", class = "Bard", city = "Ashtan" })
+    agnosticdb.db.upsert_person({ name = "Delta", class = "Serpent", city = "Ashtan" })
+
+    local fetch_list_stub = stub(agnosticdb.api, "fetch_list", function(on_done)
+      on_done({ "Alpha", "Beta", "Gamma", "Delta" }, "ok")
+    end)
+
+    agnosticdb.ui.qwp_command("class")
+
+    fetch_list_stub:revert()
+
+    local rendered = table.concat(outputs, "")
+    local verticals = select(2, rendered:gsub("║", ""))
+    assert.is_true(rendered:find("╔", 1, true) ~= nil)
+    assert.is_true(rendered:find("╚", 1, true) ~= nil)
+    assert.is_true(rendered:find("Alpha (MAG)", 1, true) ~= nil)
+    assert.is_true(rendered:find("Delta (SRP)", 1, true) ~= nil)
+    assert.is_true(verticals >= 4)
   end)
 
   it("reports api queue cancellation and pending count", function()

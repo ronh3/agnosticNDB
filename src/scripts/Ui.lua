@@ -40,12 +40,31 @@ end
 local function config_theme()
 end
 
+local function strip_color_tags(text)
+  return (tostring(text or ""):gsub("<[^>]->", ""))
+end
+
 local function frame_theme()
   return config_theme()
 end
 
 local function frame_width()
-  return 72
+  local wrap = 80
+  if type(getWindowWrap) == "function" then
+    local ok, value = pcall(getWindowWrap, "main")
+    if ok and type(value) == "number" and value > 0 then
+      wrap = value
+    end
+  end
+  local width = wrap - 2
+  if width < 20 then width = 20 end
+  return width
+end
+
+local function frame_text_width()
+  local width = frame_width() - 2
+  if width < 1 then width = 1 end
+  return width
 end
 
 local function frame_line(left, fill, right, label, align)
@@ -53,7 +72,7 @@ local function frame_line(left, fill, right, label, align)
   local width = frame_width()
   if label then
     local text = " " .. label .. " "
-    local pad = width - #text
+    local pad = width - #strip_color_tags(text)
     if pad < 0 then pad = 0 end
     if align == "center" then
       local left_pad = math.floor(pad / 2)
@@ -442,10 +461,6 @@ function agnosticdb.ui.format_prefix()
   return "<cyan>[agnosticdb]<reset> "
 end
 
-local function strip_color_tags(text)
-  return (tostring(text or ""):gsub("<[^>]->", ""))
-end
-
 local function frame_content_line(text)
   local theme = frame_theme()
   local width = frame_width()
@@ -453,6 +468,103 @@ local function frame_content_line(text)
   local pad = width - #strip_color_tags(content)
   if pad < 0 then pad = 0 end
   return string.format("%s║%s%s%s%s║%s", theme.border, theme.text, content, string.rep(" ", pad), theme.border, theme.reset)
+end
+
+local function wrap_frame_text(text)
+  local raw = tostring(text or ""):gsub("\t", " ")
+  local max_width = frame_text_width()
+  local wrapped = {}
+
+  local function wrap_segment(segment)
+    if segment == "" then
+      wrapped[#wrapped + 1] = ""
+      return
+    end
+
+    local words = {}
+    local current = ""
+    local i = 1
+    while i <= #segment do
+      local ch = segment:sub(i, i)
+      if ch == "<" then
+        local tag_end = segment:find(">", i, true)
+        if tag_end then
+          current = current .. segment:sub(i, tag_end)
+          i = tag_end + 1
+        else
+          current = current .. ch
+          i = i + 1
+        end
+      elseif ch:match("%s") then
+        if current ~= "" then
+          words[#words + 1] = current
+          current = ""
+        end
+        i = i + 1
+      else
+        current = current .. ch
+        i = i + 1
+      end
+    end
+    if current ~= "" then
+      words[#words + 1] = current
+    end
+
+    if #words == 0 then
+      wrapped[#wrapped + 1] = ""
+      return
+    end
+
+    local line = ""
+    local visible = 0
+    for _, word in ipairs(words) do
+      local word_visible = #strip_color_tags(word)
+      local sep = line == "" and 0 or 1
+      if line ~= "" and visible + sep + word_visible > max_width then
+        wrapped[#wrapped + 1] = line
+        line = word
+        visible = word_visible
+      else
+        if line ~= "" then
+          line = line .. " "
+          visible = visible + 1
+        end
+        line = line .. word
+        visible = visible + word_visible
+      end
+    end
+
+    if line ~= "" then
+      wrapped[#wrapped + 1] = line
+    end
+  end
+
+  local start = 1
+  while start <= #raw do
+    local newline_at = raw:find("\n", start, true)
+    if newline_at then
+      wrap_segment(raw:sub(start, newline_at - 1))
+      start = newline_at + 1
+      if start > #raw then
+        wrapped[#wrapped + 1] = ""
+      end
+    else
+      wrap_segment(raw:sub(start))
+      break
+    end
+  end
+
+  if #wrapped == 0 then
+    wrapped[1] = ""
+  end
+  return wrapped
+end
+
+local function report_wrapped_content(text)
+  local lines = wrap_frame_text(text)
+  for _, line in ipairs(lines) do
+    report_line(frame_content_line(line), { no_lead = true })
+  end
 end
 
 local function looks_framed(text)
@@ -526,8 +638,12 @@ function agnosticdb.ui.emit_line(text, opts)
     return
   end
   ensure_frame_open()
-  report_line(frame_content_line(full), { no_lead = true })
+  report_wrapped_content(full)
   schedule_frame_close()
+end
+
+function agnosticdb.ui.report_wrapped(text)
+  report_wrapped_content(text)
 end
 
 local function theme_categories()
@@ -3243,27 +3359,28 @@ function agnosticdb.ui.qwp(mode, filter)
     if agnosticdb.ui and agnosticdb.ui.report_frame_open then
       agnosticdb.ui.report_frame_open("Online List")
     end
-    local first_city = true
     for _, city in ipairs(city_list) do
       table.sort(city.players, function(a, b)
         return a.name:lower() < b.name:lower()
       end)
 
       local color = city_color(city.name)
-      local prefix = first_city and "" or "\n"
-      first_city = false
-      cecho(string.format("%s<%s>%s: <grey>(<white>%d<grey>)<reset> ", prefix, color, city.name, city.size))
-
+      report_section(string.format("<%s>%s<reset>", color, city.name), city.size)
+      local labels = {}
       for _, player in ipairs(city.players) do
         local label = player.name
         local suffix = qwp_suffix(player, view_mode)
         if suffix and suffix ~= "" then
           label = string.format("%s (%s)", player.name, suffix)
         end
-        cecho(string.format("<%s>%s<reset> ", color, label))
+        labels[#labels + 1] = string.format("<%s>%s<reset>", color, label)
+      end
+      if agnosticdb.ui and agnosticdb.ui.report_wrapped then
+        agnosticdb.ui.report_wrapped(table.concat(labels, " "))
+      else
+        report_line(table.concat(labels, " "))
       end
     end
-    cecho("\n")
     if agnosticdb.ui and agnosticdb.ui.report_frame_close then
       agnosticdb.ui.report_frame_close()
     end
