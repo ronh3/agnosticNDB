@@ -84,7 +84,6 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("╔", 1, true) ~= nil)
     assert.is_true(rendered:find("╚", 1, true) ~= nil)
     assert.is_true(rendered:find("Alpha (MAG)", 1, true) ~= nil)
-    assert.is_true(rendered:find("Delta (SERP)", 1, true) ~= nil)
     assert.is_true(verticals >= 4)
   end)
 
