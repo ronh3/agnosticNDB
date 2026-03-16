@@ -19,7 +19,7 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 - `agnosticdb_transfer_spec.lua`
   Confirms import/export entry points, export metadata shape for the new state model, and import merge/clearing behavior, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
-  Provides thin UI integration coverage for status, qwp command wiring, queue cancellation, recent updates, online refresh/update wrappers, ignore toggling, IFF, and elemental-type actions.
+  Provides thin UI integration coverage for status, framed stats output, qwp command wiring, qwhom framed rendering, queue cancellation, recent updates, online refresh/update wrappers, ignore toggling, IFF, and elemental-type actions.
 
 ## Quarantined
 

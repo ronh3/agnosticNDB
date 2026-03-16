@@ -140,6 +140,10 @@ local function report_section(label, count)
   report_line(frame_line("╟", "─", "╢", title, "left"), { no_lead = true })
 end
 
+function agnosticdb.ui.report_section(label, count)
+  report_section(label, count)
+end
+
 local function report_kv(label, value)
   local width = 16
   local pad = width - #label
@@ -3014,15 +3018,9 @@ local function sorted_counts(map)
 end
 
 local function stats_column_layout(items, item_width)
-  local wrap = 80
-  if type(getWindowWrap) == "function" then
-    local ok, value = pcall(getWindowWrap, "main")
-    if ok and type(value) == "number" and value > 0 then
-      wrap = value
-    end
-  end
+  local wrap = frame_text_width()
   local gutter = 2
-  local cols = math.floor((wrap - 2 + gutter) / (item_width + gutter))
+  local cols = math.floor((wrap + gutter) / (item_width + gutter))
   if cols < 1 then cols = 1 end
   if cols > #items then cols = #items end
   if cols > 3 then cols = 3 end
@@ -3068,7 +3066,7 @@ local function print_stats_section(label, map)
         end
       end
     end
-    report_line(line)
+    report_wrapped_content(line)
   end
 end
 

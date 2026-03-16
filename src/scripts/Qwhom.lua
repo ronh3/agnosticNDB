@@ -144,16 +144,23 @@ function agnosticdb.qwhom.finish()
 
   local data = agnosticdb.qwhom.data or {}
   local area_keys = sorted_keys(data)
+  local rendered_any = false
   for _, area in ipairs(area_keys) do
     local area_data = data[area] or {}
     if filter_ok(area) then
       local where_keys = sorted_keys(area_data)
       if #where_keys > 0 then
-        cecho(string.format("\n<ansi_yellow>[<DodgerBlue>%s<ansi_yellow>]: ", area))
+        rendered_any = true
+        if agnosticdb.ui and agnosticdb.ui.report_section then
+          agnosticdb.ui.report_section(string.format("<DodgerBlue>%s<reset>", area))
+        end
         for _, where in ipairs(where_keys) do
           local where_data = area_data[where] or {}
           local names = format_names(where_data)
-          cecho(string.format("\n\t<ansi_yellow>[<linen>%s<ansi_yellow>] (<white>%d<ansi_yellow>): %s", where, #where_data, names))
+          local line = string.format("<linen>%s<reset> (%d): %s", where, #where_data, names)
+          if agnosticdb.ui and agnosticdb.ui.report_wrapped then
+            agnosticdb.ui.report_wrapped(line)
+          end
           if mmp and type(mmp.locateAndEchoSide) == "function" and where ~= "Gemmed or Off-Plane" then
             mmp.locateAndEchoSide(where)
           end
@@ -162,12 +169,21 @@ function agnosticdb.qwhom.finish()
     end
   end
 
-  cecho("\n")
   if agnosticdb.qwhom.dead and #agnosticdb.qwhom.dead > 0 then
+    rendered_any = true
     table.sort(agnosticdb.qwhom.dead, function(a, b)
       return a:lower() < b:lower()
     end)
-    cecho(string.format("<ansi_yellow>Dead:<reset> %s\n", table.concat(agnosticdb.qwhom.dead, ", ")))
+    if agnosticdb.ui and agnosticdb.ui.report_section then
+      agnosticdb.ui.report_section("Dead", #agnosticdb.qwhom.dead)
+    end
+    if agnosticdb.ui and agnosticdb.ui.report_wrapped then
+      agnosticdb.ui.report_wrapped(table.concat(agnosticdb.qwhom.dead, ", "))
+    end
+  end
+
+  if not rendered_any and agnosticdb.ui and agnosticdb.ui.report_wrapped then
+    agnosticdb.ui.report_wrapped("No qwhom entries.")
   end
 
   if agnosticdb.ui and agnosticdb.ui.report_frame_close then

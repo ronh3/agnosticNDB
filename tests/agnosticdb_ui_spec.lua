@@ -33,6 +33,26 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("API queue", 1, true) ~= nil)
   end)
 
+  it("renders stats as a fully framed report", function()
+    _G.getWindowWrap = function()
+      return 48
+    end
+
+    agnosticdb.db.upsert_person({ name = "Alpha", class = "Magi", city = "Ashtan", race = "Human" })
+    agnosticdb.db.upsert_person({ name = "Beta", class = "Monk", city = "Cyrene", race = "Rajamala" })
+    agnosticdb.db.upsert_person({ name = "Gamma", class = "Monk", city = "", race = "" })
+
+    agnosticdb.ui.stats()
+
+    local rendered = table.concat(outputs, "")
+    local verticals = select(2, rendered:gsub("║", ""))
+    assert.is_true(rendered:find("Stats Summary", 1, true) ~= nil)
+    assert.is_true(rendered:find("By class", 1, true) ~= nil)
+    assert.is_true(rendered:find("By race", 1, true) ~= nil)
+    assert.is_true(rendered:find("Rogue", 1, true) ~= nil)
+    assert.is_true(verticals >= 6)
+  end)
+
   it("validates qwp rank input", function()
     agnosticdb.ui.qwp_command("rank")
 
@@ -101,6 +121,41 @@ describe("agnosticdb ui", function()
     local rendered = table.concat(outputs, "")
     assert.is_true(rendered:find("API queue canceled. Cleared 2 pending item(s).", 1, true) ~= nil)
     assert.is_true(rendered:find("Any in-flight requests will still complete.", 1, true) ~= nil)
+  end)
+
+  it("renders qwhom inside the framed report path", function()
+    local saved_send = _G.send
+    local saved_enable = _G.enableTrigger
+    local saved_disable = _G.disableTrigger
+    local saved_deleteLine = _G.deleteLine
+    local saved_mmp = _G.mmp
+
+    _G.send = function() end
+    _G.enableTrigger = function() end
+    _G.disableTrigger = function() end
+    _G.deleteLine = function() end
+    _G.mmp = nil
+
+    agnosticdb.db.upsert_person({ name = "Alpha", city = "Ashtan" })
+    agnosticdb.qwhom.start()
+    agnosticdb.qwhom.capture_line("Alpha", "Market")
+    agnosticdb.qwhom.capture_line("(Embracing Death) Beta", "")
+    agnosticdb.qwhom.finish()
+
+    _G.send = saved_send
+    _G.enableTrigger = saved_enable
+    _G.disableTrigger = saved_disable
+    _G.deleteLine = saved_deleteLine
+    _G.mmp = saved_mmp
+
+    local rendered = table.concat(outputs, "")
+    local verticals = select(2, rendered:gsub("║", ""))
+    assert.is_true(rendered:find("Qwhom", 1, true) ~= nil)
+    assert.is_true(rendered:find("Unknown Area", 1, true) ~= nil)
+    assert.is_true(rendered:find("Market", 1, true) ~= nil)
+    assert.is_true(rendered:find("Dead", 1, true) ~= nil)
+    assert.is_true(rendered:find("Beta", 1, true) ~= nil)
+    assert.is_true(verticals >= 4)
   end)
 
   it("renders recent updates ordered by newest first", function()
