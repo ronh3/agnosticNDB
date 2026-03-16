@@ -62,6 +62,18 @@ local function filter_ok(area)
   return area:lower():find(filter, 1, true) ~= nil
 end
 
+local function should_ignore_line(who)
+  local lower = who:lower()
+  return lower == ""
+    or lower == "b"
+    or lower == "who b"
+    or lower == "queue add free who b"
+    or lower:find("^%[system%]:", 1, false) ~= nil
+    or lower:find("^system:", 1, false) ~= nil
+    or lower:find("^added who b to your free queue", 1, true) ~= nil
+    or lower:find("^running queued free command: who b", 1, true) ~= nil
+end
+
 function agnosticdb.qwhom.start(filter)
   agnosticdb.qwhom.data = {}
   agnosticdb.qwhom.dead = {}
@@ -79,7 +91,7 @@ function agnosticdb.qwhom.start(filter)
   end
 
   if type(send) == "function" then
-    send("queue add free who b")
+    send("queue add free who b", false)
   end
 end
 
@@ -91,6 +103,7 @@ function agnosticdb.qwhom.capture_line(who_raw, where_raw)
 
   local who = trim(who_raw)
   if who == "" then return end
+  if should_ignore_line(who) then return end
   local dead_name = who:match("^%s*%(%s*Embracing Death%s*%)%s*(%w+)%s*$")
   if dead_name then
     local normalized = normalize_name(dead_name) or dead_name
@@ -160,9 +173,6 @@ function agnosticdb.qwhom.finish()
           local line = string.format("<linen>%s<reset> (%d): %s", where, #where_data, names)
           if agnosticdb.ui and agnosticdb.ui.report_wrapped then
             agnosticdb.ui.report_wrapped(line)
-          end
-          if mmp and type(mmp.locateAndEchoSide) == "function" and where ~= "Gemmed or Off-Plane" then
-            mmp.locateAndEchoSide(where)
           end
         end
       end
