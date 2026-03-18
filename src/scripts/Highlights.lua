@@ -48,18 +48,23 @@ local function apply_style(name, style)
     if not s then break end
     occurrence = occurrence + 1
 
-    if type(selectSection) == "function" then
-      -- Mudlet selectSection uses 0-based start + length.
-      selectSection(s - 1, e - s + 1)
-    else
+    local selected = false
+    if type(selectString) == "function" then
       selectString(name, occurrence)
+      selected = true
+    elseif type(selectSection) == "function" then
+      selectSection(s, e - s + 1)
+      selected = true
     end
 
-    if style.color then fg(style.color) end
-    if style.bold then setBold(true) end
-    if style.underline then setUnderline(true) end
+    if selected then
+      if style.color then fg(style.color) end
+      if style.bold then setBold(true) end
+      if style.underline then setUnderline(true) end
       if style.italicize then setItalics(true) end
-    resetFormat()
+      if type(deselect) == "function" then deselect() end
+      resetFormat()
+    end
 
     start_pos = e + 1
   end
