@@ -417,7 +417,8 @@ local function get_class_spec_row(name, class)
 end
 
 local function migrate_legacy_rows()
-  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  if not table_exists("people") then return end
+  local rows = fetch_sql_rows("SELECT * FROM people")
   if not rows then return end
 
   for _, row in ipairs(rows) do
@@ -676,7 +677,23 @@ function agnosticdb.db.init()
     }
   }
 
-  agnosticdb.db.handle = safe_call(db.create, db, "agnosticdb", agnosticdb.db.schema)
+  ensure_class_specs_table()
+  migrate_legacy_rows()
+  rebuild_people_table_without_legacy_columns()
+
+  local ok, handle = pcall(db.create, db, "agnosticdb", agnosticdb.db.schema)
+  if not ok then
+    ensure_class_specs_table()
+    migrate_legacy_rows()
+    rebuild_people_table_without_legacy_columns()
+    ok, handle = pcall(db.create, db, "agnosticdb", agnosticdb.db.schema)
+  end
+  if not ok then
+    report_db_error(handle)
+    return
+  end
+
+  agnosticdb.db.handle = handle
   if not agnosticdb.db.handle then return end
 
   ensure_class_specs_table()
