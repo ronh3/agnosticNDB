@@ -496,9 +496,18 @@ local function rebuild_people_table_without_legacy_columns()
     or column_exists("people", "dragon")
   if not legacy_present then return end
 
-  conn:execute("DROP TABLE IF EXISTS people_agnosticdb_v2")
+  local rows = fetch_sql_rows([[
+    SELECT
+      name, class, city, house, race, army_rank,
+      current_form, elemental_type, enemy_city, enemy_house,
+      title, notes, iff, city_rank, xp_rank, level, immortal,
+      last_checked, last_updated, source
+    FROM people
+  ]])
+
+  conn:execute("DROP TABLE IF EXISTS people")
   conn:execute([[
-    CREATE TABLE people_agnosticdb_v2 (
+    CREATE TABLE people (
       name TEXT NULL DEFAULT "",
       class TEXT NULL DEFAULT "",
       city TEXT NULL DEFAULT "",
@@ -522,23 +531,11 @@ local function rebuild_people_table_without_legacy_columns()
       UNIQUE(name) ON CONFLICT REPLACE
     )
   ]])
-  conn:execute([[
-    INSERT OR REPLACE INTO people_agnosticdb_v2 (
-      name, class, city, house, race, army_rank,
-      current_form, elemental_type, enemy_city, enemy_house,
-      title, notes, iff, city_rank, xp_rank, level, immortal,
-      last_checked, last_updated, source
-    )
-    SELECT
-      name, class, city, house, race, army_rank,
-      current_form, elemental_type, enemy_city, enemy_house,
-      title, notes, iff, city_rank, xp_rank, level, immortal,
-      last_checked, last_updated, source
-    FROM people
-  ]])
-  conn:execute("DROP TABLE people")
-  conn:execute("ALTER TABLE people_agnosticdb_v2 RENAME TO people")
   if conn.commit then conn:commit() end
+
+  for _, row in ipairs(rows) do
+    upsert_people_record(row)
+  end
 end
 
 function agnosticdb.db.check()
