@@ -496,6 +496,18 @@ local function rebuild_people_table_without_legacy_columns()
     or column_exists("people", "dragon")
   if not legacy_present then return end
 
+  for _, column in ipairs({ "specialization", "elemental_lord_type", "dragon" }) do
+    if column_exists("people", column) then
+      pcall(conn.execute, conn, string.format([[ALTER TABLE people DROP COLUMN "%s"]], column))
+    end
+  end
+  if conn.commit then conn:commit() end
+
+  legacy_present = column_exists("people", "specialization")
+    or column_exists("people", "elemental_lord_type")
+    or column_exists("people", "dragon")
+  if not legacy_present then return end
+
   local rows = fetch_sql_rows([[
     SELECT
       name, class, city, house, race, army_rank,
