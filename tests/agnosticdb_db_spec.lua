@@ -3,6 +3,22 @@ local helper = dofile(os.getenv("TESTS_DIRECTORY") .. "/support/agnosticdb_test_
 describe("agnosticdb db", function()
   local save_stub
 
+  local function column_exists(table_name, column)
+    local conn = db and db.__conn and db.__conn[agnosticdb.db.name:lower()]
+    assert.is_not_nil(conn)
+    local cursor = assert(conn:execute(string.format("PRAGMA table_info(%s)", table_name)))
+    local row = cursor:fetch({}, "a")
+    while row do
+      if row.name == column then
+        if cursor.close then cursor:close() end
+        return true
+      end
+      row = cursor:fetch({}, "a")
+    end
+    if cursor.close then cursor:close() end
+    return false
+  end
+
   before_each(function()
     helper.reset()
     save_stub = stub(agnosticdb.config, "save", function() end)
@@ -133,5 +149,37 @@ describe("agnosticdb db", function()
     local fetched = agnosticdb.db.get_person("Rankrace")
     assert.are.equal("", fetched.race)
     assert.are.equal(1, tonumber(fetched.army_rank))
+  end)
+
+  it("migrates and removes legacy people columns at load time", function()
+    agnosticdb.db.upsert_person({
+      name = "Legacy",
+      class = "Magi",
+      race = "Human",
+      source = "manual",
+      last_updated = 123,
+    })
+
+    local conn = assert(db.__conn[agnosticdb.db.name:lower()])
+    conn:execute([[ALTER TABLE people ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
+    conn:execute([[ALTER TABLE people ADD COLUMN "elemental_lord_type" TEXT NULL DEFAULT ""]])
+    conn:execute([[ALTER TABLE people ADD COLUMN "dragon" INTEGER NULL DEFAULT 0]])
+    conn:execute([[UPDATE people SET specialization = "Pyromancy", elemental_lord_type = "Fire" WHERE name = "Legacy"]])
+    if conn.commit then conn:commit() end
+
+    assert.is_true(column_exists("people", "specialization"))
+    assert.is_true(column_exists("people", "elemental_lord_type"))
+    assert.is_true(column_exists("people", "dragon"))
+
+    agnosticdb.db.init()
+
+    assert.is_false(column_exists("people", "specialization"))
+    assert.is_false(column_exists("people", "elemental_lord_type"))
+    assert.is_false(column_exists("people", "dragon"))
+
+    local person = agnosticdb.db.get_person("Legacy")
+    assert.are.equal("Elemental", person.current_form)
+    assert.are.equal("Fire", person.elemental_type)
+    assert.are.equal("Pyromancy", agnosticdb.db.get_class_spec("Legacy", "Magi"))
   end)
 end)

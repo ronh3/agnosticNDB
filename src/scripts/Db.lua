@@ -226,12 +226,10 @@ local function required_people_columns()
   return {
     "name",
     "class",
-    "specialization",
     "city",
     "house",
     "race",
     "army_rank",
-    "elemental_lord_type",
     "current_form",
     "elemental_type",
     "enemy_city",
@@ -243,7 +241,6 @@ local function required_people_columns()
     "xp_rank",
     "level",
     "immortal",
-    "dragon",
     "last_checked",
     "last_updated",
     "source"
@@ -278,12 +275,10 @@ end
 local function people_field_defaults()
   return {
     class = "",
-    specialization = "",
     city = "",
     house = "",
     race = "",
     army_rank = -1,
-    elemental_lord_type = "",
     current_form = "",
     elemental_type = "",
     enemy_city = "",
@@ -295,7 +290,6 @@ local function people_field_defaults()
     xp_rank = -1,
     level = -1,
     immortal = 0,
-    dragon = 0,
     source = "",
   }
 end
@@ -307,7 +301,6 @@ local function numeric_people_fields()
     xp_rank = true,
     level = true,
     immortal = true,
-    dragon = true,
   }
 end
 
@@ -345,25 +338,23 @@ local function upsert_people_record(record)
   if not conn or type(record) ~= "table" then return nil end
   local sql = string.format([[
     INSERT OR REPLACE INTO people (
-      name, class, specialization, city, house, race, army_rank,
-      elemental_lord_type, current_form, elemental_type, enemy_city, enemy_house,
-      title, notes, iff, city_rank, xp_rank, level, immortal, dragon,
+      name, class, city, house, race, army_rank,
+      current_form, elemental_type, enemy_city, enemy_house,
+      title, notes, iff, city_rank, xp_rank, level, immortal,
       last_checked, last_updated, source
     ) VALUES (
+      %s, %s, %s, %s, %s, %s,
+      %s, %s, %s, %s,
       %s, %s, %s, %s, %s, %s, %s,
-      %s, %s, %s, %s, %s,
-      %s, %s, %s, %s, %s, %s, %s, %s,
       %s, %s, %s
     )
   ]],
     sql_quote(record.name),
     sql_quote(record.class or ""),
-    sql_quote(record.specialization or ""),
     sql_quote(record.city or ""),
     sql_quote(record.house or ""),
     sql_quote(record.race or ""),
     sql_number(record.army_rank, -1),
-    sql_quote(record.elemental_lord_type or ""),
     sql_quote(record.current_form or ""),
     sql_quote(record.elemental_type or ""),
     sql_quote(record.enemy_city or ""),
@@ -375,7 +366,6 @@ local function upsert_people_record(record)
     sql_number(record.xp_rank, -1),
     sql_number(record.level, -1),
     sql_number(record.immortal, 0),
-    sql_number(record.dragon, 0),
     sql_number(record.last_checked, 0),
     sql_number(record.last_updated, 0),
     sql_quote(record.source or "")
@@ -473,12 +463,10 @@ local function migrate_legacy_rows()
       local updated = {
         name = normalized_name,
         class = normalized_class,
-        specialization = "",
         city = row.city or "",
         house = row.house or "",
         race = normalized_race,
         army_rank = tonumber(row.army_rank or -1) or -1,
-        elemental_lord_type = "",
         current_form = current_form,
         elemental_type = elemental_type or "",
         enemy_city = row.enemy_city or "",
@@ -490,7 +478,6 @@ local function migrate_legacy_rows()
         xp_rank = tonumber(row.xp_rank or -1) or -1,
         level = tonumber(row.level or -1) or -1,
         immortal = tonumber(row.immortal or 0) or 0,
-        dragon = 0,
         last_checked = tonumber(row.last_checked or 0) or 0,
         last_updated = tonumber(row.last_updated or 0) or 0,
         source = row.source or "",
@@ -498,6 +485,60 @@ local function migrate_legacy_rows()
       upsert_people_record(updated)
     end
   end
+end
+
+local function rebuild_people_table_without_legacy_columns()
+  local conn = db_conn()
+  if not conn or not table_exists("people") then return end
+
+  local legacy_present = column_exists("people", "specialization")
+    or column_exists("people", "elemental_lord_type")
+    or column_exists("people", "dragon")
+  if not legacy_present then return end
+
+  conn:execute("DROP TABLE IF EXISTS people_agnosticdb_v2")
+  conn:execute([[
+    CREATE TABLE people_agnosticdb_v2 (
+      name TEXT NULL DEFAULT "",
+      class TEXT NULL DEFAULT "",
+      city TEXT NULL DEFAULT "",
+      house TEXT NULL DEFAULT "",
+      race TEXT NULL DEFAULT "",
+      army_rank INTEGER NULL DEFAULT -1,
+      current_form TEXT NULL DEFAULT "",
+      elemental_type TEXT NULL DEFAULT "",
+      enemy_city TEXT NULL DEFAULT "",
+      enemy_house TEXT NULL DEFAULT "",
+      title TEXT NULL DEFAULT "",
+      notes TEXT NULL DEFAULT "",
+      iff TEXT NULL DEFAULT "auto",
+      city_rank INTEGER NULL DEFAULT -1,
+      xp_rank INTEGER NULL DEFAULT -1,
+      level INTEGER NULL DEFAULT -1,
+      immortal INTEGER NULL DEFAULT 0,
+      last_checked INTEGER NULL DEFAULT 0,
+      last_updated INTEGER NULL DEFAULT 0,
+      source TEXT NULL DEFAULT "",
+      UNIQUE(name) ON CONFLICT REPLACE
+    )
+  ]])
+  conn:execute([[
+    INSERT OR REPLACE INTO people_agnosticdb_v2 (
+      name, class, city, house, race, army_rank,
+      current_form, elemental_type, enemy_city, enemy_house,
+      title, notes, iff, city_rank, xp_rank, level, immortal,
+      last_checked, last_updated, source
+    )
+    SELECT
+      name, class, city, house, race, army_rank,
+      current_form, elemental_type, enemy_city, enemy_house,
+      title, notes, iff, city_rank, xp_rank, level, immortal,
+      last_checked, last_updated, source
+    FROM people
+  ]])
+  conn:execute("DROP TABLE people")
+  conn:execute("ALTER TABLE people_agnosticdb_v2 RENAME TO people")
+  if conn.commit then conn:commit() end
 end
 
 function agnosticdb.db.check()
@@ -593,12 +634,10 @@ function agnosticdb.db.init()
     people = {
       name = "",
       class = "",
-      specialization = "",
       city = "",
       house = "",
       race = "",
       army_rank = -1,
-      elemental_lord_type = "",
       current_form = "",
       elemental_type = "",
       enemy_city = "",
@@ -610,7 +649,6 @@ function agnosticdb.db.init()
       xp_rank = -1,
       level = -1,
       immortal = 0,
-      dragon = 0,
       last_checked = 0,
       last_updated = 0,
       source = "",
@@ -631,10 +669,8 @@ function agnosticdb.db.init()
   local people_sample = people_rows and people_rows[1] or nil
   add_column_if_missing("people", people_sample, "notes", [[ALTER TABLE people ADD COLUMN "notes" TEXT NULL DEFAULT ""]])
   add_column_if_missing("people", people_sample, "iff", [[ALTER TABLE people ADD COLUMN "iff" TEXT NULL DEFAULT "auto"]])
-  add_column_if_missing("people", people_sample, "specialization", [[ALTER TABLE people ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
   add_column_if_missing("people", people_sample, "race", [[ALTER TABLE people ADD COLUMN "race" TEXT NULL DEFAULT ""]])
   add_column_if_missing("people", people_sample, "army_rank", [[ALTER TABLE people ADD COLUMN "army_rank" INTEGER NULL DEFAULT -1]])
-  add_column_if_missing("people", people_sample, "elemental_lord_type", [[ALTER TABLE people ADD COLUMN "elemental_lord_type" TEXT NULL DEFAULT ""]])
   add_column_if_missing("people", people_sample, "current_form", [[ALTER TABLE people ADD COLUMN "current_form" TEXT NULL DEFAULT ""]])
   add_column_if_missing("people", people_sample, "elemental_type", [[ALTER TABLE people ADD COLUMN "elemental_type" TEXT NULL DEFAULT ""]])
   add_column_if_missing("people", people_sample, "enemy_city", [[ALTER TABLE people ADD COLUMN "enemy_city" TEXT NULL DEFAULT ""]])
@@ -643,7 +679,6 @@ function agnosticdb.db.init()
   add_column_if_missing("people", people_sample, "xp_rank", [[ALTER TABLE people ADD COLUMN "xp_rank" INTEGER NULL DEFAULT -1]])
   add_column_if_missing("people", people_sample, "level", [[ALTER TABLE people ADD COLUMN "level" INTEGER NULL DEFAULT -1]])
   add_column_if_missing("people", people_sample, "immortal", [[ALTER TABLE people ADD COLUMN "immortal" INTEGER NULL DEFAULT 0]])
-  add_column_if_missing("people", people_sample, "dragon", [[ALTER TABLE people ADD COLUMN "dragon" INTEGER NULL DEFAULT 0]])
   add_column_if_missing("people", people_sample, "last_checked", [[ALTER TABLE people ADD COLUMN "last_checked" INTEGER NULL DEFAULT 0]])
   add_column_if_missing("people", people_sample, "last_updated", [[ALTER TABLE people ADD COLUMN "last_updated" INTEGER NULL DEFAULT 0]])
   add_column_if_missing("people", people_sample, "source", [[ALTER TABLE people ADD COLUMN "source" TEXT NULL DEFAULT ""]])
@@ -653,6 +688,7 @@ function agnosticdb.db.init()
   add_column_if_missing("class_specs", nil, "source", [[ALTER TABLE class_specs ADD COLUMN "source" TEXT NULL DEFAULT ""]])
 
   migrate_legacy_rows()
+  rebuild_people_table_without_legacy_columns()
 end
 
 function agnosticdb.db.get_person(name)
@@ -795,10 +831,6 @@ function agnosticdb.db.upsert_person(fields, opts)
   else
     record.elemental_type = normalize_elemental_type(record.elemental_type) or ""
   end
-
-  record.specialization = ""
-  record.elemental_lord_type = ""
-  record.dragon = 0
 
   local function normalize_numeric(value, default)
     local num = tonumber(value)

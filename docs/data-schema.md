@@ -49,3 +49,9 @@ The Mudlet DB tables are `people` and `class_specs`. Defaults indicate "unknown"
 - `race` is normalized to the base race only. Transformed states are tracked in `current_form`.
 - `elemental_type` is remembered separately so a known subtype can survive reverting out of elemental form.
 - Enable `api.announce_changes_only` to suppress queue output if nothing changed.
+
+## Legacy Cleanup
+- `people.specialization` is no longer part of the people table. Load-time migration moves its value into `class_specs`.
+- `people.elemental_lord_type` is no longer part of the people table. Load-time migration maps it to `elemental_type` and `current_form`.
+- `people.dragon` is no longer part of the people table. Load-time migration maps it to `current_form = "Dragon"`.
+- After migration, the people table is rebuilt without those legacy columns.

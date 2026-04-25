@@ -45,16 +45,27 @@
 ## Data Semantics
 - `last_checked`: last time a character was queried or refreshed.
 - `last_updated`: last time a character's stored data actually changed (used by `adb recent`).
+- Manual/local fields win unless a command explicitly edits them. API and honors refreshes should not clear notes, IFF, or enemy markers by omission.
+- Remote sources update only the fields they actually know. Missing API/honors data means "no change"; explicit import defaults such as `""` or `-1` mean "clear this field".
+- Class specializations are stored per class in `class_specs`; the legacy `people.specialization` column is migrated at load time and removed from the table.
+- Transformed state is stored as `current_form` plus `elemental_type`; legacy `people.dragon` and `people.elemental_lord_type` are migrated at load time and removed from the table.
+
+## Import / Export Contract
+- People export schema version is `2`.
+- Config export schema version is `1`.
+- People imports accept current schema exports plus legacy/keyed records for compatibility.
+- Importing merges onto existing people. Omitted fields preserve existing data; explicit default values clear existing data.
+- Import may map legacy fields into the current model, but exports should only emit current-schema fields.
+
+## API Queue Policy
+- The 1.0 default for `api.min_interval_seconds` is `0`.
+- Users can raise `api.min_interval_seconds` locally if Achaea API behavior or personal preference requires spacing requests.
+- Failed requests still apply `api.backoff_seconds`; this is separate from the normal minimum interval.
 
 ## Runtime Compatibility
 - Minimum supported Mudlet version: 4.20.1.
 - CI verifies package load and behavioral tests against Mudlet 4.20.1.
 - Required Mudlet capabilities include DB access, aliases/triggers, temp timers/triggers, profile paths, HTTP/download APIs, and colored echo output.
-
-## Open Questions
-- API rate limiting strategy and backoff thresholds.
-- Export/import format and sharing workflow.
-- How to merge remote data with local overrides (notes/IFF).
 
 ## Future Work
 - Consider a lightweight wiki or `docs/` folder (install, workflows, troubleshooting, FAQ).

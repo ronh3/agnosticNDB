@@ -30,6 +30,15 @@ Schema (version 2):
 }
 ```
 
+Version 2 is the current people export contract. It emits only current-schema people fields plus per-class `class_specs`.
+
+People import remains compatibility-oriented:
+- Current version 2 exports are accepted.
+- Older keyed records are accepted.
+- Legacy `elemental_lord_type` imports are mapped to `elemental_type`.
+- Legacy transformed race/class observations are normalized into `current_form`, `race`, and `class_specs` where possible.
+- Omitted fields preserve existing stored data; explicit default values such as `""` and `-1` clear existing values.
+
 ## Config export (`adb config export`)
 Default file path: `getMudletHomeDir()/agnosticdb/agnosticdb_config.json`.
 

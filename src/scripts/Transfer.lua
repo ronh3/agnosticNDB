@@ -187,11 +187,23 @@ function agnosticdb.transfer.importData(path)
     if copy.elemental_type == nil and copy.elemental_lord_type ~= nil then
       copy.elemental_type = copy.elemental_lord_type
     end
-    if copy.current_form == nil and type(copy.race) == "string" then
-      local detected = agnosticdb.db.detect_current_form and agnosticdb.db.detect_current_form(copy.race) or ""
+    local legacy_class = type(copy.class) == "string" and copy.class:lower() or ""
+    if copy.current_form == nil then
+      local detected = type(copy.race) == "string" and agnosticdb.db.detect_current_form and agnosticdb.db.detect_current_form(copy.race) or ""
       if detected ~= "" then
         copy.current_form = detected
+      elseif tonumber(copy.dragon or 0) == 1 then
+        copy.current_form = "Dragon"
+      elseif legacy_class == "dragon" or legacy_class:find(" dragon$") then
+        copy.current_form = "Dragon"
+      elseif legacy_class == "elemental" then
+        copy.current_form = "Elemental"
+      elseif copy.elemental_lord_type ~= nil and tostring(copy.elemental_lord_type) ~= "" then
+        copy.current_form = "Elemental"
       end
+    end
+    if legacy_class == "dragon" or legacy_class == "elemental" or legacy_class:find(" dragon$") then
+      copy.class = ""
     end
 
     local class_specs = copy.class_specs

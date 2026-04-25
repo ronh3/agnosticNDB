@@ -159,4 +159,27 @@ describe("agnosticdb transfer", function()
     assert.are.equal("", person.elemental_type)
     assert.are.equal("import", person.source)
   end)
+
+  it("maps legacy import fields into the current state model", function()
+    local path = temp_json_path("agnosticdb-import-legacy-spec")
+    if not has_json_support() then
+      local stats, err = agnosticdb.transfer.importData(path)
+      assert.is_nil(stats)
+      assert.are.equal("json_unavailable", err)
+      return
+    end
+
+    local file = assert(io.open(path, "w"))
+    file:write('{"people":[{"name":"Legacydragon","class":"red dragon","dragon":1,"elemental_lord_type":"fire","source":"import"}]}')
+    file:close()
+
+    local stats, err = agnosticdb.transfer.importData(path)
+
+    assert.is_nil(err)
+    assert.are.equal(1, stats.imported)
+    local person = agnosticdb.db.get_person("Legacydragon")
+    assert.are.equal("", person.class)
+    assert.are.equal("Dragon", person.current_form)
+    assert.are.equal("Fire", person.elemental_type)
+  end)
 end)
