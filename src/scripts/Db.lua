@@ -505,6 +505,10 @@ local function rebuild_people_table_without_legacy_columns()
     FROM people
   ]])
 
+  agnosticdb.db.people = nil
+  agnosticdb.db.handle = nil
+  collectgarbage()
+
   conn:execute("DROP TABLE IF EXISTS people")
   conn:execute([[
     CREATE TABLE people (
@@ -535,6 +539,11 @@ local function rebuild_people_table_without_legacy_columns()
 
   for _, row in ipairs(rows) do
     upsert_people_record(row)
+  end
+
+  agnosticdb.db.handle = safe_call(db.create, db, "agnosticdb", agnosticdb.db.schema)
+  if agnosticdb.db.handle then
+    agnosticdb.db.people = agnosticdb.db.handle.people
   end
 end
 
