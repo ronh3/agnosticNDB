@@ -20,11 +20,8 @@ These specs run inside a real Mudlet instance in GitHub Actions.
   Confirms import/export entry points, export metadata shape for the new state model, and import merge/clearing behavior, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
   Provides thin UI integration coverage for status, framed stats output, qwp command wiring, qwhom framed rendering, queue cancellation, recent updates, online refresh/update wrappers, ignore toggling, IFF, and elemental-type actions.
-
-## Quarantined
-
-- `agnosticdb_qwhom_spec.lua.disabled`
-  Temporarily disabled after repeated CI-only failures. Reintroduce in smaller pieces once a public failing signal is available or the module has a clearer stable seam to assert against.
+- `agnosticdb_qwhom_spec.lua`
+  Confirms qwhom capture startup, queue-noise filtering, mapper and mapper-less grouping, dead-entry handling, finish cleanup, and filtered empty output through stable module-level seams.
 
 ## Design Rules
 
@@ -37,4 +34,4 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 
 ## Future Additions
 
-- qwhom reintroduction from a smaller stable seam
+- Broaden qwhom coverage only where a new stable runtime contract is introduced.
