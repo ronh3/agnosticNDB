@@ -489,7 +489,7 @@ end
 
 local function rebuild_people_table_without_legacy_columns()
   local conn = db_conn()
-  if not conn or not table_exists("people") then return end
+  if not conn then return end
 
   local legacy_present = column_exists("people", "specialization")
     or column_exists("people", "elemental_lord_type")
