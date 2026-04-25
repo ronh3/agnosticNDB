@@ -3,18 +3,28 @@
 ## People export (`adb export`)
 Default file path: `getMudletHomeDir()/agnosticdb/exports/agnosticdb-export-YYYYMMDD-HHMMSS.json`.
 
-Schema (version 1):
+Schema (version 2):
 ```json
 {
-  "version": 1,
+  "version": 2,
   "exported_at": 1700000000,
   "people": [
     {
       "name": "Example",
       "class": "Bard",
       "city": "Cyrene",
+      "current_form": "Elemental",
+      "elemental_type": "Fire",
       "iff": "auto",
-      "last_checked": 1700000000
+      "last_checked": 1700000000,
+      "class_specs": [
+        {
+          "class": "Bard",
+          "specialization": "Songcalling",
+          "last_updated": 1700000000,
+          "source": "honors"
+        }
+      ]
     }
   ]
 }
