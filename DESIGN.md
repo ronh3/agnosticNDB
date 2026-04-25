@@ -46,8 +46,12 @@
 - `last_checked`: last time a character was queried or refreshed.
 - `last_updated`: last time a character's stored data actually changed (used by `adb recent`).
 
+## Runtime Compatibility
+- Minimum supported Mudlet version: 4.20.1.
+- CI verifies package load and behavioral tests against Mudlet 4.20.1.
+- Required Mudlet capabilities include DB access, aliases/triggers, temp timers/triggers, profile paths, HTTP/download APIs, and colored echo output.
+
 ## Open Questions
-- Mudlet version floor for HTTP and DB features.
 - API rate limiting strategy and backoff thresholds.
 - Export/import format and sharing workflow.
 - How to merge remote data with local overrides (notes/IFF).

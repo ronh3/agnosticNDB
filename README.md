@@ -3,7 +3,7 @@
 Standalone name database for Mudlet + Achaea. Clean-room rewrite intended for Muddler packaging.
 
 ## Quick Start
-1) Install the package in Mudlet.
+1) Install the package in Mudlet 4.20.1 or newer.
 2) Run `adb` to confirm load.
 3) Run `adb refresh` (or `adb fetch <name>`).
 4) Use `adb whois <name>` or `adb stats`.
