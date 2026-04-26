@@ -2,6 +2,7 @@ local helper = dofile(os.getenv("TESTS_DIRECTORY") .. "/support/agnosticdb_test_
 
 describe("agnosticdb config", function()
   local reload_stub
+  local save_stub
   local reload_calls
   local temp_paths
 
@@ -23,7 +24,9 @@ describe("agnosticdb config", function()
 
   after_each(function()
     if reload_stub then reload_stub:revert() end
+    if save_stub then save_stub:revert() end
     reload_stub = nil
+    save_stub = nil
 
     for _, path in ipairs(temp_paths or {}) do
       os.remove(path)
@@ -92,6 +95,56 @@ describe("agnosticdb config", function()
     assert.is_true(agnosticdb.conf.ui.quiet_mode)
     assert.is_false(agnosticdb.conf.highlight.enemies.underline)
     assert.are.equal("blue", agnosticdb.conf.highlight.cities.ashtan.color)
+    assert.is_true(agnosticdb.conf.highlight_ignore.alpha)
+    assert.are.equal(1, reload_calls)
+  end)
+
+  it("merges partial config imports without clobbering nested settings", function()
+    local path = temp_json_path("agnosticdb-config-merge-spec")
+
+    if not has_json_support() then
+      local result, err = agnosticdb.config.import_settings(path)
+      assert.is_nil(result)
+      assert.are.equal("json_unavailable", err)
+      return
+    end
+
+    agnosticdb.conf.api.backoff_seconds = 99
+    agnosticdb.conf.api.min_interval_seconds = 7
+    agnosticdb.conf.highlight.enemies = {
+      color = "red",
+      underline = true,
+      italicize = true,
+    }
+    agnosticdb.conf.highlight.cities.ashtan = {
+      color = "purple",
+      bold = true,
+      underline = false,
+    }
+    agnosticdb.conf.highlight_ignore = { alpha = true }
+
+    local file = assert(io.open(path, "w"))
+    file:write([[{"config":{"api":{"min_refresh_hours":6},"highlight":{"enemies":{"color":"blue"},"cities":{"ashtan":{"underline":true}}}}}]])
+    file:close()
+
+    save_stub = stub(agnosticdb.config, "save", function() end)
+    reload_stub = stub(agnosticdb.highlights, "reload", function()
+      reload_calls = reload_calls + 1
+    end)
+
+    local result, err = agnosticdb.config.import_settings(path)
+
+    assert.is_nil(err)
+    assert.is_not_nil(result)
+    assert.are.equal(6, agnosticdb.conf.api.min_refresh_hours)
+    assert.are.equal(99, agnosticdb.conf.api.backoff_seconds)
+    assert.are.equal(7, agnosticdb.conf.api.min_interval_seconds)
+    assert.are.equal("blue", agnosticdb.conf.highlight.enemies.color)
+    assert.is_true(agnosticdb.conf.highlight.enemies.underline)
+    assert.is_true(agnosticdb.conf.highlight.enemies.italicize)
+    assert.are.equal("purple", agnosticdb.conf.highlight.cities.ashtan.color)
+    assert.is_true(agnosticdb.conf.highlight.cities.ashtan.bold)
+    assert.is_true(agnosticdb.conf.highlight.cities.ashtan.underline)
     assert.is_true(agnosticdb.conf.highlight_ignore.alpha)
     assert.are.equal(1, reload_calls)
   end)

@@ -78,6 +78,44 @@ describe("agnosticdb api", function()
     assert.are.equal(99, tonumber(person.level))
   end)
 
+  it("preserves local-only fields while merging hidden API records", function()
+    agnosticdb.db.upsert_person({
+      name = "Mergeapi",
+      city = "Ashtan",
+      race = "Human",
+      current_form = "Elemental",
+      elemental_type = "Fire",
+      notes = "keep me",
+      iff = "ally",
+      source = "manual",
+    })
+
+    _G.getHTTP = function(url)
+      assert.are.equal("https://api.achaea.com/characters/Mergeapi.json", url)
+      return [[{"name":"Mergeapi","fullname":"Mergeapi, Hidden Example","city":"(hidden)","class":"bard","house":"scions","xp_rank":44,"level":88}]], 200
+    end
+
+    local person, status
+    agnosticdb.api.fetch("Mergeapi", function(result, result_status)
+      person = result
+      status = result_status
+    end, { force = true })
+
+    assert.are.equal("ok", status)
+    assert.are.equal("Bard", person.class)
+    assert.are.equal("Ashtan", person.city)
+    assert.are.equal("Scions", person.house)
+    assert.are.equal("Mergeapi, Hidden Example", person.title)
+    assert.are.equal(44, tonumber(person.xp_rank))
+    assert.are.equal(88, tonumber(person.level))
+    assert.are.equal("Human", person.race)
+    assert.are.equal("Elemental", person.current_form)
+    assert.are.equal("Fire", person.elemental_type)
+    assert.are.equal("keep me", person.notes)
+    assert.are.equal("ally", person.iff)
+    assert.are.equal("api", person.source)
+  end)
+
   it("returns cached records without making an HTTP request", function()
     agnosticdb.db.upsert_person({
       name = "Cachedperson",

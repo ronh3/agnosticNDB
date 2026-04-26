@@ -159,12 +159,23 @@ describe("agnosticdb db", function()
       source = "manual",
       last_updated = 123,
     })
+    agnosticdb.db.upsert_person({
+      name = "Legacydragon",
+      class = "Bard",
+      city = "Cyrene",
+      notes = "preserve",
+      iff = "ally",
+      enemy_city = "Ashtan",
+      source = "manual",
+      last_updated = 456,
+    })
 
     local conn = assert(db.__conn[agnosticdb.db.name:lower()])
     conn:execute([[ALTER TABLE people ADD COLUMN "specialization" TEXT NULL DEFAULT ""]])
     conn:execute([[ALTER TABLE people ADD COLUMN "elemental_lord_type" TEXT NULL DEFAULT ""]])
     conn:execute([[ALTER TABLE people ADD COLUMN "dragon" INTEGER NULL DEFAULT 0]])
     conn:execute([[UPDATE people SET specialization = "Pyromancy", elemental_lord_type = "Fire" WHERE name = "Legacy"]])
+    conn:execute([[UPDATE people SET dragon = 1 WHERE name = "Legacydragon"]])
     if conn.commit then conn:commit() end
 
     assert.is_true(column_exists("people", "specialization"))
@@ -181,5 +192,13 @@ describe("agnosticdb db", function()
     assert.are.equal("Elemental", person.current_form)
     assert.are.equal("Fire", person.elemental_type)
     assert.are.equal("Pyromancy", agnosticdb.db.get_class_spec("Legacy", "Magi"))
+
+    local dragon = agnosticdb.db.get_person("Legacydragon")
+    assert.are.equal("Dragon", dragon.current_form)
+    assert.are.equal("Bard", dragon.class)
+    assert.are.equal("Cyrene", dragon.city)
+    assert.are.equal("preserve", dragon.notes)
+    assert.are.equal("ally", dragon.iff)
+    assert.are.equal("Ashtan", dragon.enemy_city)
   end)
 end)

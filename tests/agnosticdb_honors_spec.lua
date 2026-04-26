@@ -105,6 +105,68 @@ describe("agnosticdb honors", function()
     assert.are.equal("Drakos, the Ancient (male dragon)", person.title)
   end)
 
+  it("preserves existing fields when hidden honors omit them", function()
+    agnosticdb.db.upsert_person({
+      name = "Hiddenone",
+      class = "Magi",
+      city = "Ashtan",
+      house = "Scions",
+      race = "Human",
+      current_form = "Elemental",
+      elemental_type = "Fire",
+      notes = "keep",
+      iff = "ally",
+      enemy_city = "Mhaldor",
+      source = "manual",
+    })
+
+    agnosticdb.honors.active = {
+      name = "hiddenone",
+      lines = {
+        "Hiddenone, Keeper of Secrets",
+        "The whereabouts of this adventurer are hidden.",
+        "They are ranked 88th in Achaea.",
+      },
+    }
+
+    agnosticdb.honors.finish_capture()
+
+    local person = agnosticdb.db.get_person("Hiddenone")
+    assert.is_not_nil(person)
+    assert.are.equal("Hiddenone, Keeper of Secrets", person.title)
+    assert.are.equal("Magi", person.class)
+    assert.are.equal("Ashtan", person.city)
+    assert.are.equal("Scions", person.house)
+    assert.are.equal("Human", person.race)
+    assert.are.equal("Elemental", person.current_form)
+    assert.are.equal("Fire", person.elemental_type)
+    assert.are.equal("keep", person.notes)
+    assert.are.equal("ally", person.iff)
+    assert.are.equal("Mhaldor", person.enemy_city)
+    assert.are.equal(88, tonumber(person.xp_rank))
+  end)
+
+  it("parses elemental-style honors without treating elemental as a class", function()
+    agnosticdb.honors.active = {
+      name = "elementalperson",
+      lines = {
+        "Elementalperson, the Shifting (female elemental)",
+        "She is a Sylvan of Eleusis.",
+        "She is ranked 9 overall.",
+      },
+    }
+
+    agnosticdb.honors.finish_capture()
+
+    local person = agnosticdb.db.get_person("Elementalperson")
+    assert.is_not_nil(person)
+    assert.are.equal("", person.race)
+    assert.are.equal("Elemental", person.current_form)
+    assert.are.equal("Sylvan", person.class)
+    assert.are.equal("Eleusis", person.city)
+    assert.are.equal(9, tonumber(person.xp_rank))
+  end)
+
   it("deduplicates names when starting an honors queue", function()
     local ran_queue = 0
     local on_done = function() end

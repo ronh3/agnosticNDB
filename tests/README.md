@@ -5,19 +5,19 @@ These specs run inside a real Mudlet instance in GitHub Actions.
 ## Active Coverage
 
 - `agnosticdb_db_spec.lua`
-  Confirms DB upsert/get behavior, per-class specialization storage, merge semantics for omitted versus explicit values, `last_updated` stability for unchanged writes, numeric-race cleanup, and derived enemy logic.
+  Confirms DB upsert/get behavior, per-class specialization storage, merge semantics for omitted versus explicit values, `last_updated` stability for unchanged writes, numeric-race cleanup, derived enemy logic, and load-time migration/removal of legacy people columns without losing current fields.
 - `agnosticdb_api_spec.lua`
-  Confirms API list parsing, backoff gating, per-character fetch ingestion, cache short-circuit behavior, queue ETA math, queue cancellation, queue progress milestones, update-all queueing, and missing-only online refresh behavior using stubbed HTTP responses.
+  Confirms API list parsing, backoff gating, per-character fetch ingestion, hidden-city merge preservation, cache short-circuit behavior, queue ETA math, queue cancellation, queue progress milestones, update-all queueing, and missing-only online refresh behavior using stubbed HTTP responses.
 - `agnosticdb_config_spec.lua`
-  Confirms config import/export entry points, including JSON-capability fallback behavior and highlight reload on import.
+  Confirms config import/export entry points, partial import merge behavior, JSON-capability fallback behavior, and highlight reload on import.
 - `agnosticdb_honors_spec.lua`
-  Confirms the honors module entry points exist, that direct honors captures update parsed fields such as class, city, house, normalized race, current form, and ranks, and that queue startup deduplicates names and queue cancellation clears state.
+  Confirms the honors module entry points exist, that direct honors captures update parsed fields such as class, city, house, normalized race, current form, and ranks, that hidden captures preserve omitted stored fields, and that queue startup deduplicates names and queue cancellation clears state.
 - `agnosticdb_highlights_spec.lua`
   Confirms generated highlight triggers use whole-name regex boundaries so names do not fire inside contractions or larger words.
 - `agnosticdb_ingestion_spec.lua`
-  Confirms stable `finish_capture()` ingestion paths for citizens lists, including source-preservation behavior, plus personal, city, and house enemy replacement.
+  Confirms stable `finish_capture()` ingestion paths for citizens lists, captured list-table class rows, including source-preservation behavior, plus direct helper and replacement behavior for personal, city, and house enemies.
 - `agnosticdb_transfer_spec.lua`
-  Confirms import/export entry points, export metadata shape for the new state model, and import merge/clearing behavior, with explicit handling for environments where JSON support is unavailable.
+  Confirms import/export entry points, export metadata shape for the new state model, current v2 import records with class specs, and import merge/clearing behavior, with explicit handling for environments where JSON support is unavailable.
 - `agnosticdb_ui_spec.lua`
   Provides thin UI integration coverage for status, framed stats output, qwp command wiring, qwhom framed rendering, queue cancellation, recent updates, online refresh/update wrappers, ignore toggling, IFF, and elemental-type actions.
 - `agnosticdb_qwhom_spec.lua`

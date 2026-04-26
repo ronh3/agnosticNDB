@@ -182,4 +182,31 @@ describe("agnosticdb transfer", function()
     assert.are.equal("Dragon", person.current_form)
     assert.are.equal("Fire", person.elemental_type)
   end)
+
+  it("imports current export records with class specs and form state", function()
+    local path = temp_json_path("agnosticdb-import-v2-spec")
+    if not has_json_support() then
+      local stats, err = agnosticdb.transfer.importData(path)
+      assert.is_nil(stats)
+      assert.are.equal("json_unavailable", err)
+      return
+    end
+
+    local file = assert(io.open(path, "w"))
+    file:write('{"version":2,"people":[{"name":"Fixture","class":"Runewarden","city":"Ashtan","current_form":"Elemental","elemental_type":"fire","source":"import","class_specs":[{"class":"Runewarden","specialization":"2H","source":"import","last_updated":100}]}]}')
+    file:close()
+
+    local stats, err = agnosticdb.transfer.importData(path)
+
+    assert.is_nil(err)
+    assert.are.equal(1, stats.imported)
+    local person = agnosticdb.db.get_person("Fixture")
+    assert.is_not_nil(person)
+    assert.are.equal("Runewarden", person.class)
+    assert.are.equal("Ashtan", person.city)
+    assert.are.equal("Elemental", person.current_form)
+    assert.are.equal("Fire", person.elemental_type)
+    assert.are.equal("import", person.source)
+    assert.are.equal("2H", agnosticdb.db.get_current_specialization("Fixture"))
+  end)
 end)
