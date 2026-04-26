@@ -54,7 +54,7 @@ Guidance for Codex and future agent sessions when working in this repository.
 - Make aliases responsive with confirmation output when they do not already emit results.
 - Explain the reasoning behind code changes in responses.
 - Commit and push changes unless the user asks otherwise.
-- Keep `README.md` and `agnosticdb.ui.show_help()` in sync when commands or features change.
+- Keep `README.md`, `agnosticdb.ui.show_help()` (compact menu), and `agnosticdb.ui.show_commands()` (full reference) in sync when commands or features change.
 - Maintain the config UI look/feel (config theme + sectioned layout) for new menus.
 - Prefer coherent, minimal fixes over broad cleanup.
 - If runtime verification is unavailable, say so explicitly and fall back to static checks.
@@ -99,7 +99,7 @@ Guidance for Codex and future agent sessions when working in this repository.
 - Testing authority overrides: CI Mudlet runtime is authoritative; host-side `busted` is not
 - Other durable constraints:
   - Keep `mfile.title` in the form `agnosticDB-<version> (Achaea Name Database)`.
-  - Keep `README.md` and `agnosticdb.ui.show_help()` synchronized when commands/features change.
+  - Keep `README.md`, `agnosticdb.ui.show_help()`, and `agnosticdb.ui.show_commands()` synchronized when commands/features change.
   - Preserve the existing config UI theme and sectioned layout style.
 
 # IMPORTANT: Re-read after context resets. Use this as the primary touchstone for Codex work here.

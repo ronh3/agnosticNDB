@@ -4,13 +4,14 @@ Standalone name database for Mudlet + Achaea. Clean-room rewrite intended for Mu
 
 ## Quick Start
 1) Install the package in Mudlet 4.20.1 or newer.
-2) Run `adb` to confirm load.
+2) Run `adb` to confirm load and see common next steps.
 3) Run `adb refresh` (or `adb fetch <name>`).
 4) Use `adb whois <name>` or `adb stats`.
 5) Customize highlights and timing in `adb config`.
 
 ## Common Commands
-- `adb`: help.
+- `adb`: compact jump menu.
+- `adb help`: full command reference.
 - `adb whois <name>`: show stored data (fetch if needed).
 - `adb fetch <name>` / `adb refresh`: fetch one or all online.
 - `adb quick`: fetch online list and queue new names only.

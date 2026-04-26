@@ -1431,7 +1431,7 @@ function agnosticdb.ui.show_config()
   cecho(" ")
   config_line_link("[show]", "agnosticdb.ui.show_ignore_list()", "Show ignore list", theme)
   cecho(" ")
-  config_line_link("[manage]", "agnosticdb.ui.show_help()", "Use adb ignore <name>", theme)
+  config_line_link("[manage]", "agnosticdb.ui.show_commands()", "Use adb ignore <name>", theme)
   cecho("\n")
   cecho(theme.muted .. "  Tip: click [color] to open the palette." .. theme.reset .. "\n")
 
@@ -1526,9 +1526,70 @@ end
 
 function agnosticdb.ui.show_help(include_status)
   local theme = config_theme()
-  local width = 88
-  local header_label = "agnosticDB Help"
+  local width = 72
+  local header_label = "agnosticDB"
   local footer_label = "adb"
+  local cmd_pad = 22
+
+  local function header_line()
+    return string.format("%s┌─%s%s%s─┐%s", theme.border, theme.accent, header_label, theme.border, theme.reset)
+  end
+
+  local function separator()
+    return string.format("%s%s%s", theme.border, string.rep("─", width), theme.reset)
+  end
+
+  local function section(title, padding)
+    padding = padding or ""
+    return string.format("%s%s└─%s%s%s─┘%s", padding, theme.border, theme.accent, title, theme.border, theme.reset)
+  end
+
+  local function footer_line()
+    local tab = string.format("└─%s%s%s─┘", theme.accent, footer_label, theme.border)
+    local padding = math.max(0, width - (#footer_label + 4))
+    return string.format("%s%s%s%s", string.rep(" ", padding), theme.border, tab, theme.reset)
+  end
+
+  local function line(text)
+    cecho(text .. "\n")
+  end
+
+  local function entry(cmd, desc)
+    cecho(string.format("%s  %-" .. cmd_pad .. "s%s   %s%s%s\n", theme.accent, cmd, theme.reset, theme.text, desc, theme.reset))
+  end
+
+  line(header_line())
+  line(separator())
+  line(section("Common"))
+  entry("adb status", "system status")
+  entry("adb whois <name>", "show stored data")
+  entry("adb fetch <name>", "refresh one person")
+  entry("adb refresh", "refresh all online names")
+  entry("adb quick", "queue only new online names")
+  entry("adb stats", "summary counts")
+  line(separator())
+  line(section("Menus"))
+  entry("adb config", "configuration UI")
+  entry("adb politics", "city relations")
+  entry("adb theme list", "available themes")
+  line(separator())
+  line(section("Reference"))
+  entry("adb help", "full command reference")
+  line(separator())
+  line(footer_line())
+  if include_status then
+    cecho("\n")
+    if agnosticdb.ui and agnosticdb.ui.show_status then
+      agnosticdb.ui.show_status()
+    end
+  end
+end
+
+function agnosticdb.ui.show_commands(include_status)
+  local theme = config_theme()
+  local width = 88
+  local header_label = "agnosticDB Commands"
+  local footer_label = "adb help"
   local cmd_pad = 28
 
   local function header_line()
@@ -1561,6 +1622,8 @@ function agnosticdb.ui.show_help(include_status)
   line(header_line())
   line(separator())
   line(section("Core"))
+  entry("adb", "compact jump menu")
+  entry("adb help|commands", "full command reference")
   entry("adb status", "system status overview")
   entry("adb theme <name>", "set UI theme (auto/custom/city)")
   entry("adb theme save <name>", "save custom palette as theme")

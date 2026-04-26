@@ -1,11 +1,21 @@
 [
        {
-              "name": "adb help",
+              "name": "adb",
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
               "regex": "^adb$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_help() end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb help",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+(?:help|commands)$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.show_commands() end",
               "matchall": "no",
               "isLua": "yes"
        },

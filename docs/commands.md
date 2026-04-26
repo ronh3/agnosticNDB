@@ -1,7 +1,8 @@
 # Command Reference
 
 ## Core
-- `adb`: show help.
+- `adb`: show compact jump menu.
+- `adb help` / `adb commands`: show full command reference.
 - `adb status`: system status overview.
 - `adb theme <name>`: set UI theme (auto/custom/city or saved custom theme).
 - `adb theme save <name>`: save the current custom palette as a named theme.

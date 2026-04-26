@@ -33,6 +33,25 @@ describe("agnosticdb ui", function()
     assert.is_true(rendered:find("API queue", 1, true) ~= nil)
   end)
 
+  it("renders compact help separately from the full command reference", function()
+    agnosticdb.ui.show_help()
+
+    local compact = table.concat(outputs, "")
+    assert.is_true(compact:find("agnosticDB", 1, true) ~= nil)
+    assert.is_true(compact:find("adb status", 1, true) ~= nil)
+    assert.is_true(compact:find("adb help", 1, true) ~= nil)
+    assert.is_true(compact:find("adb dbreset", 1, true) == nil)
+
+    outputs = {}
+    agnosticdb.ui.show_commands()
+
+    local full = table.concat(outputs, "")
+    assert.is_true(full:find("agnosticDB Commands", 1, true) ~= nil)
+    assert.is_true(full:find("adb", 1, true) ~= nil)
+    assert.is_true(full:find("compact jump menu", 1, true) ~= nil)
+    assert.is_true(full:find("adb dbreset", 1, true) ~= nil)
+  end)
+
   it("renders stats as a fully framed report", function()
     _G.getWindowWrap = function()
       return 48
