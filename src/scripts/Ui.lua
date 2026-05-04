@@ -116,13 +116,13 @@ local function report_line(text, opts)
 end
 
 local function report_title(text)
-  report_line(frame_line("╔", "═", "╗"), { no_lead = true })
+  report_line(frame_line("╔", "═", "╗"))
   report_line(frame_line("║", " ", "║", text, "center"), { no_lead = true })
   report_line(frame_line("╚", "═", "╝"), { no_lead = true })
 end
 
 function agnosticdb.ui.report_frame_open(title)
-  report_line(frame_line("╔", "═", "╗"), { no_lead = true })
+  report_line(frame_line("╔", "═", "╗"))
   if title and title ~= "" then
     report_line(frame_line("║", " ", "║", title, "center"), { no_lead = true })
   end
@@ -159,6 +159,12 @@ end
 local function quiet_echo(text)
   if is_quiet_mode() then return end
   echo_line(text)
+end
+
+local function send_silent(command)
+  if type(send) == "function" then
+    send(command, false)
+  end
 end
 
 local function display_name(name)
@@ -585,7 +591,7 @@ end
 
 local function ensure_frame_open()
   if agnosticdb.ui._frame_open then return end
-  report_line(frame_line("╔", "═", "╗"), { no_lead = true })
+  report_line(frame_line("╔", "═", "╗"))
   agnosticdb.ui._frame_open = true
 end
 
@@ -2616,12 +2622,8 @@ function agnosticdb.ui.enemyOnline(city)
         end
       end
 
-      if type(sendAll) == "function" then
-        sendAll(unpack(commands))
-      else
-        for _, cmd in ipairs(commands) do
-          send(cmd)
-        end
+      for _, cmd in ipairs(commands) do
+        send_silent(cmd)
       end
 
       local sent = #commands
@@ -2774,7 +2776,7 @@ function agnosticdb.ui.honors(name)
   if agnosticdb.honors and agnosticdb.honors.capture then
     agnosticdb.honors.capture(name, nil, { suppress_output = true, announce = true })
   end
-  send("HONORS " .. name)
+  send_silent("HONORS " .. name)
 end
 
 function agnosticdb.ui.honors_online()

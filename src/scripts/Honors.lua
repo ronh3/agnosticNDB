@@ -77,6 +77,12 @@ local function honors_delay_seconds()
   return delay
 end
 
+local function send_silent(command)
+  if type(send) == "function" then
+    send(command, false)
+  end
+end
+
 local function titlecase_words(value)
   if type(value) ~= "string" then return "" end
   if value == "" then return "" end
@@ -421,5 +427,5 @@ function agnosticdb.honors.run_queue()
 
   local name = table.remove(agnosticdb.honors.queue, 1)
   agnosticdb.honors.capture(name, finish_queue_item, agnosticdb.honors.queue_opts)
-  send("HONORS " .. name)
+  send_silent("HONORS " .. name)
 end

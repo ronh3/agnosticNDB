@@ -4,12 +4,16 @@ describe("agnosticdb ui", function()
   local outputs
   local saved_cecho
   local saved_getWindowWrap
+  local saved_line
+  local saved_send
 
   before_each(function()
     helper.reset()
     outputs = {}
     saved_cecho = _G.cecho
     saved_getWindowWrap = _G.getWindowWrap
+    saved_line = _G.line
+    saved_send = _G.send
     _G.cecho = function(msg)
       outputs[#outputs + 1] = tostring(msg or "")
     end
@@ -18,6 +22,8 @@ describe("agnosticdb ui", function()
   after_each(function()
     _G.cecho = saved_cecho
     _G.getWindowWrap = saved_getWindowWrap
+    _G.line = saved_line
+    _G.send = saved_send
   end)
 
   it("renders status with current database information", function()
@@ -77,6 +83,31 @@ describe("agnosticdb ui", function()
 
     local rendered = table.concat(outputs, "")
     assert.is_true(rendered:find("qwp rank <n>: missing numeric rank.", 1, true) ~= nil)
+  end)
+
+  it("starts framed status output on a new line after prompt text", function()
+    _G.line = "Ex:D"
+
+    agnosticdb.ui.emit_line("Prompt-safe frame")
+
+    local rendered = table.concat(outputs, "")
+    assert.are.equal("\n", rendered:sub(1, 1))
+    assert.is_true(rendered:find("Prompt-safe frame", 1, true) ~= nil)
+  end)
+
+  it("sends direct honors commands without command echo", function()
+    local sent = {}
+    _G.send = function(cmd, echo)
+      sent[#sent + 1] = { cmd = cmd, echo = echo }
+    end
+    local capture_stub = stub(agnosticdb.honors, "capture", function() end)
+
+    agnosticdb.ui.honors("Hogarth")
+
+    capture_stub:revert()
+    assert.are.equal(1, #sent)
+    assert.are.equal("HONORS Hogarth", sent[1].cmd)
+    assert.is_false(sent[1].echo)
   end)
 
   it("renders qwp grouped online list with class suffixes", function()

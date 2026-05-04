@@ -319,6 +319,11 @@ function agnosticdb.lists.capture_citizens_list(city)
 end
 
 function agnosticdb.lists.capture_table(label)
+  local active = agnosticdb.lists.capture
+  if active and active.kind == "table" then
+    return active
+  end
+
   agnosticdb.lists.abort_capture()
   local capture = {
     kind = "table",
@@ -360,4 +365,21 @@ function agnosticdb.lists.capture_table(label)
   end
 
   echo_line(string.format("Capturing list table (%s)...", capture.label))
+  return capture
+end
+
+function agnosticdb.lists.capture_table_command(command, label)
+  if type(command) ~= "string" or command == "" then return end
+  local capture = agnosticdb.lists.capture_table(label or command)
+  local function send_command()
+    if type(send) == "function" then
+      send(command, false)
+    end
+  end
+  if type(tempTimer) == "function" then
+    tempTimer(0, send_command)
+  else
+    send(command, false)
+  end
+  return capture
 end

@@ -76,6 +76,7 @@
 
 ## In-Game List Capture
 These triggers ingest data when you run the corresponding in-game commands:
+- `cwho`: wrapped by agnosticDB to start capture before the game output is sent.
 - City enemies list: lines starting with `Enemies of the City of <city>:` update `enemy_city`.
 - House enemies list: lines starting with `Enemies of the <house>:` update `enemy_house`.
 - Personal enemies list: `You have the following enemies:` updates IFF to `enemy`.

@@ -8,9 +8,11 @@ describe("agnosticdb ingestion", function()
   local reload_calls
   local saved_tempRegexTrigger
   local saved_tempPromptTrigger
+  local saved_tempTimer
   local saved_killTrigger
   local saved_isPrompt
   local saved_line
+  local saved_send
 
   before_each(function()
     helper.reset()
@@ -18,9 +20,11 @@ describe("agnosticdb ingestion", function()
     reload_calls = 0
     saved_tempRegexTrigger = _G.tempRegexTrigger
     saved_tempPromptTrigger = _G.tempPromptTrigger
+    saved_tempTimer = _G.tempTimer
     saved_killTrigger = _G.killTrigger
     saved_isPrompt = _G.isPrompt
     saved_line = _G.line
+    saved_send = _G.send
     output_stub = stub(agnosticdb.ui, "emit_line", function(text)
       outputs[#outputs + 1] = tostring(text or "")
     end)
@@ -35,9 +39,11 @@ describe("agnosticdb ingestion", function()
     fetch_list_stub = nil
     _G.tempRegexTrigger = saved_tempRegexTrigger
     _G.tempPromptTrigger = saved_tempPromptTrigger
+    _G.tempTimer = saved_tempTimer
     _G.killTrigger = saved_killTrigger
     _G.isPrompt = saved_isPrompt
     _G.line = saved_line
+    _G.send = saved_send
   end)
 
   it("applies a captured citizens list to the database", function()
@@ -128,6 +134,34 @@ describe("agnosticdb ingestion", function()
     assert.are.equal("Monk", agnosticdb.db.get_person("Beta").class)
     assert.are.same({ "list-line-trigger", "list-prompt-trigger" }, killed)
     assert.is_true(table.concat(outputs, "\n"):find("List capture (cwho) complete: 2 updated, 1 skipped.", 1, true) ~= nil)
+  end)
+
+  it("starts cwho capture before sending the command and ignores header restart", function()
+    local sent = {}
+    _G.tempRegexTrigger = function()
+      return "list-line-trigger"
+    end
+    _G.tempPromptTrigger = function()
+      return "list-prompt-trigger"
+    end
+    _G.tempTimer = function(_, fn)
+      fn()
+      return "send-timer"
+    end
+    _G.send = function(cmd, echo)
+      sent[#sent + 1] = { cmd = cmd, echo = echo }
+    end
+
+    local first = agnosticdb.lists.capture_table_command("cwho", "cwho")
+    local second = agnosticdb.lists.capture_table("citizens")
+
+    assert.are.equal(first, second)
+    assert.are.equal("cwho", agnosticdb.lists.capture.label)
+    assert.are.equal(1, #sent)
+    assert.are.equal("cwho", sent[1].cmd)
+    assert.is_false(sent[1].echo)
+    assert.are.equal(1, #outputs)
+    assert.is_true(outputs[1]:find("Capturing list table (cwho)...", 1, true) ~= nil)
   end)
 
   it("replaces the personal enemy list and clears stale entries", function()

@@ -1,5 +1,15 @@
 [
        {
+              "name": "cwho",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^cwho$",
+              "script": "if agnosticdb and agnosticdb.lists then agnosticdb.lists.capture_table_command(\"cwho\", \"cwho\") end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb",
               "isActive": "yes",
               "isFolder": "no",
@@ -475,7 +485,7 @@
               "isFolder": "no",
               "command": "",
               "regex": "^adb\\s+enemies$",
-              "script": "if agnosticdb and agnosticdb.enemies then send(\"enemies\") end",
+              "script": "if agnosticdb and agnosticdb.enemies then send(\"enemies\", false) end",
               "matchall": "no",
               "isLua": "yes"
        },

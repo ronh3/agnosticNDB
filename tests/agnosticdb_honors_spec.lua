@@ -3,11 +3,14 @@ local helper = dofile(os.getenv("TESTS_DIRECTORY") .. "/support/agnosticdb_test_
 describe("agnosticdb honors", function()
   local output_stub
   local run_queue_stub
+  local capture_stub
+  local saved_send
   local outputs
 
   before_each(function()
     helper.reset()
     outputs = {}
+    saved_send = _G.send
     output_stub = stub(agnosticdb.ui, "emit_line", function(text)
       outputs[#outputs + 1] = tostring(text or "")
     end)
@@ -16,8 +19,11 @@ describe("agnosticdb honors", function()
   after_each(function()
     if output_stub then output_stub:revert() end
     if run_queue_stub then run_queue_stub:revert() end
+    if capture_stub then capture_stub:revert() end
+    _G.send = saved_send
     output_stub = nil
     run_queue_stub = nil
+    capture_stub = nil
   end)
 
   it("exposes the honors entry points", function()
@@ -184,6 +190,24 @@ describe("agnosticdb honors", function()
     assert.are.equal(on_done, agnosticdb.honors.queue_on_done)
     assert.are.equal(1, ran_queue)
     assert.is_true(table.concat(outputs, "\n"):find("Honors queue: 2 names.", 1, true) ~= nil)
+  end)
+
+  it("sends queued honors commands without command echo", function()
+    local sent = {}
+    _G.send = function(cmd, echo)
+      sent[#sent + 1] = { cmd = cmd, echo = echo }
+    end
+    capture_stub = stub(agnosticdb.honors, "capture", function() end)
+
+    agnosticdb.honors.queue_running = true
+    agnosticdb.honors.queue = { "Hogarth" }
+    agnosticdb.honors.queue_opts = { suppress_output = true }
+
+    agnosticdb.honors.run_queue()
+
+    assert.are.equal(1, #sent)
+    assert.are.equal("HONORS Hogarth", sent[1].cmd)
+    assert.is_false(sent[1].echo)
   end)
 
   it("cancels honors queue state cleanly", function()
