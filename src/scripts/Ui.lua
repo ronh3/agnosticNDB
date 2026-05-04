@@ -459,6 +459,20 @@ config_theme = function()
   return theme_to_tags(def)
 end
 
+local function raise_theme_changed_event(reason)
+  if type(raiseEvent) ~= "function" then return end
+  local name = resolve_theme_name()
+  local payload = {
+    event = "agnosticdb.theme.changed",
+    reason = reason or "changed",
+    name = name,
+    label = theme_label(name),
+    auto_city = agnosticdb.conf and agnosticdb.conf.theme and agnosticdb.conf.theme.auto_city == true,
+    tags = config_theme(),
+  }
+  raiseEvent("agnosticdb.theme.changed", payload)
+end
+
 function agnosticdb.ui.theme_tags()
   return config_theme()
 end
@@ -1141,6 +1155,7 @@ function agnosticdb.ui.theme_set(name)
     agnosticdb.conf.theme.auto_city = true
     config_save()
     config_refresh()
+    raise_theme_changed_event("set")
     echo_line("Theme set to auto (city).")
     return
   end
@@ -1149,6 +1164,7 @@ function agnosticdb.ui.theme_set(name)
     agnosticdb.conf.theme.name = "custom"
     config_save()
     config_refresh()
+    raise_theme_changed_event("set")
     echo_line("Theme set to custom.")
     return
   end
@@ -1162,6 +1178,7 @@ function agnosticdb.ui.theme_set(name)
   agnosticdb.conf.theme.name = lower
   config_save()
   config_refresh()
+  raise_theme_changed_event("set")
   echo_line(string.format("Theme set to %s.", theme_label(lower)))
 end
 
@@ -1192,6 +1209,7 @@ function agnosticdb.ui.theme_save(name)
   agnosticdb.conf.theme.name = key
   config_save()
   config_refresh()
+  raise_theme_changed_event("save")
   echo_line(string.format("Custom theme saved: %s.", label))
 end
 
@@ -1214,6 +1232,7 @@ function agnosticdb.ui.theme_delete(name)
   end
   config_save()
   config_refresh()
+  raise_theme_changed_event("delete")
   echo_line(string.format("Custom theme deleted: %s.", name))
 end
 
@@ -1297,6 +1316,7 @@ function agnosticdb.ui.theme_set_color(key, value)
   agnosticdb.conf.theme.name = "custom"
   config_save()
   config_refresh()
+  raise_theme_changed_event("palette")
   echo_line(string.format("Custom theme %s set to %s.", lower, tostring(value or "")))
 end
 

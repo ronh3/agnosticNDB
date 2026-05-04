@@ -6,6 +6,7 @@ describe("agnosticdb ui", function()
   local saved_getWindowWrap
   local saved_line
   local saved_send
+  local saved_raiseEvent
 
   before_each(function()
     helper.reset()
@@ -14,6 +15,7 @@ describe("agnosticdb ui", function()
     saved_getWindowWrap = _G.getWindowWrap
     saved_line = _G.line
     saved_send = _G.send
+    saved_raiseEvent = _G.raiseEvent
     _G.cecho = function(msg)
       outputs[#outputs + 1] = tostring(msg or "")
     end
@@ -24,6 +26,7 @@ describe("agnosticdb ui", function()
     _G.getWindowWrap = saved_getWindowWrap
     _G.line = saved_line
     _G.send = saved_send
+    _G.raiseEvent = saved_raiseEvent
   end)
 
   it("renders status with current database information", function()
@@ -108,6 +111,39 @@ describe("agnosticdb ui", function()
     assert.are.equal(1, #sent)
     assert.are.equal("HONORS Hogarth", sent[1].cmd)
     assert.is_false(sent[1].echo)
+  end)
+
+  it("raises an event when the active theme changes", function()
+    local events = {}
+    _G.raiseEvent = function(name, payload)
+      events[#events + 1] = { name = name, payload = payload }
+    end
+
+    agnosticdb.ui.theme_set("custom")
+
+    assert.are.equal(1, #events)
+    assert.are.equal("agnosticdb.theme.changed", events[1].name)
+    assert.are.equal("agnosticdb.theme.changed", events[1].payload.event)
+    assert.are.equal("custom", events[1].payload.name)
+    assert.are.equal("Custom", events[1].payload.label)
+    assert.are.equal("set", events[1].payload.reason)
+    assert.is_table(events[1].payload.tags)
+    assert.is_false(events[1].payload.auto_city)
+  end)
+
+  it("raises a palette-change event when custom theme colors change", function()
+    local events = {}
+    _G.raiseEvent = function(name, payload)
+      events[#events + 1] = { name = name, payload = payload }
+    end
+
+    agnosticdb.ui.theme_set_color("accent", "red")
+
+    assert.are.equal(1, #events)
+    assert.are.equal("agnosticdb.theme.changed", events[1].name)
+    assert.are.equal("custom", events[1].payload.name)
+    assert.are.equal("palette", events[1].payload.reason)
+    assert.are.equal("<red>", events[1].payload.tags.accent)
   end)
 
   it("renders qwp grouped online list with class suffixes", function()

@@ -75,3 +75,6 @@ Use these helpers to pull stored info for a person. Each returns `nil` if the va
 ### Import/Export (People + Config)
 - `agnosticdb.transfer.exportData(path)` / `agnosticdb.transfer.importData(path)`.
 - `agnosticdb.config.export_settings(path)` / `agnosticdb.config.import_settings(path)`.
+
+### Events
+- `agnosticdb.theme.changed`: raised after successful theme set/save/delete/palette changes. The payload includes `reason`, `name`, `label`, `auto_city`, and current cecho `tags`.
