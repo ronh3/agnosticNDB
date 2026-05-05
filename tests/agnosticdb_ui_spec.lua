@@ -7,7 +7,6 @@ describe("agnosticdb ui", function()
   local saved_line
   local saved_send
   local saved_raiseEvent
-  local saved_current_line
 
   before_each(function()
     helper.reset()
@@ -17,7 +16,6 @@ describe("agnosticdb ui", function()
     saved_line = _G.line
     saved_send = _G.send
     saved_raiseEvent = _G.raiseEvent
-    saved_current_line = agnosticdb.ui._current_line
     _G.cecho = function(msg)
       outputs[#outputs + 1] = tostring(msg or "")
     end
@@ -29,7 +27,6 @@ describe("agnosticdb ui", function()
     _G.line = saved_line
     _G.send = saved_send
     _G.raiseEvent = saved_raiseEvent
-    agnosticdb.ui._current_line = saved_current_line
   end)
 
   it("renders status with current database information", function()
@@ -92,11 +89,7 @@ describe("agnosticdb ui", function()
   end)
 
   it("starts framed status output on a new line after prompt text", function()
-    agnosticdb.ui._current_line = function()
-      return "Ex:D"
-    end
-
-    agnosticdb.ui.emit_line("Prompt-safe frame")
+    agnosticdb.ui.emit_line("Prompt-safe frame", { current_line = "Ex:D" })
 
     local rendered = table.concat(outputs, "")
     assert.are.equal("\n", rendered:sub(1, 1))

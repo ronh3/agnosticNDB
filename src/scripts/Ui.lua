@@ -9,13 +9,9 @@ local function prefix()
   return "<cyan>[agnosticdb]<reset> "
 end
 
-local function current_line_text()
-  local hook = agnosticdb.ui and agnosticdb.ui._current_line
-  if type(hook) == "function" then
-    local ok, value = pcall(hook)
-    if ok and type(value) == "string" then
-      return value
-    end
+local function current_line_text(override)
+  if type(override) == "string" then
+    return override
   end
 
   local current_line = type(_G) == "table" and rawget(_G, "line") or nil
@@ -28,8 +24,8 @@ local function current_line_text()
   return nil
 end
 
-local function needs_leading_newline()
-  local current_line = current_line_text()
+local function needs_leading_newline(current_line)
+  current_line = current_line_text(current_line)
   if type(current_line) ~= "string" or current_line == "" then return false end
   if agnosticdb._echo_line_pending then return false end
   agnosticdb._echo_line_pending = true
@@ -130,7 +126,7 @@ local function report_line(text, opts)
   local options = opts or {}
   local lead = ""
   if not options.no_lead then
-    lead = needs_leading_newline() and "\n" or ""
+    lead = needs_leading_newline(options.current_line) and "\n" or ""
   end
   cecho(lead .. text .. "\n")
 end
@@ -637,9 +633,9 @@ local function looks_framed(text)
     or text:find("┘", 1, true)
 end
 
-local function ensure_frame_open()
+local function ensure_frame_open(opts)
   if agnosticdb.ui._frame_open then return end
-  report_line(frame_line("╔", "═", "╗"))
+  report_line(frame_line("╔", "═", "╗"), opts)
   agnosticdb.ui._frame_open = true
 end
 
@@ -687,7 +683,7 @@ function agnosticdb.ui.emit_line(text, opts)
         reset = theme.reset
       end
     end
-    local lead = needs_leading_newline() and "\n" or ""
+    local lead = needs_leading_newline(options.current_line) and "\n" or ""
     cecho(lead .. full .. reset .. "\n")
     return
   end
@@ -695,7 +691,7 @@ function agnosticdb.ui.emit_line(text, opts)
     report_line(msg, { no_lead = true })
     return
   end
-  ensure_frame_open()
+  ensure_frame_open({ current_line = options.current_line })
   report_wrapped_content(full)
   schedule_frame_close()
 end
