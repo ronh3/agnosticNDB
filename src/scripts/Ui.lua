@@ -10,7 +10,11 @@ local function prefix()
 end
 
 local function needs_leading_newline()
-  if type(line) ~= "string" or line == "" then return false end
+  local current_line = type(_G) == "table" and rawget(_G, "line") or nil
+  if type(current_line) ~= "string" then
+    current_line = line
+  end
+  if type(current_line) ~= "string" or current_line == "" then return false end
   if agnosticdb._echo_line_pending then return false end
   agnosticdb._echo_line_pending = true
   if type(tempTimer) == "function" then
@@ -1029,15 +1033,19 @@ local function config_cycle_color(path)
   elseif path == "theme.custom.accent" then
     agnosticdb.conf.theme.custom.accent = next_value
     agnosticdb.conf.theme.name = "custom"
+    agnosticdb.conf.theme.auto_city = false
   elseif path == "theme.custom.border" then
     agnosticdb.conf.theme.custom.border = next_value
     agnosticdb.conf.theme.name = "custom"
+    agnosticdb.conf.theme.auto_city = false
   elseif path == "theme.custom.text" then
     agnosticdb.conf.theme.custom.text = next_value
     agnosticdb.conf.theme.name = "custom"
+    agnosticdb.conf.theme.auto_city = false
   elseif path == "theme.custom.muted" then
     agnosticdb.conf.theme.custom.muted = next_value
     agnosticdb.conf.theme.name = "custom"
+    agnosticdb.conf.theme.auto_city = false
   else
     local city = path:match("^highlight%.cities%.([%w_]+)%.color$")
     if city then
@@ -1104,6 +1112,7 @@ function agnosticdb.ui.config_set(path, value)
     end
     agnosticdb.conf.theme.custom[theme_key] = value_text
     agnosticdb.conf.theme.name = "custom"
+    agnosticdb.conf.theme.auto_city = false
     config_save()
     config_refresh()
     return
@@ -1179,6 +1188,7 @@ function agnosticdb.ui.theme_set(name)
 
   if lower == "custom" then
     agnosticdb.conf.theme.name = "custom"
+    agnosticdb.conf.theme.auto_city = false
     config_save()
     config_refresh()
     raise_theme_changed_event("set")
@@ -1193,6 +1203,7 @@ function agnosticdb.ui.theme_set(name)
     return
   end
   agnosticdb.conf.theme.name = lower
+  agnosticdb.conf.theme.auto_city = false
   config_save()
   config_refresh()
   raise_theme_changed_event("set")
@@ -1224,6 +1235,7 @@ function agnosticdb.ui.theme_save(name)
     muted = custom.muted
   }
   agnosticdb.conf.theme.name = key
+  agnosticdb.conf.theme.auto_city = false
   config_save()
   config_refresh()
   raise_theme_changed_event("save")
@@ -1331,6 +1343,7 @@ function agnosticdb.ui.theme_set_color(key, value)
   end
   agnosticdb.conf.theme.custom[lower] = tostring(value or "")
   agnosticdb.conf.theme.name = "custom"
+  agnosticdb.conf.theme.auto_city = false
   config_save()
   config_refresh()
   raise_theme_changed_event("palette")
