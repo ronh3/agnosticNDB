@@ -146,6 +146,14 @@ describe("agnosticdb ui", function()
     assert.are.equal("<red>", events[1].payload.tags.accent)
   end)
 
+  it("uses a supported grey accent for the blademaster theme", function()
+    agnosticdb.ui.theme_set("blademaster")
+
+    local tags = agnosticdb.ui.theme_tags()
+    assert.are.equal("<light_grey>", tags.accent)
+    assert.are.equal("<steel_blue>", tags.border)
+  end)
+
   it("renders qwp grouped online list with class suffixes", function()
     agnosticdb.db.upsert_person({ name = "Alpha", class = "Magi", city = "Ashtan" })
     agnosticdb.db.upsert_person({ name = "Beta", class = "Monk", city = "Cyrene" })

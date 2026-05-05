@@ -322,7 +322,7 @@ local function config_color_palette()
   if agnosticdb.colors and type(agnosticdb.colors.list) == "function" then
     return agnosticdb.colors.list()
   end
-  return { "white", "silver", "grey", "cyan", "light_blue", "cornflower_blue", "forest_green", "yellow", "orange", "red", "pink", "purple", "green" }
+  return { "white", "light_grey", "grey", "cyan", "light_blue", "cornflower_blue", "forest_green", "yellow", "orange", "red", "pink", "purple", "green" }
 end
 
 local function config_display_color(value)
@@ -350,7 +350,7 @@ local function builtin_themes()
     alchemist = { accent = "goldenrod", border = "dark_slate_grey", text = "antique_white", muted = "tan" },
     apostate = { accent = "dark_orchid", border = "firebrick", text = "lavender_blush", muted = "plum" },
     bard = { accent = "medium_aquamarine", border = "royal_blue", text = "alice_blue", muted = "light_steel_blue" },
-    blademaster = { accent = "silver", border = "steel_blue", text = "white_smoke", muted = "light_slate_gray" },
+    blademaster = { accent = "light_grey", border = "steel_blue", text = "white_smoke", muted = "light_slate_gray" },
     depthswalker = { accent = "dark_slate_blue", border = "midnight_blue", text = "light_cyan", muted = "light_steel_blue" },
     druid = { accent = "sea_green", border = "dark_olive_green", text = "honeydew", muted = "pale_green" },
     infernal = { accent = "firebrick", border = "maroon", text = "misty_rose", muted = "rosy_brown" },
