@@ -9,11 +9,27 @@ local function prefix()
   return "<cyan>[agnosticdb]<reset> "
 end
 
-local function needs_leading_newline()
-  local current_line = type(_G) == "table" and rawget(_G, "line") or nil
-  if type(current_line) ~= "string" then
-    current_line = line
+local function current_line_text()
+  local hook = agnosticdb.ui and agnosticdb.ui._current_line
+  if type(hook) == "function" then
+    local ok, value = pcall(hook)
+    if ok and type(value) == "string" then
+      return value
+    end
   end
+
+  local current_line = type(_G) == "table" and rawget(_G, "line") or nil
+  if type(current_line) == "string" then
+    return current_line
+  end
+  if type(line) == "string" then
+    return line
+  end
+  return nil
+end
+
+local function needs_leading_newline()
+  local current_line = current_line_text()
   if type(current_line) ~= "string" or current_line == "" then return false end
   if agnosticdb._echo_line_pending then return false end
   agnosticdb._echo_line_pending = true
