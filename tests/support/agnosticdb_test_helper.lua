@@ -53,6 +53,10 @@ function M.reset()
 
   agnosticdb.conf = nil
   agnosticdb._echo_line_pending = nil
+  if agnosticdb.ui then
+    agnosticdb.ui._frame_open = nil
+    agnosticdb.ui._frame_seq = nil
+  end
 
   reset_table_data(agnosticdb.api)
   reset_table_data(agnosticdb.honors)
