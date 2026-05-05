@@ -150,8 +150,8 @@ describe("agnosticdb ui", function()
     agnosticdb.ui.theme_set("blademaster")
 
     local tags = agnosticdb.ui.theme_tags()
-    assert.are.equal("<light_grey>", tags.accent)
-    assert.are.equal("<steel_blue>", tags.border)
+    assert.are.equal("<slate_gray>", tags.accent)
+    assert.are.equal("<dark_slate_grey>", tags.border)
   end)
 
   it("renders qwp grouped online list with class suffixes", function()
