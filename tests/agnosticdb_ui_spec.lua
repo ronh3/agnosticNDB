@@ -146,13 +146,13 @@ describe("agnosticdb ui", function()
     assert.are.equal("<red>", events[1].payload.tags.accent)
   end)
 
-  it("uses a supported grey accent for the blademaster theme", function()
+  it("uses a supported elemental steel palette for the blademaster theme", function()
     agnosticdb.ui.theme_set("blademaster")
 
     local tags = agnosticdb.ui.theme_tags()
-    assert.are.equal("<slate_gray>", tags.accent)
-    assert.are.equal("<steel_blue>", tags.border)
-    assert.are.equal("<light_cyan>", tags.muted)
+    assert.are.equal("<deep_sky_blue>", tags.accent)
+    assert.are.equal("<slate_gray>", tags.border)
+    assert.are.equal("<light_slate_gray>", tags.muted)
   end)
 
   it("renders qwp grouped online list with class suffixes", function()
