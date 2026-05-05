@@ -21,6 +21,7 @@ Standalone name database for Mudlet + Achaea. Clean-room rewrite intended for Mu
 - `adb stats`: summary counts.
 
 ## Docs
+- `RELEASE_NOTES.md`: current release notes and upgrade notes.
 - `docs/index.md`: documentation hub.
 - `docs/commands.md`: full command reference.
 - `docs/data-schema.md`: DB fields, defaults, and semantics.
