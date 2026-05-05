@@ -155,6 +155,38 @@ describe("agnosticdb ui", function()
     assert.are.equal("<light_slate_gray>", tags.muted)
   end)
 
+  it("applies expanded built-in style themes with supported palette colors", function()
+    local supported = {}
+    for _, color in ipairs(agnosticdb.colors.list()) do
+      supported[color:lower()] = true
+    end
+    local expected = {
+      neon = { accent = "chartreuse", border = "deep_pink", text = "light_cyan", muted = "medium_turquoise" },
+      cyberpunk = { accent = "deep_pink", border = "dark_turquoise", text = "light_cyan", muted = "medium_purple" },
+      vaporwave = { accent = "hot_pink", border = "medium_turquoise", text = "lavender_blush", muted = "plum" },
+      steampunk = { accent = "goldenrod", border = "saddle_brown", text = "antique_white", muted = "rosy_brown" },
+      solarpunk = { accent = "yellow_green", border = "sea_green", text = "honeydew", muted = "goldenrod" },
+      voidpunk = { accent = "dark_violet", border = "midnight_blue", text = "lavender", muted = "slate_blue" },
+      fire = { accent = "orange_red", border = "firebrick", text = "misty_rose", muted = "goldenrod" },
+      ice = { accent = "pale_turquoise", border = "steel_blue", text = "alice_blue", muted = "light_steel_blue" },
+      electric = { accent = "ansi_light_yellow", border = "slate_blue", text = "light_cyan", muted = "light_slate_gray" },
+      earth = { accent = "peru", border = "dim_grey", text = "wheat", muted = "slate_gray" },
+      water = { accent = "medium_turquoise", border = "navy", text = "azure", muted = "cadet_blue" },
+      void = { accent = "dark_violet", border = "ansi_black", text = "ghost_white", muted = "slate_gray" },
+      dark = { accent = "deep_sky_blue", border = "dim_grey", text = "gainsboro", muted = "slate_gray" },
+      light = { accent = "royal_blue", border = "light_grey", text = "floral_white", muted = "gainsboro" },
+    }
+
+    for name, palette in pairs(expected) do
+      agnosticdb.ui.theme_set(name)
+      local tags = agnosticdb.ui.theme_tags()
+      for key, color in pairs(palette) do
+        assert.is_true(supported[color:lower()])
+        assert.are.equal("<" .. color .. ">", tags[key])
+      end
+    end
+  end)
+
   it("renders qwp grouped online list with class suffixes", function()
     agnosticdb.db.upsert_person({ name = "Alpha", class = "Magi", city = "Ashtan" })
     agnosticdb.db.upsert_person({ name = "Beta", class = "Monk", city = "Cyrene" })

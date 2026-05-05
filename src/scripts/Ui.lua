@@ -367,7 +367,21 @@ local function builtin_themes()
     serpent = { accent = "chartreuse", border = "dark_slate_grey", text = "honeydew", muted = "pale_green" },
     shaman = { accent = "sienna", border = "dark_slate_grey", text = "wheat", muted = "tan" },
     sylvan = { accent = "spring_green", border = "sea_green", text = "honeydew", muted = "pale_green" },
-    unnamable = { accent = "orchid", border = "dark_slate_blue", text = "lavender", muted = "thistle" }
+    unnamable = { accent = "orchid", border = "dark_slate_blue", text = "lavender", muted = "thistle" },
+    neon = { accent = "chartreuse", border = "deep_pink", text = "light_cyan", muted = "medium_turquoise" },
+    cyberpunk = { accent = "deep_pink", border = "dark_turquoise", text = "light_cyan", muted = "medium_purple" },
+    vaporwave = { accent = "hot_pink", border = "medium_turquoise", text = "lavender_blush", muted = "plum" },
+    steampunk = { accent = "goldenrod", border = "saddle_brown", text = "antique_white", muted = "rosy_brown" },
+    solarpunk = { accent = "yellow_green", border = "sea_green", text = "honeydew", muted = "goldenrod" },
+    voidpunk = { accent = "dark_violet", border = "midnight_blue", text = "lavender", muted = "slate_blue" },
+    fire = { accent = "orange_red", border = "firebrick", text = "misty_rose", muted = "goldenrod" },
+    ice = { accent = "pale_turquoise", border = "steel_blue", text = "alice_blue", muted = "light_steel_blue" },
+    electric = { accent = "ansi_light_yellow", border = "slate_blue", text = "light_cyan", muted = "light_slate_gray" },
+    earth = { accent = "peru", border = "dim_grey", text = "wheat", muted = "slate_gray" },
+    water = { accent = "medium_turquoise", border = "navy", text = "azure", muted = "cadet_blue" },
+    void = { accent = "dark_violet", border = "ansi_black", text = "ghost_white", muted = "slate_gray" },
+    dark = { accent = "deep_sky_blue", border = "dim_grey", text = "gainsboro", muted = "slate_gray" },
+    light = { accent = "royal_blue", border = "light_grey", text = "floral_white", muted = "gainsboro" }
   }
 end
 
@@ -673,7 +687,10 @@ end
 local function theme_categories()
   return {
     { label = "Cities", names = { "ashtan", "cyrene", "eleusis", "hashan", "mhaldor", "targossas" } },
-    { label = "Classes", names = { "alchemist", "apostate", "bard", "blademaster", "depthswalker", "druid", "infernal", "jester", "magi", "monk", "occultist", "paladin", "pariah", "priest", "psion", "runewarden", "sentinel", "serpent", "shaman", "sylvan", "unnamable" } }
+    { label = "Classes", names = { "alchemist", "apostate", "bard", "blademaster", "depthswalker", "druid", "infernal", "jester", "magi", "monk", "occultist", "paladin", "pariah", "priest", "psion", "runewarden", "sentinel", "serpent", "shaman", "sylvan", "unnamable" } },
+    { label = "Styles", names = { "neon", "cyberpunk", "vaporwave", "steampunk", "solarpunk", "voidpunk" } },
+    { label = "Elements", names = { "fire", "ice", "electric", "earth", "water", "void" } },
+    { label = "Contrast", names = { "dark", "light" } }
   }
 end
 
@@ -1651,7 +1668,7 @@ function agnosticdb.ui.show_commands(include_status)
   entry("adb", "compact jump menu")
   entry("adb help|commands", "full command reference")
   entry("adb status", "system status overview")
-  entry("adb theme <name>", "set UI theme (auto/custom/city)")
+  entry("adb theme <name>", "set UI theme (built-in/auto/custom)")
   entry("adb theme save <name>", "save custom palette as theme")
   entry("adb theme delete <name>", "delete custom theme")
   entry("adb theme list", "list available themes")

@@ -4,7 +4,7 @@
 - `adb`: show compact jump menu.
 - `adb help` / `adb commands`: show full command reference.
 - `adb status`: system status overview.
-- `adb theme <name>`: set UI theme (auto/custom/city or saved custom theme).
+- `adb theme <name>`: set UI theme (built-in, auto/custom, or saved custom theme).
 - `adb theme save <name>`: save the current custom palette as a named theme.
 - `adb theme delete <name>`: delete a saved custom theme.
 - `adb theme list`: list available themes.

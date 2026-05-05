@@ -1,13 +1,18 @@
 # Themes and Palette
 
 ## Themes
-agnosticDB supports built-in themes (cities + classes) and custom palettes.
+agnosticDB supports built-in themes (cities, classes, styles, elements, and contrast themes) plus custom palettes.
 
 Common commands:
 - `adb theme list`: view options.
 - `adb theme <name>`: apply a theme (e.g., `adb theme mhaldor`).
 - `adb theme auto`: use auto city themes.
 - `adb theme preview`: preview built-in theme samples.
+
+Additional built-in theme keys:
+- Styles: `neon`, `cyberpunk`, `vaporwave`, `steampunk`, `solarpunk`, `voidpunk`.
+- Elements: `fire`, `ice`, `electric`, `earth`, `water`, `void`.
+- Contrast: `dark`, `light`.
 
 ## Custom Palette
 - `adb theme set <key> <color>`: set custom palette keys (`accent`, `border`, `text`, `muted`).
