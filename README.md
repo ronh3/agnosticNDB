@@ -1,6 +1,6 @@
 # agnosticDB
 
-Standalone name database for Mudlet + Achaea. Clean-room rewrite intended for Muddler packaging.
+Standalone name database for Mudlet + Achaea.
 
 ## Quick Start
 1) Install the package in Mudlet 4.20.1 or newer.
