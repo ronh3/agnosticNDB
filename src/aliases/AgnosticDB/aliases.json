@@ -500,12 +500,32 @@
               "isLua": "yes"
        },
        {
+              "name": "adb comp city report",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+comp\\s+(\\w+)\\s+report$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.compCityReport(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
               "name": "adb comp city",
               "isActive": "yes",
               "isFolder": "no",
               "command": "",
               "regex": "^adb\\s+comp\\s+(\\w+)$",
               "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.compCity(matches[2]) end",
+              "matchall": "no",
+              "isLua": "yes"
+       },
+       {
+              "name": "adb qcomp city report",
+              "isActive": "yes",
+              "isFolder": "no",
+              "command": "",
+              "regex": "^adb\\s+qcomp\\s+(\\w+)\\s+report$",
+              "script": "if agnosticdb and agnosticdb.ui then agnosticdb.ui.qcompCityReport(matches[2]) end",
               "matchall": "no",
               "isLua": "yes"
        },

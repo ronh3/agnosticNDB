@@ -1740,7 +1740,9 @@ function agnosticdb.ui.show_commands(include_status)
   entry("adb list xprank <= <n>", "list people with XP rank <= n")
   entry("adb find <text>", "find people by name substring")
   entry("adb comp <city>", "online composition by class for a city")
+  entry("adb comp <city> report", "refresh composition + report it to party")
   entry("adb qcomp [city]", "online composition by class (no honors refresh)")
+  entry("adb qcomp <city> report", "report quick composition to party")
   line(separator())
   line(section("Enemies"))
   entry("adb enemies", "capture personal enemy list from game output")
@@ -2500,6 +2502,22 @@ local function build_comp_by_class(names, target_city)
   return by_class, total
 end
 
+local function sorted_comp_classes(by_class)
+  local classes = {}
+  for class, list in pairs(by_class) do
+    table.sort(list, function(a, b)
+      return a.name:lower() < b.name:lower()
+    end)
+    classes[#classes + 1] = { name = class, list = list, count = #list }
+  end
+
+  table.sort(classes, function(a, b)
+    return a.name:lower() < b.name:lower()
+  end)
+
+  return classes
+end
+
 local function render_comp_for_city(names, city_label, suppress_empty)
   local by_class, total = build_comp_by_class(names, city_label)
   if total == 0 then
@@ -2513,19 +2531,7 @@ local function render_comp_for_city(names, city_label, suppress_empty)
   local city_color = comp_city_color(city_label)
   echo_line(comp_section_tab(city_label, total, city_color))
 
-  local classes = {}
-  for class, list in pairs(by_class) do
-    table.sort(list, function(a, b)
-      return a.name:lower() < b.name:lower()
-    end)
-    classes[#classes + 1] = { name = class, list = list, count = #list }
-  end
-
-  table.sort(classes, function(a, b)
-    return a.name:lower() < b.name:lower()
-  end)
-
-  for _, entry in ipairs(classes) do
+  for _, entry in ipairs(sorted_comp_classes(by_class)) do
     local names = {}
     for _, item in ipairs(entry.list) do
       local suffix = item.level and item.level >= 0 and string.format(" (%d)", item.level) or ""
@@ -2547,19 +2553,7 @@ local function render_comp_for_city_report(names, city_label)
   local city_color = comp_city_color(city_label)
   report_line(comp_section_tab(city_label, total, city_color))
 
-  local classes = {}
-  for class, list in pairs(by_class) do
-    table.sort(list, function(a, b)
-      return a.name:lower() < b.name:lower()
-    end)
-    classes[#classes + 1] = { name = class, list = list, count = #list }
-  end
-
-  table.sort(classes, function(a, b)
-    return a.name:lower() < b.name:lower()
-  end)
-
-  for _, entry in ipairs(classes) do
+  for _, entry in ipairs(sorted_comp_classes(by_class)) do
     local names = {}
     for _, item in ipairs(entry.list) do
       local suffix = item.level and item.level >= 0 and string.format(" (%d)", item.level) or ""
@@ -2568,6 +2562,44 @@ local function render_comp_for_city_report(names, city_label)
     report_line(string.format("  %-12s (%d) %s", entry.name, entry.count, table.concat(names, ", ")))
   end
   report_line("")
+  return true
+end
+
+local function build_comp_party_commands(names, city_label)
+  local by_class, total = build_comp_by_class(names, city_label)
+  if total == 0 then
+    return nil, total
+  end
+
+  local commands = {
+    string.format("pt %s Composition (%d)", city_label, total)
+  }
+
+  for _, entry in ipairs(sorted_comp_classes(by_class)) do
+    local names = {}
+    for _, item in ipairs(entry.list) do
+      local suffix = item.level and item.level >= 0 and string.format(" (%d)", item.level) or ""
+      names[#names + 1] = item.name .. suffix
+    end
+    commands[#commands + 1] = string.format("pt %s (%d): %s", entry.name, entry.count, table.concat(names, ", "))
+  end
+
+  return commands, total
+end
+
+local function report_comp_to_party(names, city_label)
+  local commands, total = build_comp_party_commands(names, city_label)
+  if not commands then
+    echo_line(string.format("Composition for %s: 0 online", city_label))
+    return false
+  end
+  if type(send) ~= "function" then
+    echo_line("Party report unavailable (send function missing).")
+    return false
+  end
+
+  send(table.concat(commands, "|"), false)
+  echo_line(string.format("Reported %s composition to party (%d online).", city_label, total))
   return true
 end
 
@@ -2694,7 +2726,8 @@ function agnosticdb.ui.enemyOnline(city)
   end)
 end
 
-local function comp_city_impl(city, use_honors)
+local function comp_city_impl(city, use_honors, opts)
+  local options = opts or {}
   local normalized = normalize_city_input(city)
   if not normalized then
     echo_line("Provide a city (e.g., Ashtan).")
@@ -2706,10 +2739,18 @@ local function comp_city_impl(city, use_honors)
       echo_line(string.format("Composition for %s: 0 online", normalized))
       return
     end
+    if options.report_to_party then
+      report_comp_to_party(names, normalized)
+      return
+    end
     render_comp_for_city(names, normalized, false)
   end
 
-  echo_line(string.format("Refreshing online data for %s...", normalized))
+  if options.report_to_party then
+    echo_line(string.format("Refreshing online data for %s before party report...", normalized))
+  else
+    echo_line(string.format("Refreshing online data for %s...", normalized))
+  end
   agnosticdb.api.fetch_list(function(names, status)
     if status ~= "ok" or type(names) ~= "table" then
       echo_line(string.format("Online list failed (%s).", status or "unknown"))
@@ -2757,8 +2798,16 @@ function agnosticdb.ui.compCity(city)
   comp_city_impl(city, true)
 end
 
+function agnosticdb.ui.compCityReport(city)
+  comp_city_impl(city, true, { report_to_party = true })
+end
+
 function agnosticdb.ui.qcompCity(city)
   comp_city_impl(city, false)
+end
+
+function agnosticdb.ui.qcompCityReport(city)
+  comp_city_impl(city, false, { report_to_party = true })
 end
 
 function agnosticdb.ui.qcompAll()

@@ -63,7 +63,9 @@
 
 ## Composition / Enemies
 - `adb comp <city>`: composition for a city (honors refresh before report).
+- `adb comp <city> report`: refresh composition with honors, then report it to party.
 - `adb qcomp [city]`: composition for a city (no honors refresh). With no city, lists all cities.
+- `adb qcomp <city> report`: report quick city composition to party without honors refresh.
 - `adb enemies`: capture your personal enemy list from game output.
 - `adb enemy <city>`: enemy all online members of a city.
 

@@ -232,6 +232,72 @@ describe("agnosticdb ui", function()
     assert.is_true(verticals >= 4)
   end)
 
+  it("reports quick city composition to party", function()
+    local sent = {}
+    _G.send = function(cmd, echo)
+      sent[#sent + 1] = { cmd = cmd, echo = echo }
+    end
+
+    agnosticdb.db.upsert_person({ name = "Blackwillow", city = "Eleusis", current_form = "Dragon", level = 121 })
+    agnosticdb.db.upsert_person({ name = "Gavriil", city = "Eleusis", current_form = "Dragon", level = 119 })
+    agnosticdb.db.upsert_person({ name = "Ashleyann", city = "Eleusis", class = "Druid", level = 113 })
+    agnosticdb.db.upsert_person({ name = "Gallus", city = "Eleusis", class = "Monk", level = 130 })
+    agnosticdb.db.upsert_person({ name = "Other", city = "Ashtan", class = "Magi", level = 100 })
+
+    local fetch_list_stub = stub(agnosticdb.api, "fetch_list", function(on_done)
+      on_done({ "Blackwillow", "Gavriil", "Ashleyann", "Gallus", "Other" }, "ok")
+    end)
+    local fetch_stub = stub(agnosticdb.api, "fetch", function(_, on_done)
+      on_done()
+    end)
+
+    agnosticdb.ui.qcompCityReport("Eleusis")
+
+    fetch_list_stub:revert()
+    fetch_stub:revert()
+
+    assert.are.equal(1, #sent)
+    assert.is_false(sent[1].echo)
+    assert.are.equal("pt Eleusis Composition (4)|pt Dragon (2): Blackwillow (121), Gavriil (119)|pt Druid (1): Ashleyann (113)|pt Monk (1): Gallus (130)", sent[1].cmd)
+  end)
+
+  it("waits for honors refresh before reporting city composition to party", function()
+    local sent = {}
+    local queued = nil
+    local queue_opts = nil
+    _G.send = function(cmd, echo)
+      sent[#sent + 1] = { cmd = cmd, echo = echo }
+    end
+
+    agnosticdb.db.upsert_person({ name = "Alpha", city = "Ashtan", class = "Magi", level = 101 })
+    agnosticdb.db.upsert_person({ name = "Beta", city = "Ashtan", class = "Monk", level = 102 })
+
+    local fetch_list_stub = stub(agnosticdb.api, "fetch_list", function(on_done)
+      on_done({ "Alpha", "Beta" }, "ok")
+    end)
+    local fetch_stub = stub(agnosticdb.api, "fetch", function(_, on_done)
+      on_done()
+    end)
+    local queue_stub = stub(agnosticdb.honors, "queue_names", function(names, on_done, opts)
+      queued = names
+      queue_opts = opts
+      on_done()
+    end)
+
+    agnosticdb.ui.compCityReport("Ashtan")
+
+    fetch_list_stub:revert()
+    fetch_stub:revert()
+    queue_stub:revert()
+
+    assert.are.same({ "Alpha", "Beta" }, queued)
+    assert.is_true(queue_opts.suppress_output)
+    assert.is_true(queue_opts.announce)
+    assert.are.equal(1, #sent)
+    assert.is_false(sent[1].echo)
+    assert.are.equal("pt Ashtan Composition (2)|pt Magi (1): Alpha (101)|pt Monk (1): Beta (102)", sent[1].cmd)
+  end)
+
   it("reports api queue cancellation and pending count", function()
     agnosticdb.api.queue = { "Alpha", "Beta" }
     local cancel_stub = stub(agnosticdb.api, "cancel_queue", function()
