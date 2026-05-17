@@ -201,14 +201,20 @@ local function apply_citizens_list(city, names)
   end
 
   local updated = 0
+  local existing_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name() or {}
   for name in pairs(names) do
     local record = { name = name, city = normalized_city }
-    local existing = agnosticdb.db.get_person(name)
+    local existing = existing_by_name[name]
     if not existing or existing.source == "" then
       record.source = "citizens_list"
     end
-    agnosticdb.db.upsert_person(record)
+    agnosticdb.db.upsert_person(record, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
+    existing_by_name[name] = existing_by_name[name] or record
     updated = updated + 1
+  end
+
+  if agnosticdb.highlights and agnosticdb.highlights.reload then
+    agnosticdb.highlights.reload()
   end
 
   return updated
@@ -239,7 +245,11 @@ local function parse_table_line(capture, text)
   end
 
   local class = titlecase_words(class_raw)
-  agnosticdb.db.upsert_person({ name = name, class = class })
+  local existing = capture.people_by_name and capture.people_by_name[name] or nil
+  agnosticdb.db.upsert_person({ name = name, class = class }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
+  if capture.people_by_name then
+    capture.people_by_name[name] = capture.people_by_name[name] or { name = name, class = class }
+  end
   capture.updated = capture.updated + 1
 end
 
@@ -330,7 +340,8 @@ function agnosticdb.lists.capture_table(label)
     label = label or "who",
     updated = 0,
     skipped = 0,
-    known = build_known_set()
+    known = build_known_set(),
+    people_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name() or {}
   }
   agnosticdb.lists.capture = capture
 

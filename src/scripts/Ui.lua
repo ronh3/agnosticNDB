@@ -1998,8 +1998,15 @@ local function format_rank(value)
   return tostring(value)
 end
 
-local function person_specialization(person)
+local function person_specialization(person, spec_map)
   if type(person) ~= "table" then return nil end
+  if type(spec_map) == "table" and person.name and person.class then
+    local row = spec_map[person.name .. "\0" .. person.class]
+    if row and row.specialization and row.specialization ~= "" then
+      return row.specialization
+    end
+    return nil
+  end
   if not agnosticdb.db or not agnosticdb.db.get_current_specialization then return nil end
   return agnosticdb.db.get_current_specialization(person)
 end
@@ -2483,11 +2490,11 @@ local function comp_section_tab(city_label, count, city_color)
   return string.format("%s└─%s%s─┘%s", theme.border, label, theme.border, theme.reset)
 end
 
-local function build_comp_by_class(names, target_city)
+local function build_comp_by_class(names, target_city, people_by_name)
   local by_class = {}
   local total = 0
   for _, name in ipairs(names) do
-    local person = agnosticdb.db.get_person(name)
+    local person = people_by_name and people_by_name[name] or agnosticdb.db.get_person(name)
     if person and city_matches(comp_city_label(person.city or ""), target_city) then
       local class
       class = person_form_label(person) or (person.class ~= "" and person.class or "(unknown)")
@@ -2518,8 +2525,8 @@ local function sorted_comp_classes(by_class)
   return classes
 end
 
-local function render_comp_for_city(names, city_label, suppress_empty)
-  local by_class, total = build_comp_by_class(names, city_label)
+local function render_comp_for_city(names, city_label, suppress_empty, people_by_name)
+  local by_class, total = build_comp_by_class(names, city_label, people_by_name)
   if total == 0 then
     if not suppress_empty then
       echo_line(string.format("Composition for %s: 0 online", city_label))
@@ -2543,8 +2550,8 @@ local function render_comp_for_city(names, city_label, suppress_empty)
   return true
 end
 
-local function render_comp_for_city_report(names, city_label)
-  local by_class, total = build_comp_by_class(names, city_label)
+local function render_comp_for_city_report(names, city_label, people_by_name)
+  local by_class, total = build_comp_by_class(names, city_label, people_by_name)
   if total == 0 then
     return false
   end
@@ -2565,8 +2572,8 @@ local function render_comp_for_city_report(names, city_label)
   return true
 end
 
-local function build_comp_party_commands(names, city_label)
-  local by_class, total = build_comp_by_class(names, city_label)
+local function build_comp_party_commands(names, city_label, people_by_name)
+  local by_class, total = build_comp_by_class(names, city_label, people_by_name)
   if total == 0 then
     return nil, total
   end
@@ -2587,8 +2594,8 @@ local function build_comp_party_commands(names, city_label)
   return commands, total
 end
 
-local function report_comp_to_party(names, city_label)
-  local commands, total = build_comp_party_commands(names, city_label)
+local function report_comp_to_party(names, city_label, people_by_name)
+  local commands, total = build_comp_party_commands(names, city_label, people_by_name)
   if not commands then
     echo_line(string.format("Composition for %s: 0 online", city_label))
     return false
@@ -2668,9 +2675,10 @@ function agnosticdb.ui.enemyOnline(city)
 
     agnosticdb.api.seed_names(names, "api_list")
     update_online_names(names, function()
+      local people_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or {}
       local entries = {}
       for _, name in ipairs(names) do
-        local person = agnosticdb.db.get_person(name)
+        local person = people_by_name[name]
         if person and city_matches(person.city or "", normalized) then
           local group, primary, secondary, sort_name = build_enemy_key(person, name)
           entries[#entries + 1] = {
@@ -2709,7 +2717,8 @@ function agnosticdb.ui.enemyOnline(city)
 
       if agnosticdb.db and agnosticdb.db.upsert_person then
         for _, entry in ipairs(entries) do
-          agnosticdb.db.upsert_person({ name = entry.name, iff = "enemy" })
+          local existing = people_by_name[entry.name]
+          agnosticdb.db.upsert_person({ name = entry.name, iff = "enemy" }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
         end
         if agnosticdb.highlights and agnosticdb.highlights.reload then
           agnosticdb.highlights.reload()
@@ -2734,16 +2743,16 @@ local function comp_city_impl(city, use_honors, opts)
     return
   end
 
-  local function render_comp(names)
+  local function render_comp(names, people_by_name)
     if type(names) ~= "table" then
       echo_line(string.format("Composition for %s: 0 online", normalized))
       return
     end
     if options.report_to_party then
-      report_comp_to_party(names, normalized)
+      report_comp_to_party(names, normalized, people_by_name)
       return
     end
-    render_comp_for_city(names, normalized, false)
+    render_comp_for_city(names, normalized, false, people_by_name)
   end
 
   if options.report_to_party then
@@ -2759,36 +2768,38 @@ local function comp_city_impl(city, use_honors, opts)
 
     agnosticdb.api.seed_names(names, "api_list")
     update_online_names(names, function()
+      local people_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or {}
       local targets = {}
       for _, name in ipairs(names) do
-        local person = agnosticdb.db.get_person(name)
+        local person = people_by_name[name]
         if person and city_matches(person.city or "", normalized) then
           targets[#targets + 1] = person.name or name
         end
       end
 
       if #targets == 0 then
-        render_comp(names)
+        render_comp(names, people_by_name)
         return
       end
 
       if use_honors then
         if agnosticdb.honors and agnosticdb.honors.queue_running then
           echo_line("Honors queue already running; showing composition without honors refresh.")
-          render_comp(names)
+          render_comp(names, people_by_name)
           return
         end
 
         if agnosticdb.honors and agnosticdb.honors.queue_names then
           echo_line(string.format("Queueing honors for %d name(s)...", #targets))
           agnosticdb.honors.queue_names(targets, function()
-            render_comp(names)
+            local refreshed = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or people_by_name
+            render_comp(names, refreshed)
           end, { suppress_output = true, announce = true })
         else
-          render_comp(names)
+          render_comp(names, people_by_name)
         end
       else
-        render_comp(names)
+        render_comp(names, people_by_name)
       end
     end)
   end)
@@ -2820,9 +2831,10 @@ function agnosticdb.ui.qcompAll()
 
     agnosticdb.api.seed_names(names, "api_list")
     update_online_names(names, function()
+      local people_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or {}
       local seen = {}
       for _, name in ipairs(names) do
-        local person = agnosticdb.db.get_person(name)
+        local person = people_by_name[name]
         if person then
           local city = comp_city_label(person.city or "")
           if city and city ~= "" then
@@ -2855,7 +2867,7 @@ function agnosticdb.ui.qcompAll()
       local printed = 0
   report_title("Composition (Online)")
       for _, city in ipairs(ordered) do
-        if render_comp_for_city_report(names, city) then
+        if render_comp_for_city_report(names, city, people_by_name) then
           printed = printed + 1
         end
       end
@@ -2919,9 +2931,10 @@ function agnosticdb.ui.honors_online_city(city)
 
     agnosticdb.api.seed_names(names, "api_list")
     update_online_names(names, function()
+      local people_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or {}
       local targets = {}
       for _, name in ipairs(names) do
-        local person = agnosticdb.db.get_person(name)
+        local person = people_by_name[name]
         if person and city_matches(person.city or "", normalized) then
           targets[#targets + 1] = person.name or name
         end
@@ -3002,7 +3015,7 @@ function agnosticdb.ui.list(filter, value)
   local results = {}
   if filter == "enemy" then
     for _, row in ipairs(rows) do
-      if row.name and agnosticdb.iff.is_enemy(row.name) then
+      if row.name and agnosticdb.iff.is_enemy_person(row) then
         results[#results + 1] = row
       end
     end
@@ -3264,12 +3277,13 @@ function agnosticdb.ui.stats()
   local by_spec = {}
   local by_elemental = {}
   local by_form = {}
+  local spec_map = agnosticdb.db.get_class_specs_map and agnosticdb.db.get_class_specs_map() or {}
 
   for _, row in ipairs(rows) do
     local class = row.class or ""
     local city = row.city or ""
     local race = row.race or ""
-    local spec = person_specialization(row) or ""
+    local spec = person_specialization(row, spec_map) or ""
     local elemental_type = row.elemental_type or ""
     local form = row.current_form or ""
     if class == "" then class = "(unknown)" end
@@ -3304,36 +3318,33 @@ function agnosticdb.ui.stats()
   print_stats_section("Current forms", by_form)
 end
 
-local function class_abbrev_map()
-  return {
-    Alchemist = "ALC",
-    Apostate = "APO",
-    Bard = "BARD",
-    Blademaster = "BM",
-    Depthswalker = "DEP",
-    Druid = "DRU",
-    Infernal = "INF",
-    Jester = "JEST",
-    Magi = "MAG",
-    Monk = "MNK",
-    Occultist = "OCC",
-    Paladin = "PAL",
-    Pariah = "PAR",
-    Priest = "PRST",
-    Psion = "PSI",
-    Runewarden = "RUNW",
-    Sentinel = "SENT",
-    Serpent = "SERP",
-    Shaman = "SHAM",
-    Sylvan = "SYL",
-    Unnamable = "UNAM"
-  }
-end
+local CLASS_ABBREVS = {
+  Alchemist = "ALC",
+  Apostate = "APO",
+  Bard = "BARD",
+  Blademaster = "BM",
+  Depthswalker = "DEP",
+  Druid = "DRU",
+  Infernal = "INF",
+  Jester = "JEST",
+  Magi = "MAG",
+  Monk = "MNK",
+  Occultist = "OCC",
+  Paladin = "PAL",
+  Pariah = "PAR",
+  Priest = "PRST",
+  Psion = "PSI",
+  Runewarden = "RUNW",
+  Sentinel = "SENT",
+  Serpent = "SERP",
+  Shaman = "SHAM",
+  Sylvan = "SYL",
+  Unnamable = "UNAM"
+}
 
 local function class_abbrev(class_name)
   if not class_name or class_name == "" then return "UNK" end
-  local map = class_abbrev_map()
-  local match = map[class_name]
+  local match = CLASS_ABBREVS[class_name]
   if match then return match end
   local up = class_name:upper()
   if #up <= 4 then return up end
@@ -3497,10 +3508,11 @@ function agnosticdb.ui.qwp(mode, filter)
     end
 
     agnosticdb.api.seed_names(names, "api_list")
+    local people_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or {}
 
     local city_online = {}
     for _, name in ipairs(names) do
-      local person = agnosticdb.db.get_person(name) or {}
+      local person = people_by_name[name] or {}
       local city = normalize_city_name(person.city or "")
       local entry = {
         name = display_name(name),

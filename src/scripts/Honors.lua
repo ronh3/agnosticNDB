@@ -91,36 +91,34 @@ local function titlecase_words(value)
   end)
 end
 
-local function class_list()
-  return {
-    "Alchemist",
-    "Apostate",
-    "Bard",
-    "Blademaster",
-    "Depthswalker",
-    "Druid",
-    "Infernal",
-    "Jester",
-    "Magi",
-    "Monk",
-    "Occultist",
-    "Paladin",
-    "Pariah",
-    "Priest",
-    "Psion",
-    "Runewarden",
-    "Sentinel",
-    "Serpent",
-    "Shaman",
-    "Sylvan",
-    "Unnamable"
-  }
-end
+local CLASS_NAMES = {
+  "Alchemist",
+  "Apostate",
+  "Bard",
+  "Blademaster",
+  "Depthswalker",
+  "Druid",
+  "Infernal",
+  "Jester",
+  "Magi",
+  "Monk",
+  "Occultist",
+  "Paladin",
+  "Pariah",
+  "Priest",
+  "Psion",
+  "Runewarden",
+  "Sentinel",
+  "Serpent",
+  "Shaman",
+  "Sylvan",
+  "Unnamable"
+}
 
 local function find_class(line)
   if type(line) ~= "string" then return nil end
   local lower = line:lower()
-  for _, class in ipairs(class_list()) do
+  for _, class in ipairs(CLASS_NAMES) do
     local pattern = "%f[%a]" .. class:lower() .. "%f[%A]"
     if lower:find(pattern) then
       return class
@@ -294,8 +292,11 @@ local function finish_queue_item()
   local stats = agnosticdb.honors.queue_stats or {}
   stats.processed = (stats.processed or 0) + 1
   agnosticdb.honors.queue_stats = stats
-  if #agnosticdb.honors.queue == 0 then
+  local head = agnosticdb.honors.queue_head or 1
+  if head > #agnosticdb.honors.queue then
     agnosticdb.honors.queue_running = false
+    agnosticdb.honors.queue = {}
+    agnosticdb.honors.queue_head = 1
     stats.finished_at = os.time()
     stats.elapsed_seconds = stats.finished_at - (stats.started_at or stats.finished_at)
     local elapsed = stats.elapsed_seconds or 0
@@ -379,6 +380,7 @@ end
 
 function agnosticdb.honors.cancel_queue()
   agnosticdb.honors.queue = {}
+  agnosticdb.honors.queue_head = 1
   agnosticdb.honors.queue_running = false
   agnosticdb.honors.queue_stats = nil
   agnosticdb.honors.queue_on_done = nil
@@ -396,6 +398,7 @@ function agnosticdb.honors.queue_names(names, on_done, opts)
   agnosticdb.honors.queue_opts = opts
   local seen = {}
   agnosticdb.honors.queue = {}
+  agnosticdb.honors.queue_head = 1
   for _, name in ipairs(names) do
     local normalized = normalize_person_name(name)
     if normalized and not seen[normalized] then
@@ -420,12 +423,14 @@ end
 
 function agnosticdb.honors.run_queue()
   if not agnosticdb.honors.queue_running then return end
-  if #agnosticdb.honors.queue == 0 then
-    finish_queue_item()
+  local head = agnosticdb.honors.queue_head or 1
+  if head > #agnosticdb.honors.queue then
+    agnosticdb.honors.queue_running = false
     return
   end
 
-  local name = table.remove(agnosticdb.honors.queue, 1)
+  local name = agnosticdb.honors.queue[head]
+  agnosticdb.honors.queue_head = head + 1
   agnosticdb.honors.capture(name, finish_queue_item, agnosticdb.honors.queue_opts)
   send_silent("HONORS " .. name)
 end

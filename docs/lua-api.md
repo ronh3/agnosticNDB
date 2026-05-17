@@ -32,7 +32,10 @@ Use these helpers to pull stored info for a person. Each returns `nil` if the va
 - `agnosticdb.db.check()`: schema health check.
 - `agnosticdb.db.reset()`: drop/recreate `people` and `class_specs`.
 - `agnosticdb.db.get_person(name)`: fetch a row.
+- `agnosticdb.db.get_people_by_name(names)`: fetch a keyed name-to-row map for a list of names, or all people when `names` is omitted.
 - `agnosticdb.db.get_class_specs(name)`: fetch stored class specializations for a person.
+- `agnosticdb.db.get_class_specs_map()`: fetch all class specs keyed by `name .. "\0" .. class`.
+- `agnosticdb.db.get_class_specs_by_name()`: fetch all class specs grouped by person name.
 - `agnosticdb.db.get_class_spec(name, class)`: fetch a specialization for a specific class.
 - `agnosticdb.db.get_current_specialization(name_or_person)`: specialization for the currently stored class.
 - `agnosticdb.db.set_class_spec(name, class, specialization, source, last_updated)`: insert/update a class specialization.
@@ -71,6 +74,7 @@ Use these helpers to pull stored info for a person. Each returns `nil` if the va
 ### IFF
 - `agnosticdb.iff.set(name, status)`: set `enemy|ally|auto`.
 - `agnosticdb.iff.is_enemy(name)`: true/false based on IFF + politics.
+- `agnosticdb.iff.is_enemy_person(person)`: row-based variant that avoids an extra DB lookup.
 
 ### Import/Export (People + Config)
 - `agnosticdb.transfer.exportData(path)` / `agnosticdb.transfer.importData(path)`.

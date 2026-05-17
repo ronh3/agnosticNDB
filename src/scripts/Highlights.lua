@@ -94,6 +94,8 @@ local function style_for(person)
   if enemy_enabled then
     if require_personal then
       is_enemy = (person.iff == "enemy")
+    elseif agnosticdb.iff and agnosticdb.iff.is_enemy_person then
+      is_enemy = agnosticdb.iff.is_enemy_person(person)
     else
       is_enemy = agnosticdb.iff.is_enemy(person.name)
     end

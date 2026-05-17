@@ -327,14 +327,17 @@ end
 
 function agnosticdb.api.seed_names(names, source)
   if type(names) ~= "table" then return 0 end
+  local existing = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or {}
   local count = 0
   for _, name in ipairs(names) do
-    if not agnosticdb.db.get_person(name) then
+    local normalized = agnosticdb.db.normalize_name(name)
+    if normalized and not existing[normalized] then
       agnosticdb.db.upsert_person({
-        name = name,
+        name = normalized,
         source = source or "api_list",
         last_checked = 0
-      })
+      }, { assume_missing = true, skip_highlight = true, skip_refetch = true })
+      existing[normalized] = true
       count = count + 1
     end
   end
@@ -379,10 +382,12 @@ function agnosticdb.api.fetch_online_new(on_done, opts)
       return
     end
 
+    local existing = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name(names) or {}
     local missing = {}
     for _, name in ipairs(names) do
-      if not agnosticdb.db.get_person(name) then
-        missing[#missing + 1] = name
+      local normalized = agnosticdb.db.normalize_name(name)
+      if normalized and not existing[normalized] then
+        missing[#missing + 1] = normalized
       end
     end
 
@@ -427,7 +432,9 @@ function agnosticdb.api.estimate_queue_seconds(extra)
   api_defaults()
   local queue_len = 0
   if agnosticdb.api.queue then
-    queue_len = #agnosticdb.api.queue
+    local head = agnosticdb.api.queue_head or 1
+    queue_len = #agnosticdb.api.queue - head + 1
+    if queue_len < 0 then queue_len = 0 end
   end
   local total = queue_len + (extra or 0)
   if total <= 0 then return 0 end
@@ -515,11 +522,7 @@ local function perform_fetch(name, on_finished)
       return
     end
 
-    local changed = agnosticdb.db.upsert_person(record)
-    local updated = agnosticdb.db.get_person(name)
-    if agnosticdb.highlights and agnosticdb.highlights.update then
-      agnosticdb.highlights.update(updated)
-    end
+    local changed, updated = agnosticdb.db.upsert_person(record, { existing_person = person, assume_missing = person == nil })
     local status = "ok"
     if agnosticdb.conf.api.announce_changes_only and changed == false then
       status = "unchanged"
@@ -606,6 +609,9 @@ local function start_queue()
   agnosticdb.api.queued = agnosticdb.api.queued or {}
   if agnosticdb.api.queue_running then return end
   agnosticdb.api.queue_running = true
+  agnosticdb.api.queue_head = agnosticdb.api.queue_head or 1
+  local pending = #agnosticdb.api.queue - agnosticdb.api.queue_head + 1
+  if pending < 0 then pending = 0 end
   agnosticdb.api.queue_stats = {
     ok = 0,
     unchanged = 0,
@@ -617,7 +623,7 @@ local function start_queue()
     other = 0,
     started_at = os.time(),
     processed = 0,
-    total = #agnosticdb.api.queue,
+    total = pending,
     milestones = {},
     thresholds = (function()
       local eta = agnosticdb.api.estimate_queue_seconds(0)
@@ -629,8 +635,12 @@ local function start_queue()
   }
 
   local function step()
-    if #agnosticdb.api.queue == 0 then
+    local head = agnosticdb.api.queue_head or 1
+    if head > #agnosticdb.api.queue then
       agnosticdb.api.queue_running = false
+      agnosticdb.api.queue = {}
+      agnosticdb.api.queued = {}
+      agnosticdb.api.queue_head = 1
       if agnosticdb.api.queue_stats then
         agnosticdb.api.queue_stats.finished_at = os.time()
         agnosticdb.api.queue_stats.elapsed_seconds = agnosticdb.api.queue_stats.finished_at - agnosticdb.api.queue_stats.started_at
@@ -663,7 +673,8 @@ local function start_queue()
       return
     end
 
-    local next_name = table.remove(agnosticdb.api.queue, 1)
+    local next_name = agnosticdb.api.queue[head]
+    agnosticdb.api.queue_head = head + 1
     agnosticdb.api.queued[next_name] = nil
     agnosticdb.api.last_request_time = os.time()
 
@@ -765,9 +776,15 @@ end
 agnosticdb.api.url_for = api_url
 
 function agnosticdb.api.cancel_queue()
-  local pending = agnosticdb.api.queue and #agnosticdb.api.queue or 0
+  local pending = 0
+  if agnosticdb.api.queue then
+    local head = agnosticdb.api.queue_head or 1
+    pending = #agnosticdb.api.queue - head + 1
+    if pending < 0 then pending = 0 end
+  end
   agnosticdb.api.queue = {}
   agnosticdb.api.queued = {}
+  agnosticdb.api.queue_head = 1
   agnosticdb.api.queue_running = false
   agnosticdb.api.queue_stats = nil
   agnosticdb.api.on_queue_done = nil

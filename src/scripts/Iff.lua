@@ -7,8 +7,7 @@ function agnosticdb.iff.set(name, status)
   agnosticdb.db.upsert_person({ name = name, iff = status })
 end
 
-function agnosticdb.iff.is_enemy(name)
-  local person = agnosticdb.db.get_person(name)
+function agnosticdb.iff.is_enemy_person(person)
   if not person then return false end
 
   if person.iff == "enemy" then return true end
@@ -25,4 +24,9 @@ function agnosticdb.iff.is_enemy(name)
   if type(city) ~= "string" or city == "" then return false end
 
   return agnosticdb.politics.get_city_relation(city) == "enemy"
+end
+
+function agnosticdb.iff.is_enemy(name)
+  local person = agnosticdb.db.get_person(name)
+  return agnosticdb.iff.is_enemy_person(person)
 end

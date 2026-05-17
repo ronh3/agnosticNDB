@@ -113,17 +113,20 @@ local function apply_city_list(city, names)
     end
   end
 
+  local existing_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name() or {}
   local cleared = 0
   for name in pairs(current) do
     if not names[name] then
-      agnosticdb.db.upsert_person({ name = name, enemy_city = "" })
+      local existing = existing_by_name[name]
+      agnosticdb.db.upsert_person({ name = name, enemy_city = "" }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
       cleared = cleared + 1
     end
   end
 
   local updated = 0
   for name in pairs(names) do
-    agnosticdb.db.upsert_person({ name = name, enemy_city = normalized_city })
+    local existing = existing_by_name[name]
+    agnosticdb.db.upsert_person({ name = name, enemy_city = normalized_city }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
     updated = updated + 1
   end
 
@@ -145,17 +148,20 @@ local function apply_personal_list(names)
     end
   end
 
+  local existing_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name() or {}
   local cleared = 0
   for name in pairs(current) do
     if not names[name] then
-      agnosticdb.db.upsert_person({ name = name, iff = "auto" })
+      local existing = existing_by_name[name]
+      agnosticdb.db.upsert_person({ name = name, iff = "auto" }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
       cleared = cleared + 1
     end
   end
 
   local updated = 0
   for name in pairs(names) do
-    agnosticdb.db.upsert_person({ name = name, iff = "enemy" })
+    local existing = existing_by_name[name]
+    agnosticdb.db.upsert_person({ name = name, iff = "enemy" }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
     updated = updated + 1
   end
 
@@ -189,17 +195,20 @@ local function apply_house_list(house, names)
     end
   end
 
+  local existing_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name() or {}
   local cleared = 0
   for name in pairs(current) do
     if not names[name] then
-      agnosticdb.db.upsert_person({ name = name, enemy_house = "" })
+      local existing = existing_by_name[name]
+      agnosticdb.db.upsert_person({ name = name, enemy_house = "" }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
       cleared = cleared + 1
     end
   end
 
   local updated = 0
   for name in pairs(names) do
-    agnosticdb.db.upsert_person({ name = name, enemy_house = normalized_house })
+    local existing = existing_by_name[name]
+    agnosticdb.db.upsert_person({ name = name, enemy_house = normalized_house }, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
     updated = updated + 1
   end
 
@@ -230,6 +239,7 @@ function agnosticdb.enemies.finish_capture()
     end
     local total = count_names(names)
     echo_line(string.format("City enemies updated for %s: %d listed, %d set, %d cleared.", capture.org, total, updated, cleared))
+    refresh_highlights()
   elseif capture.kind == "house" then
     local updated, cleared, err = apply_house_list(capture.org, names)
     if err == "db_unavailable" then
@@ -238,6 +248,7 @@ function agnosticdb.enemies.finish_capture()
     end
     local total = count_names(names)
     echo_line(string.format("House enemies updated for %s: %d listed, %d set, %d cleared.", capture.org, total, updated, cleared))
+    refresh_highlights()
   elseif capture.kind == "personal" then
     local updated, cleared, err = apply_personal_list(names)
     if err == "db_unavailable" then
@@ -340,11 +351,11 @@ function agnosticdb.enemies.set_personal(name, is_enemy)
   if not normalized then return end
 
   if is_enemy then
-    agnosticdb.db.upsert_person({ name = normalized, iff = "enemy" })
+    agnosticdb.db.upsert_person({ name = normalized, iff = "enemy" }, { skip_highlight = true })
   else
     local person = agnosticdb.db.get_person(normalized)
     if person and person.iff == "enemy" then
-      agnosticdb.db.upsert_person({ name = normalized, iff = "auto" })
+      agnosticdb.db.upsert_person({ name = normalized, iff = "auto" }, { skip_highlight = true })
     end
   end
 
@@ -361,7 +372,7 @@ function agnosticdb.enemies.clear_personal()
   if rows then
     for _, row in ipairs(rows) do
       if row.name and row.name ~= "" then
-        agnosticdb.db.upsert_person({ name = row.name, iff = "auto" })
+        agnosticdb.db.upsert_person({ name = row.name, iff = "auto" }, { existing_person = row, skip_highlight = true, skip_refetch = true })
         cleared = cleared + 1
       end
     end

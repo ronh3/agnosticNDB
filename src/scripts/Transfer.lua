@@ -49,10 +49,15 @@ local function set_if(record, key, value, default)
   record[key] = value
 end
 
-local function serialize_person(row)
+local function serialize_person(row, specs_by_name)
   if not row or type(row.name) ~= "string" or row.name == "" then return nil end
   local record = { name = row.name }
-  local class_specs = agnosticdb.db and agnosticdb.db.get_class_specs and agnosticdb.db.get_class_specs(row.name) or {}
+  local class_specs
+  if type(specs_by_name) == "table" then
+    class_specs = specs_by_name[row.name] or {}
+  else
+    class_specs = agnosticdb.db and agnosticdb.db.get_class_specs and agnosticdb.db.get_class_specs(row.name) or {}
+  end
 
   set_if(record, "class", row.class, "")
   set_if(record, "city", row.city, "")
@@ -106,9 +111,10 @@ function agnosticdb.transfer.exportData(path)
     exported_at = os.time(),
     people = {}
   }
+  local specs_by_name = agnosticdb.db.get_class_specs_by_name and agnosticdb.db.get_class_specs_by_name() or nil
 
   for _, row in ipairs(rows) do
-    local record = serialize_person(row)
+    local record = serialize_person(row, specs_by_name)
     if record then
       payload.people[#payload.people + 1] = record
     end
@@ -168,6 +174,7 @@ function agnosticdb.transfer.importData(path)
   end
 
   local stats = { imported = 0, skipped = 0, path = input_path }
+  local existing_by_name = agnosticdb.db.get_people_by_name and agnosticdb.db.get_people_by_name() or {}
 
   local function import_record(record, name_override)
     if type(record) ~= "table" then
@@ -208,7 +215,9 @@ function agnosticdb.transfer.importData(path)
 
     local class_specs = copy.class_specs
     copy.class_specs = nil
-    agnosticdb.db.upsert_person(copy)
+    local existing = existing_by_name[name]
+    agnosticdb.db.upsert_person(copy, { existing_person = existing, assume_missing = existing == nil, skip_highlight = true, skip_refetch = true })
+    existing_by_name[name] = existing_by_name[name] or copy
     if type(class_specs) == "table" then
       for _, spec in ipairs(class_specs) do
         if type(spec) == "table" then

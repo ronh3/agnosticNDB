@@ -23,7 +23,7 @@ function agnosticdb.notes.clear_all()
   local count = 0
   for _, row in ipairs(rows) do
     if row.notes and row.notes ~= "" then
-      agnosticdb.db.upsert_person({ name = row.name, notes = "" })
+      agnosticdb.db.upsert_person({ name = row.name, notes = "" }, { existing_person = row, skip_highlight = true, skip_refetch = true })
       count = count + 1
     end
   end

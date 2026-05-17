@@ -405,15 +405,11 @@ local function get_class_spec_row(name, class)
   local normalized_class = normalize_class(class)
   if not normalized or not normalized_class or normalized_class == "" then return nil end
   local rows = fetch_sql_rows(string.format(
-    "SELECT name, class, specialization, last_updated, source FROM class_specs WHERE name = %s",
-    sql_quote(normalized)
+    "SELECT name, class, specialization, last_updated, source FROM class_specs WHERE name = %s AND class = %s",
+    sql_quote(normalized),
+    sql_quote(normalized_class)
   ))
-  for _, row in ipairs(rows) do
-    if row.class == normalized_class then
-      return row
-    end
-  end
-  return nil
+  return rows[1]
 end
 
 local function migrate_legacy_rows()
@@ -750,6 +746,67 @@ function agnosticdb.db.get_class_specs(name)
   return rows
 end
 
+function agnosticdb.db.get_people_by_name(names)
+  if not agnosticdb.db.ensure() then return {} end
+  local wanted = nil
+  local aliases = nil
+  if type(names) == "table" then
+    wanted = {}
+    aliases = {}
+    for _, name in ipairs(names) do
+      local normalized = normalize_name(name)
+      if normalized then
+        wanted[normalized] = true
+        aliases[tostring(name)] = normalized
+      end
+    end
+  end
+
+  local rows = agnosticdb.db.safe_fetch(agnosticdb.db.people)
+  local map = {}
+  for _, row in ipairs(rows or {}) do
+    if row.name and row.name ~= "" and (not wanted or wanted[row.name]) then
+      map[row.name] = row
+    end
+  end
+  for original, normalized in pairs(aliases or {}) do
+    if map[normalized] then
+      map[original] = map[normalized]
+    end
+  end
+  return map
+end
+
+function agnosticdb.db.get_class_specs_map()
+  if not agnosticdb.db.ensure() then return {} end
+  local rows = fetch_sql_rows("SELECT name, class, specialization, last_updated, source FROM class_specs")
+  local map = {}
+  for _, row in ipairs(rows or {}) do
+    if row.name and row.class and row.name ~= "" and row.class ~= "" then
+      map[row.name .. "\0" .. row.class] = row
+    end
+  end
+  return map
+end
+
+function agnosticdb.db.get_class_specs_by_name()
+  if not agnosticdb.db.ensure() then return {} end
+  local rows = fetch_sql_rows("SELECT name, class, specialization, last_updated, source FROM class_specs")
+  local map = {}
+  for _, row in ipairs(rows or {}) do
+    if row.name and row.name ~= "" then
+      map[row.name] = map[row.name] or {}
+      map[row.name][#map[row.name] + 1] = row
+    end
+  end
+  for _, specs in pairs(map) do
+    table.sort(specs, function(a, b)
+      return tostring(a.class or ""):lower() < tostring(b.class or ""):lower()
+    end)
+  end
+  return map
+end
+
 function agnosticdb.db.get_class_spec(name, class)
   local row = get_class_spec_row(name, class)
   if not row then return nil end
@@ -814,7 +871,10 @@ function agnosticdb.db.upsert_person(fields, opts)
   local caller_supplied_current_form = fields.current_form ~= nil
   local caller_supplied_elemental_type = fields.elemental_type ~= nil
 
-  local existing = agnosticdb.db.get_person(normalized)
+  local existing = opts.existing_person
+  if existing == nil and not opts.assume_missing then
+    existing = agnosticdb.db.get_person(normalized)
+  end
   local record = {}
   for k, v in pairs(fields) do
     if k:sub(1, 1) ~= "_" then
@@ -937,7 +997,7 @@ function agnosticdb.db.upsert_person(fields, opts)
     agnosticdb.db.set_class_spec(normalized, record.class, fields.specialization, record.source, record.last_updated)
   end
 
-  local updated = agnosticdb.db.get_person(normalized)
+  local updated = opts.skip_refetch and record or agnosticdb.db.get_person(normalized)
   if updated and not opts.skip_highlight and agnosticdb.highlights and agnosticdb.highlights.update then
     agnosticdb.highlights.update(updated)
   end
