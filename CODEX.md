@@ -44,8 +44,9 @@ Guidance for Codex and future agent sessions when working in this repository.
   - `OUTPUT.md`
 
 ## Workflow Reminders
+- After context compaction or any unclear session handoff, re-read `CODEX.md`, run `git status --short`, protect existing dirty work, and inspect the relevant source/manifest/docs before editing.
 - Analyze first. Read the smallest set of files that define the behavior before proposing or making changes.
-- For non-trivial work, pause for user approval before changing behavior, public APIs, gameplay logic, architecture, or other meaningful contracts.
+- For meaningful behavior, public API, gameplay logic, architecture, persistence/schema, or workflow changes, analyze first and get user approval before editing unless the current user request explicitly asks for that edit.
 - Small, mechanical, or clearly bounded fixes do not need a design discussion first; state the intent briefly and execute.
 - Keep manifests, loaders, docs, and other adjacent wiring synchronized in the same change when behavior crosses layers.
 - Prefer the Mudlet DB for people data; use small Lua tables only for config.
@@ -59,11 +60,25 @@ Guidance for Codex and future agent sessions when working in this repository.
 - Prefer coherent, minimal fixes over broad cleanup.
 - If runtime verification is unavailable, say so explicitly and fall back to static checks.
 
+## Repo Lane Ownership
+- The default direct-edit lane is this agnosticDB repository only.
+- Do not edit sibling repos, local dependency checkouts, profile data, generated package output, or other external workspaces unless the current user task explicitly commands cross-repo edits.
+- If a fix belongs in another repo and cross-repo edits were not explicitly requested for the current task, write a concise prompt or issue note for the owning repo instead of modifying it here.
+- Keep agnosticDB changes scoped to tracked source, manifests, docs, metadata, tests, and repo configuration needed for the current request.
+
+## Dirty Worktree Discipline
+- Always check `git status --short` before edits, before staging, and before commit/push.
+- Treat existing modified, deleted, or untracked files as user/prior-agent work unless proven otherwise.
+- Never stage unrelated changes. Stage only files intentionally changed for the current task.
+- Do not delete, overwrite, format, or regenerate user work unless the current task requires it and the relevant files are understood.
+- Built artifacts under `build/` and local debug outputs such as `OUTPUT.md` are not source of truth and should not be staged.
+
 ## Agent Delegation
 - Standing user instruction: Codex is explicitly authorized to spawn and coordinate subagents liberally at its discretion for repository exploration, independent codebase questions, bounded implementation slices, verification, and review.
 - Prefer subagents when their work can run in parallel without blocking the immediate local task.
 - Keep delegated tasks concrete and self-contained; avoid duplicate investigation and avoid overlapping write scopes.
 - When delegating code edits, assign clear file or module ownership, then review and integrate the returned changes before finalizing.
+- Use subagents liberally when useful and permitted, but keep final integration, verification decisions, staging, version bumping, commit, and push ownership in the main/local agent.
 
 ## Versioning
 - Treat `mfile.version` as the release version for the repo.
@@ -75,6 +90,9 @@ Guidance for Codex and future agent sessions when working in this repository.
 
 ## Testing Guidance
 - GitHub Actions is the source of truth for behavioral tests in this repo; do not rely on host-side `busted` execution as a pass/fail signal.
+- Local verification priority is: build with `muddle`; validate JSON manifests with a structured parser; verify manifest names match source filenames and parent/child wiring; verify version/title sync; inspect command aliases and docs/UI command references for drift when command behavior changes.
+- When commands, aliases, public Lua APIs, triggers, or visible behavior change, verify the matching docs (`README.md`, `docs/commands.md`, related docs) and UI help paths (`agnosticdb.ui.show_help()`, `agnosticdb.ui.show_commands()`) are still aligned.
+- When runtime Mudlet verification is unavailable, say so explicitly and use narrow static checks plus file-level inspection for the touched behavior. Do not present host-side `busted` as authoritative.
 - Keep Mudlet specs focused on stable runtime contracts and avoid overfitting to exact output formatting or optional runtime capabilities.
 - If a capability is optional at runtime, such as JSON support, write specs to accept the module's documented fallback behavior.
 - Re-enable quarantined specs one at a time after a green CI run, not in batches.
@@ -97,6 +115,7 @@ Guidance for Codex and future agent sessions when working in this repository.
 - Special docs to read on startup: `README.md`, `DESIGN.md`, `tests/README.md`
 - Push/branch policy overrides: none
 - Testing authority overrides: CI Mudlet runtime is authoritative; host-side `busted` is not
+- Default direct-edit lane: agnosticDB only; cross-repo edits require an explicit current-task command
 - Other durable constraints:
   - Keep `mfile.title` in the form `agnosticDB-<version> (Achaea Name Database)`.
   - Keep `README.md`, `agnosticdb.ui.show_help()`, and `agnosticdb.ui.show_commands()` synchronized when commands/features change.

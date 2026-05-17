@@ -1,8 +1,8 @@
 {
        "package": "agnosticDB",
-       "title": "agnosticDB-1.0.2 (Achaea Name Database)",
+       "title": "agnosticDB-1.0.3 (Achaea Name Database)",
        "description": "# agnosticDB\n\nStandalone name database for Mudlet + Achaea.\n\n## Quick Start\n1) Install the package in Mudlet 4.20.1 or newer.\n2) Run `adb` to confirm load and see common next steps.\n3) Run `adb refresh` (or `adb fetch <name>`).\n4) Use `adb whois <name>` or `adb stats`.\n5) Customize highlights and timing in `adb config`.\n\n## Common Commands\n- `adb`: compact jump menu.\n- `adb help`: full command reference.\n- `adb whois <name>`: show stored data (fetch if needed).\n- `adb fetch <name>` / `adb refresh`: fetch one or all online.\n- `adb quick`: fetch online list and queue new names only.\n- `adb config`: open config UI.\n- `adb highlights on|off`: toggle highlights.\n- `adb honors <name>`: capture honors.\n- `adb stats`: summary counts.",
-       "version": "1.0.2",
+       "version": "1.0.3",
        "author": "Nikolais",
        "icon": "",
        "dependencies": "",
